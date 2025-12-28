@@ -1,0 +1,405 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css");
+@import "tailwindcss";
+
+:root {
+  --primary: #5500ff;
+  /* Black Color */
+  --black-100: #000000;
+  --black-90: #222222;
+  --black-85: #333333;
+  --black-80: #444444;
+  --black-70: #666666;
+  --black-65: #777777;
+  --black-60: #888888;
+  --black-55: #999999;
+  --black-50: #aaaaaa;
+  --black-45: #bbbbbb;
+  --black-40: #cccccc;
+  --black-35: #dddddd;
+  --black-30: #e6e6e6;
+  --black-25: #ececec;
+  --black-20: #f4f4f4;
+  --black-15: #f7f7f7;
+  --black-10: #f9f9f9;
+  --black-5: #fafafa;
+
+  /* White */
+  --white-100: #ffffff;
+
+  /* Status */
+  --success: #27ae60;
+  --warning: #f2994a;
+  --error: #eb5757;
+
+  /* Icon Size */
+  --icon-xs: 16px;
+  --icon-s: 20px;
+  --icon-m: 24px;
+  --icon-l: 40px;
+  --icon-xl: 48px;
+}
+
+* {
+  font-family: "Pretendard";
+}
+
+/* TypoGraphy */
+@layer utilities {
+  /* Headline */
+  .text-headline-42-bold {
+    font-size: 42px;
+    line-height: 130%;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .text-headline-32-bold {
+    font-size: 32px;
+    line-height: 130%;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .text-headline-28-bold {
+    font-size: 28px;
+    line-height: 130%;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .text-headline-24-bold {
+    font-size: 24px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .text-headline-22-bold {
+    font-size: 22px;
+    line-height: 136%;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+
+  /* Titles */
+  .text-title-24-semibold {
+    font-size: 24px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-title-22-semibold {
+    font-size: 22px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-title-20-bold {
+    font-size: 20px;
+    line-height: 136%;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+  .text-20-bold {
+    font-size: 20px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .text-title-20-semibold {
+    font-size: 20px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-title-18-bold {
+    font-size: 18px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .text-title-18-semibold {
+    font-size: 18px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-title-16-bold {
+    font-size: 16px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .text-title-16-semibold {
+    font-size: 16px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-title-14-semibold {
+    font-size: 14px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+
+  /* Text */
+  .text-17-bold {
+    font-size: 17px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .text-17-semibold {
+    font-size: 17px;
+    line-height: 136%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-16-medium {
+    font-size: 16px;
+    line-height: 144%;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+  }
+  .text-16-semibold {
+    font-size: 16px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-16-regular {
+    font-size: 16px;
+    line-height: 144%;
+    letter-spacing: -0.01em;
+    font-weight: 400;
+  }
+  .text-15-semibold {
+    font-size: 15px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-15-medium {
+    font-size: 15px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+  .text-15-regular {
+    font-size: 15px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .text-14-medium {
+    font-size: 14px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+  .text-14-regular {
+    font-size: 14px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .text-14-semibold {
+    font-size: 14px;
+    line-height: 136%;
+    letter-spacing: -2%;
+    font-weight: 600;
+  }
+  .text-13-bold {
+    font-size: 13px;
+    line-height: 136%;
+    letter-spacing: -1%;
+    font-weight: 700;
+  }
+  .text-13-regular {
+    font-size: 13px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .text-12-regular {
+    font-size: 12px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 400;
+  }
+  .text-12-semibold {
+    font-size: 12px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+  .text-12-medium {
+    font-size: 12px;
+    line-height: 144%;
+    letter-spacing: 0;
+    font-weight: 500;
+  }
+}
+
+@layer components {
+  .text-primary {
+    color: var(--primary);
+  }
+  .bg-primary {
+    background-color: var(--primary);
+  }
+  .border-primary {
+    border-color: var(--primary);
+  }
+  .hover\:border-primary:hover {
+    border-color: var(--primary);
+  }
+  .focus\:border-primary:focus {
+    border-color: var(--primary);
+  }
+  .group:hover .group-hover\:text-primary {
+    color: var(--primary);
+  }
+  /* Black Text Colors */
+  .text-black-100 {
+    color: var(--black-100);
+  }
+  .text-black-90 {
+    color: var(--black-90);
+  }
+  .text-black-80 {
+    color: var(--black-80);
+  }
+  .text-black-70 {
+    color: var(--black-70);
+  }
+  .text-black-60 {
+    color: var(--black-60);
+  }
+  .text-black-50 {
+    color: var(--black-50);
+  }
+  .text-black-40 {
+    color: var(--black-40);
+  }
+  .text-black-30 {
+    color: var(--black-30);
+  }
+  .text-black-20 {
+    color: var(--black-20);
+  }
+  .text-black-10 {
+    color: var(--black-10);
+  }
+  .text-black-5 {
+    color: var(--black-5);
+  }
+
+  /* Black Background Colors */
+  .bg-black-100 {
+    background-color: var(--black-100);
+  }
+  .bg-black-90 {
+    background-color: var(--black-90);
+  }
+  .bg-black-85 {
+    background-color: var(--black-85);
+  }
+  .bg-black-80 {
+    background-color: var(--black-80);
+  }
+  .bg-black-70 {
+    background-color: var(--black-70);
+  }
+  .bg-black-65 {
+    background-color: var(--black-65);
+  }
+  .bg-black-60 {
+    background-color: var(--black-60);
+  }
+  .bg-black-55 {
+    background-color: var(--black-55);
+  }
+  .bg-black-50 {
+    background-color: var(--black-50);
+  }
+  .bg-black-45 {
+    background-color: var(--black-45);
+  }
+  .bg-black-40 {
+    background-color: var(--black-40);
+  }
+  .bg-black-35 {
+    background-color: var(--black-35);
+  }
+  .bg-black-30 {
+    background-color: var(--black-30);
+  }
+  .bg-black-25 {
+    background-color: var(--black-25);
+  }
+  .bg-black-20 {
+    background-color: var(--black-20);
+  }
+  .bg-black-15 {
+    background-color: var(--black-15);
+  }
+  .bg-black-10 {
+    background-color: var(--black-10);
+  }
+  .bg-black-5 {
+    background-color: var(--black-5);
+  }
+
+  /* Black Border Colors */
+  .border-black-35 {
+    border-color: var(--black-35);
+  }
+
+  .border-black-30 {
+    border-color: var(--black-30);
+  }
+
+  .border-black-25 {
+    border-color: var(--black-25);
+  }
+
+  .border-black-20 {
+    border-color: var(--black-20);
+  }
+
+  .border-b-black-25 {
+    border-bottom-color: var(--black-25);
+  }
+
+  .border-b-black-20 {
+    border-bottom-color: var(--black-20);
+  }
+
+  /* White 색상 유틸리티 */
+  .text-white-100 {
+    color: var(--white-100);
+  }
+  .bg-white-100 {
+    background-color: var(--white-100);
+  }
+
+  /* Icon Sizes */
+  .icon-xs {
+    width: var(--icon-xs);
+    height: var(--icon-xs);
+  }
+  .icon-s {
+    width: var(--icon-s);
+    height: var(--icon-s);
+  }
+  .icon-m {
+    width: var(--icon-m);
+    height: var(--icon-m);
+  }
+  .icon-l {
+    width: var(--icon-l);
+    height: var(--icon-l);
+  }
+  .icon-xl {
+    width: var(--icon-xl);
+    height: var(--icon-xl);
+  }
+}
