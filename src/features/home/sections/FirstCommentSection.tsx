@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 const FirstCommentSection = () => {
+  const navigate = useNavigate();
   return (
     <section className="flex flex-col w-full px-10 py-25">
       <div className="flex flex-col w-full gap-10 items-center justify-center">
@@ -10,11 +13,14 @@ const FirstCommentSection = () => {
         </div>
 
         <div className="flex w-full items-center justify-center gap-4">
-          <div className="flex w-50 h-14 items-center justify-center rounded-xl bg-primary cursor-pointer">
+          <button
+            onClick={() => navigate("/design")}
+            className="flex w-50 h-14 items-center justify-center rounded-xl bg-primary cursor-pointer"
+          >
             <span className="text-18-title-semibold text-white-100">
               바로 만들어보기
             </span>
-          </div>
+          </button>
           <div className="flex w-50 h-14 items-center justify-center border border-primary rounded-xl cursor-pointer">
             <span className="text-18-title-semibold text-primary">
               내 학습자료

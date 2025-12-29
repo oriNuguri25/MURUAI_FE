@@ -86,7 +86,7 @@ const AuthModal = () => {
             <>
               <div className="w-80 h-50 overflow-hidden">
                 <img
-                  src={images.mainLogoSVG}
+                  src={images.mainLogo}
                   alt="MURU.AI"
                   className="w-full h-auto scale-125 -translate-y-[10%]"
                 />

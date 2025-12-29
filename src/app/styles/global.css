@@ -257,6 +257,7 @@
   .group:hover .group-hover\:text-primary {
     color: var(--primary);
   }
+
   /* Black Text Colors */
   .text-black-100 {
     color: var(--black-100);
@@ -290,6 +291,11 @@
   }
   .text-black-5 {
     color: var(--black-5);
+  }
+
+  /* Placeholder Colors */
+  .placeholder\:text-black-50::placeholder {
+    color: var(--black-50);
   }
 
   /* Black Background Colors */
@@ -346,6 +352,14 @@
   }
   .bg-black-5 {
     background-color: var(--black-5);
+  }
+
+  /* Hover Background Colors */
+  .hover\:bg-black-20:hover {
+    background-color: var(--black-20);
+  }
+  .hover\:bg-black-10:hover {
+    background-color: var(--black-10);
   }
 
   /* Black Border Colors */
