@@ -102,15 +102,10 @@ const SearchInput = ({
 
 const EmotionList = ({
   emotions,
-  maxHeight = "400px",
 }: {
   emotions: typeof EMOTIONS;
-  maxHeight?: string;
 }) => (
-  <div
-    className="flex flex-col gap-2 overflow-y-auto pr-1"
-    style={{ maxHeight }}
-  >
+  <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0">
     {emotions.length > 0 ? (
       <div className="grid grid-cols-2 gap-2">
         {emotions.map((emotion) => (
@@ -171,14 +166,14 @@ const EmotionContent = () => {
   const [selectedMode, setSelectedMode] = useState<"basic" | "ai">("basic");
 
   return (
-    <div className="flex flex-col w-full gap-6">
+    <div className="flex flex-col w-full h-full gap-6">
       <div className="flex items-center text-start">
         <span className="flex text-14-regular text-black-70">
           다양한 감정을 클릭하여 우측 캔버스에 추가해보세요.
         </span>
       </div>
 
-      <div className="flex flex-col w-full gap-5">
+      <div className="flex flex-col w-full flex-1 gap-5 min-h-0">
         <div className="flex gap-2 p-1 bg-black-10 rounded-lg w-full">
           <ToggleButton
             isActive={selectedMode === "basic"}
@@ -194,7 +189,7 @@ const EmotionContent = () => {
           </ToggleButton>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col flex-1 gap-2 min-h-0">
           {selectedMode === "basic" ? <EmotionContentArea /> : <ComingSoon />}
         </div>
       </div>
@@ -208,7 +203,7 @@ const EmotionContentArea = () => {
   >("photo");
 
   return (
-    <div className="flex flex-col w-full gap-4">
+    <div className="flex flex-col w-full h-full gap-4">
       <div className="flex gap-1.5 w-full">
         <TypeButton
           isActive={selectedType === "photo"}
@@ -230,7 +225,7 @@ const EmotionContentArea = () => {
         />
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col flex-1 gap-2 min-h-0">
         {selectedType === "photo" && <PhotoEmotionContent />}
         {selectedType === "drawing" && <DrawingEmotionContent />}
         {selectedType === "line" && <ComingSoon />}
@@ -248,7 +243,7 @@ const PhotoEmotionContent = () => {
   );
 
   return (
-    <div className="flex flex-col w-full gap-3">
+    <div className="flex flex-col w-full h-full gap-3">
       <GenderToggle gender={gender} onGenderChange={setGender} />
       <SearchInput value={searchTerm} onChange={setSearchTerm} />
       <EmotionList emotions={filteredEmotions} />
@@ -264,9 +259,9 @@ const DrawingEmotionContent = () => {
   );
 
   return (
-    <div className="flex flex-col w-full gap-3">
+    <div className="flex flex-col w-full h-full gap-3">
       <SearchInput value={searchTerm} onChange={setSearchTerm} />
-      <EmotionList emotions={filteredEmotions} maxHeight="450px" />
+      <EmotionList emotions={filteredEmotions} />
     </div>
   );
 };

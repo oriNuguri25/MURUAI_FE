@@ -6,9 +6,27 @@ import {
   Type,
   Upload,
   Grid2X2Icon,
+  Construction,
 } from "lucide-react";
 import { useState } from "react";
+import UploadContent from "../components/detail_content/UploadContent";
+import AACContent from "../components/detail_content/AACContent";
+import EmotionContent from "../components/detail_content/EmotionContent";
 import ElementContent from "../components/detail_content/ElementContent";
+import TextContent from "../components/detail_content/TextContent";
+import TemplateContent from "../components/detail_content/TemplateContent";
+
+const ComingSoon = () => (
+  <div className="flex flex-col items-center justify-center gap-4 py-20">
+    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-black-10">
+      <Construction className="icon-l text-black-50" />
+    </div>
+    <div className="flex flex-col items-center gap-1">
+      <span className="text-16-semibold text-black-90">아직 준비중이에요</span>
+      <span className="text-14-regular text-black-60">곧 만나보실 수 있어요</span>
+    </div>
+  </div>
+);
 
 const SideBar = () => {
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
@@ -34,6 +52,27 @@ const SideBar = () => {
   const getMenuTitle = () => {
     const currentMenu = menuItems.find((item) => item.id === selectedMenu);
     return currentMenu?.label || "";
+  };
+
+  const renderContent = () => {
+    switch (selectedMenu) {
+      case "design":
+        return <ComingSoon />;
+      case "template":
+        return <TemplateContent />;
+      case "emotion":
+        return <EmotionContent />;
+      case "element":
+        return <ElementContent />;
+      case "text":
+        return <TextContent />;
+      case "upload":
+        return <UploadContent />;
+      case "aac":
+        return <AACContent />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -74,8 +113,8 @@ const SideBar = () => {
           <div className="text-title-20-semibold text-black-100">
             {getMenuTitle()}
           </div>
-          <div className="flex-1">
-            <ElementContent />
+          <div className="flex-1 min-h-0">
+            {renderContent()}
           </div>
         </div>
       )}
