@@ -3,12 +3,26 @@ import { useState } from "react";
 import UserCard from "../components/UserCard";
 import GroupCard from "../components/GroupCard";
 import { useModalStore } from "@/shared/store/useModalStore";
+import { useAuthStore } from "@/shared/store/useAuthStore";
 
 const ChoiceUserSection = () => {
   const [lessonType, setLessonType] = useState<"individual" | "group">(
     "individual"
   );
-  const { openAddUserModal, openAddGroupModal } = useModalStore();
+  const { openAddUserModal, openAddGroupModal, openAuthModal } = useModalStore();
+  const { isAuthenticated } = useAuthStore();
+
+  const handleAddClick = () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    if (lessonType === "individual") {
+      openAddUserModal();
+    } else {
+      openAddGroupModal();
+    }
+  };
 
   return (
     <section className="flex flex-col w-full px-10 gap-10">
@@ -54,7 +68,7 @@ const ChoiceUserSection = () => {
         {/* 추가하기 버튼 */}
         <button
           type="button"
-          onClick={lessonType === "individual" ? openAddUserModal : openAddGroupModal}
+          onClick={handleAddClick}
           className="group relative flex flex-col h-full rounded-xl items-center justify-center border-2 border-dashed border-black-30 bg-black-5 p-6 transition hover:border-primary hover:shadow-sm cursor-pointer"
         >
           <div className="pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full bg-black-10 opacity-60 blur-2xl" />

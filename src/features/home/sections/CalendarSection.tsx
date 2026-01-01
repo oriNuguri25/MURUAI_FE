@@ -2,10 +2,20 @@ import { Calendar, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { getWeekDays, getWeekRange } from "../utils/dateUtils";
 import { useModalStore } from "@/shared/store/useModalStore";
+import { useAuthStore } from "@/shared/store/useAuthStore";
 
 const CalendarSection = () => {
   const [weekOffset, setWeekOffset] = useState(0);
-  const { openAddScheduleModal } = useModalStore();
+  const { openAddScheduleModal, openAuthModal } = useModalStore();
+  const { isAuthenticated } = useAuthStore();
+
+  const handleAddScheduleClick = () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    openAddScheduleModal();
+  };
 
   const days = getWeekDays(weekOffset);
 
@@ -66,7 +76,7 @@ const CalendarSection = () => {
           {/* 일정 등록 버튼 */}
           <button
             type="button"
-            onClick={openAddScheduleModal}
+            onClick={handleAddScheduleClick}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white-100 text-title-14-semibold shadow-md transition hover:bg-primary/90 hover:shadow-lg"
           >
             <Plus className="h-5 w-5" />

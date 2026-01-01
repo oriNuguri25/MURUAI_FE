@@ -1,0 +1,124 @@
+import { useState } from "react";
+import { supabase } from "@/shared/supabase/supabase";
+
+export const useAuth = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google 로그인 실패");
+      console.error("Google login error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithKakao = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "kakao",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "카카오 로그인 실패");
+      console.error("Kakao login error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "이메일 로그인 실패");
+      console.error("Email login error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signUpWithEmail = async (
+    email: string,
+    password: string,
+    name: string
+  ) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          },
+        },
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "회원가입 실패");
+      console.error("Signup error:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "로그아웃 실패");
+      console.error("Signout error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    loading,
+    error,
+    signInWithGoogle,
+    signInWithKakao,
+    signInWithEmail,
+    signUpWithEmail,
+    signOut,
+  };
+};

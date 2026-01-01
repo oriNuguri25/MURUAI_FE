@@ -29,6 +29,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./",\
         "packageDependencies": [\
           ["@eslint/js", "npm:9.39.2"],\
+          ["@supabase/supabase-js", "npm:2.89.0"],\
           ["@tailwindcss/vite", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:4.1.18"],\
           ["@types/node", "npm:24.10.4"],\
           ["@types/react", "npm:19.2.7"],\
@@ -1101,6 +1102,74 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@supabase/auth-js", [\
+      ["npm:2.89.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/@supabase-auth-js-npm-2.89.0-4345d764d3-10c0.zip/node_modules/@supabase/auth-js/",\
+        "packageDependencies": [\
+          ["@supabase/auth-js", "npm:2.89.0"],\
+          ["tslib", "npm:2.8.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@supabase/functions-js", [\
+      ["npm:2.89.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/@supabase-functions-js-npm-2.89.0-3e45359526-10c0.zip/node_modules/@supabase/functions-js/",\
+        "packageDependencies": [\
+          ["@supabase/functions-js", "npm:2.89.0"],\
+          ["tslib", "npm:2.8.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@supabase/postgrest-js", [\
+      ["npm:2.89.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/@supabase-postgrest-js-npm-2.89.0-5d526f9f2d-10c0.zip/node_modules/@supabase/postgrest-js/",\
+        "packageDependencies": [\
+          ["@supabase/postgrest-js", "npm:2.89.0"],\
+          ["tslib", "npm:2.8.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@supabase/realtime-js", [\
+      ["npm:2.89.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/@supabase-realtime-js-npm-2.89.0-17fbcf3b69-10c0.zip/node_modules/@supabase/realtime-js/",\
+        "packageDependencies": [\
+          ["@supabase/realtime-js", "npm:2.89.0"],\
+          ["@types/phoenix", "npm:1.6.7"],\
+          ["@types/ws", "npm:8.18.1"],\
+          ["tslib", "npm:2.8.1"],\
+          ["ws", "virtual:17fbcf3b69d5a9086df55e9f165407967ffb8dee431cd05d73401ae8a8b86a1ad35432043b5edf674273ac077b403839e145306c0cca9d253e6e6bf4a49a3bec#npm:8.18.3"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@supabase/storage-js", [\
+      ["npm:2.89.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/@supabase-storage-js-npm-2.89.0-20c91d1cf0-10c0.zip/node_modules/@supabase/storage-js/",\
+        "packageDependencies": [\
+          ["@supabase/storage-js", "npm:2.89.0"],\
+          ["iceberg-js", "npm:0.8.1"],\
+          ["tslib", "npm:2.8.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@supabase/supabase-js", [\
+      ["npm:2.89.0", {\
+        "packageLocation": "../../../.yarn/berry/cache/@supabase-supabase-js-npm-2.89.0-0dd1a09dc2-10c0.zip/node_modules/@supabase/supabase-js/",\
+        "packageDependencies": [\
+          ["@supabase/auth-js", "npm:2.89.0"],\
+          ["@supabase/functions-js", "npm:2.89.0"],\
+          ["@supabase/postgrest-js", "npm:2.89.0"],\
+          ["@supabase/realtime-js", "npm:2.89.0"],\
+          ["@supabase/storage-js", "npm:2.89.0"],\
+          ["@supabase/supabase-js", "npm:2.89.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@szmarczak/http-timer", [\
       ["npm:4.0.6", {\
         "packageLocation": "../../../.yarn/berry/cache/@szmarczak-http-timer-npm-4.0.6-6ace00d82d-10c0.zip/node_modules/@szmarczak/http-timer/",\
@@ -1419,6 +1488,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@types/phoenix", [\
+      ["npm:1.6.7", {\
+        "packageLocation": "../../../.yarn/berry/cache/@types-phoenix-npm-1.6.7-b106a0dcf2-10c0.zip/node_modules/@types/phoenix/",\
+        "packageDependencies": [\
+          ["@types/phoenix", "npm:1.6.7"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@types/react", [\
       ["npm:19.2.7", {\
         "packageLocation": "../../../.yarn/berry/cache/@types-react-npm-19.2.7-2ae71602b6-10c0.zip/node_modules/@types/react/",\
@@ -1473,6 +1551,16 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../.yarn/berry/cache/@types-treeify-npm-1.0.3-ef5ef3400e-10c0.zip/node_modules/@types/treeify/",\
         "packageDependencies": [\
           ["@types/treeify", "npm:1.0.3"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@types/ws", [\
+      ["npm:8.18.1", {\
+        "packageLocation": "../../../.yarn/berry/cache/@types-ws-npm-8.18.1-61dc106ff0-10c0.zip/node_modules/@types/ws/",\
+        "packageDependencies": [\
+          ["@types/node", "npm:25.0.3"],\
+          ["@types/ws", "npm:8.18.1"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -2996,6 +3084,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["iceberg-js", [\
+      ["npm:0.8.1", {\
+        "packageLocation": "../../../.yarn/berry/cache/iceberg-js-npm-0.8.1-8eb1cb03e9-10c0.zip/node_modules/iceberg-js/",\
+        "packageDependencies": [\
+          ["iceberg-js", "npm:0.8.1"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["iconv-lite", [\
       ["npm:0.6.3", {\
         "packageLocation": "../../../.yarn/berry/cache/iconv-lite-npm-0.6.3-24b8aae27e-10c0.zip/node_modules/iconv-lite/",\
@@ -3596,6 +3693,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./",\
         "packageDependencies": [\
           ["@eslint/js", "npm:9.39.2"],\
+          ["@supabase/supabase-js", "npm:2.89.0"],\
           ["@tailwindcss/vite", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:4.1.18"],\
           ["@types/node", "npm:24.10.4"],\
           ["@types/react", "npm:19.2.7"],\
@@ -4598,6 +4696,32 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../.yarn/berry/cache/wrappy-npm-1.0.2-916de4d4b3-10c0.zip/node_modules/wrappy/",\
         "packageDependencies": [\
           ["wrappy", "npm:1.0.2"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["ws", [\
+      ["npm:8.18.3", {\
+        "packageLocation": "../../../.yarn/berry/cache/ws-npm-8.18.3-665d39209d-10c0.zip/node_modules/ws/",\
+        "packageDependencies": [\
+          ["ws", "npm:8.18.3"]\
+        ],\
+        "linkType": "SOFT"\
+      }],\
+      ["virtual:17fbcf3b69d5a9086df55e9f165407967ffb8dee431cd05d73401ae8a8b86a1ad35432043b5edf674273ac077b403839e145306c0cca9d253e6e6bf4a49a3bec#npm:8.18.3", {\
+        "packageLocation": "./.yarn/__virtual__/ws-virtual-20360ee1f4/4/.yarn/berry/cache/ws-npm-8.18.3-665d39209d-10c0.zip/node_modules/ws/",\
+        "packageDependencies": [\
+          ["@types/bufferutil", null],\
+          ["@types/utf-8-validate", null],\
+          ["bufferutil", null],\
+          ["utf-8-validate", null],\
+          ["ws", "virtual:17fbcf3b69d5a9086df55e9f165407967ffb8dee431cd05d73401ae8a8b86a1ad35432043b5edf674273ac077b403839e145306c0cca9d253e6e6bf4a49a3bec#npm:8.18.3"]\
+        ],\
+        "packagePeers": [\
+          "@types/bufferutil",\
+          "@types/utf-8-validate",\
+          "bufferutil",\
+          "utf-8-validate"\
         ],\
         "linkType": "HARD"\
       }]\

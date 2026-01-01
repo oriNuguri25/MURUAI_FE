@@ -2,9 +2,18 @@ import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { images } from "@/shared/assets";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 const AuthModal = () => {
   const { openModal, closeModal } = useModalStore();
+  const {
+    loading,
+    error,
+    signInWithGoogle,
+    signInWithKakao,
+    signInWithEmail,
+    signUpWithEmail,
+  } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -37,20 +46,34 @@ const AuthModal = () => {
     closeModal();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 로그인/회원가입 로직
-    console.log({
-      name: isLoginMode ? undefined : name,
-      email,
-      password,
-      mode: isLoginMode ? "login" : "signup",
-    });
-    handleClose();
+
+    try {
+      if (isLoginMode) {
+        await signInWithEmail(email, password);
+      } else {
+        await signUpWithEmail(email, password, name);
+      }
+      handleClose();
+    } catch {
+      // 에러는 useAuth 훅에서 처리됨
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    await signInWithGoogle();
+  };
+
+  const handleKakaoLogin = async () => {
+    await signInWithKakao();
   };
 
   const isSubmitDisabled =
-    !email.trim() || !password.trim() || (!isLoginMode && !name.trim());
+    loading ||
+    !email.trim() ||
+    !password.trim() ||
+    (!isLoginMode && !name.trim());
 
   if (!isOpen) return null;
 
@@ -99,12 +122,21 @@ const AuthModal = () => {
         </div>
 
         <div className="flex flex-col pt-5 gap-4">
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-14-regular text-red-600">
+              {error}
+            </div>
+          )}
+
           {/* 소셜 로그인 버튼 */}
           <div className="flex flex-col gap-3">
             {/* Google 로그인 버튼 - Google Brand Guidelines */}
             <button
               type="button"
-              className="flex h-11 items-center justify-center gap-3 rounded-md bg-white-100 border border-[#dadce0] py-0 px-3 text-[14px] font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] hover:border-[#d2e3fc] hover:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)] cursor-pointer"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="flex h-11 items-center justify-center gap-3 rounded-md bg-white-100 border border-[#dadce0] py-0 px-3 text-14-medium text-[#3c4043] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
                 width="18"
@@ -137,7 +169,9 @@ const AuthModal = () => {
             {/* 카카오 로그인 버튼 - Kakao Brand Guidelines */}
             <button
               type="button"
-              className="flex h-11 items-center justify-center gap-2 rounded-md bg-[#FEE500] py-0 px-3 text-[15px] font-semibold text-[#000000] opacity-[0.85] transition hover:opacity-100 cursor-pointer"
+              onClick={handleKakaoLogin}
+              disabled={loading}
+              className="flex h-11 items-center justify-center gap-2 rounded-md bg-[#FEE500] py-0 px-3 text-15-semibold text-black-100 opacity-[0.85] transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
                 width="18"

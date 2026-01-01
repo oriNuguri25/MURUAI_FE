@@ -28,6 +28,27 @@ const MainSection = () => {
     setSelectedPageId(newPage.id);
   };
 
+  const handleAddPageAtIndex = (index: number) => {
+    const newPage: Page = {
+      id: Date.now().toString(),
+      thumbnail: "",
+      pageNumber: index + 1, // 임시 번호
+    };
+
+    // 지정된 인덱스에 새 페이지 삽입
+    const newPages = [...pages];
+    newPages.splice(index, 0, newPage);
+
+    // 페이지 번호 재정렬
+    const reorderedPages = newPages.map((page, idx) => ({
+      ...page,
+      pageNumber: idx + 1,
+    }));
+
+    setPages(reorderedPages);
+    setSelectedPageId(newPage.id);
+  };
+
   const handleSelectPage = (pageId: string) => {
     setSelectedPageId(pageId);
   };
@@ -147,6 +168,7 @@ const MainSection = () => {
         onSelectPage={handleSelectPage}
         onReorderPages={handleReorderPages}
         onDeletePage={handleDeletePage}
+        onAddPageAtIndex={handleAddPageAtIndex}
       />
     </div>
   );

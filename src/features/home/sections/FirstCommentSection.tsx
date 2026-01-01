@@ -1,7 +1,20 @@
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/shared/store/useAuthStore";
+import { useModalStore } from "@/shared/store/useModalStore";
 
 const FirstCommentSection = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  const { openAuthModal } = useModalStore();
+
+  const handleMyMaterialsClick = () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    // TODO: Navigate to my materials page
+  };
+
   return (
     <section className="flex flex-col w-full px-10 py-25">
       <div className="flex flex-col w-full gap-10 items-center justify-center">
@@ -21,11 +34,14 @@ const FirstCommentSection = () => {
               바로 만들어보기
             </span>
           </button>
-          <div className="flex w-50 h-14 items-center justify-center border border-primary rounded-xl cursor-pointer">
+          <button
+            onClick={handleMyMaterialsClick}
+            className="flex w-50 h-14 items-center justify-center border border-primary rounded-xl cursor-pointer"
+          >
             <span className="text-18-title-semibold text-primary">
               내 학습자료
             </span>
-          </div>
+          </button>
         </div>
       </div>
     </section>
