@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
+import { studentModel } from "../model/student.model";
 
 const AddUserModal = () => {
   const { openModal, closeModal } = useModalStore();
@@ -8,6 +9,8 @@ const AddUserModal = () => {
   const [birthYear, setBirthYear] = useState("");
   const [notes, setNotes] = useState("");
   const [learningGoals, setLearningGoals] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isOpen = openModal === "addUser";
 
@@ -16,6 +19,7 @@ const AddUserModal = () => {
     setBirthYear("");
     setNotes("");
     setLearningGoals("");
+    setError(null);
   };
 
   const handleBirthYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,19 +30,48 @@ const AddUserModal = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 아동 추가 로직
-    console.log({ name, birthYear, notes, learningGoals });
-    handleReset();
-    closeModal();
+    setLoading(true);
+    setError(null);
+
+    const { data, error: createError } = await studentModel.create({
+      name,
+      birth_year: birthYear,
+      significant: notes || undefined,
+      learning_goal: learningGoals || undefined,
+    });
+
+    setLoading(false);
+
+    if (createError) {
+      setError(createError.message);
+      return;
+    }
+
+    if (data) {
+      handleReset();
+      closeModal();
+    }
   };
 
-  const isSubmitDisabled = !name.trim() || !birthYear.trim();
+  const isSubmitDisabled = loading || !name.trim() || !birthYear.trim();
 
   return (
-    <BaseModal isOpen={isOpen} onClose={closeModal} onReset={handleReset} title="아동 추가하기">
+    <BaseModal
+      isOpen={isOpen}
+      onClose={closeModal}
+      onReset={handleReset}
+      title="아동 추가하기"
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="rounded-lg bg-red-50 px-4 py-3 text-14-regular text-red-600">
+            {error}
+          </div>
+        )}
+
         {/* 아동 이름 */}
         <div className="flex flex-col gap-2">
           <label
@@ -133,7 +166,7 @@ const AddUserModal = () => {
                 : "bg-primary hover:bg-primary/90"
             }`}
           >
-            추가하기
+            {loading ? "추가 중..." : "추가하기"}
           </button>
         </div>
       </form>

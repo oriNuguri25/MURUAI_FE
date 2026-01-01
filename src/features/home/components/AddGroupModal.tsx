@@ -1,18 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
-
-interface Member {
-  id: number;
-  name: string;
-  birthYear: number;
-}
+import { studentModel, type Student } from "../model/student.model";
+import { groupModel } from "../model/group.model";
 
 const AddGroupModal = () => {
   const { openModal, closeModal } = useModalStore();
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [availableMembers, setAvailableMembers] = useState<Student[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isOpen = openModal === "addGroup";
 
@@ -20,18 +20,39 @@ const AddGroupModal = () => {
     setGroupName("");
     setDescription("");
     setSelectedMembers([]);
+    setLoading(false);
+    setLoadingMembers(false);
+    setError(null);
   };
 
-  // TODO: 실제 데이터는 API에서 가져와야 함
-  const availableMembers: Member[] = [];
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchStudents = async () => {
+      setLoadingMembers(true);
+      const { data, error: fetchError } = await studentModel.getAll();
+
+      if (fetchError) {
+        setError(fetchError.message);
+        setAvailableMembers([]);
+      } else {
+        setAvailableMembers(data ?? []);
+      }
+
+      setLoadingMembers(false);
+    };
+
+    fetchStudents();
+  }, [isOpen]);
+
   const hasMembers = availableMembers.length > 0;
 
-  const calculateAge = (birthYear: number) => {
+  const calculateAge = (birthYear: string) => {
     const currentYear = new Date().getFullYear();
-    return currentYear - birthYear;
+    return currentYear - parseInt(birthYear, 10);
   };
 
-  const handleMemberToggle = (memberId: number) => {
+  const handleMemberToggle = (memberId: string) => {
     setSelectedMembers((prev) =>
       prev.includes(memberId)
         ? prev.filter((id) => id !== memberId)
@@ -41,23 +62,47 @@ const AddGroupModal = () => {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 그룹 추가 로직
-    console.log({
-      groupName,
-      description,
-      selectedMembers,
+    setLoading(true);
+    setError(null);
+
+    const { data, error: createError } = await groupModel.create({
+      name: groupName.trim(),
+      description: description.trim() || undefined,
+      memberIds: selectedMembers,
     });
-    handleReset();
-    closeModal();
+
+    setLoading(false);
+
+    if (createError) {
+      setError(createError.message);
+      return;
+    }
+
+    if (data) {
+      handleReset();
+      closeModal();
+    }
   };
 
-  const isSubmitDisabled = !groupName.trim() || selectedMembers.length === 0;
+  const isSubmitDisabled =
+    loading || !groupName.trim() || selectedMembers.length === 0;
 
   return (
-    <BaseModal isOpen={isOpen} onClose={closeModal} onReset={handleReset} title="그룹 추가하기">
+    <BaseModal
+      isOpen={isOpen}
+      onClose={closeModal}
+      onReset={handleReset}
+      title="그룹 추가하기"
+    >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {error && (
+          <div className="rounded-lg bg-red-50 px-4 py-3 text-14-regular text-red-600">
+            {error}
+          </div>
+        )}
+
         {/* 그룹 이름 */}
         <div className="flex flex-col gap-2">
           <label
@@ -99,30 +144,40 @@ const AddGroupModal = () => {
           <label className="text-title-14-semibold text-black-100">
             멤버 선택 (최대 5명)
           </label>
-          {hasMembers ? (
+          {loadingMembers ? (
+            <div className="rounded-lg border border-black-30 bg-white-100 px-4 py-3 text-15-regular text-black-60">
+              아동 목록을 불러오는 중입니다.
+            </div>
+          ) : hasMembers ? (
             <>
               <div className="flex flex-col gap-2">
-                {availableMembers.map((member) => (
-                  <label
-                    key={member.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                      selectedMembers.includes(member.id)
-                        ? "border-primary bg-primary/5"
-                        : "border-black-30 hover:bg-black-5"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedMembers.includes(member.id)}
-                      onChange={() => handleMemberToggle(member.id)}
-                      className="w-5 h-5 rounded border-black-30 text-primary focus:ring-0 focus:ring-offset-0"
-                    />
-                    <div className="flex-1 text-15-medium text-black-100">
-                      {member.name} | 만 {calculateAge(member.birthYear)}세 (
-                      {member.birthYear}년생)
-                    </div>
-                  </label>
-                ))}
+                {availableMembers.map((member) => {
+                  const memberId = member.id;
+                  if (!memberId) return null;
+                  const isSelected = selectedMembers.includes(memberId);
+
+                  return (
+                    <label
+                      key={memberId}
+                      className={`flex items-center gap-3 rounded-lg border p-3 transition ${
+                        isSelected
+                          ? "border-primary bg-primary/5"
+                          : "border-black-30 hover:bg-black-5"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleMemberToggle(memberId)}
+                        className="h-5 w-5 rounded border-black-30 text-primary focus:ring-0 focus:ring-offset-0"
+                      />
+                      <div className="flex-1 text-15-medium text-black-100">
+                        {member.name} | 만 {calculateAge(member.birth_year)}세 (
+                        {member.birth_year}년생)
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
               <div className="text-12-regular text-black-60">
                 {selectedMembers.length}/5명 선택됨
@@ -156,7 +211,7 @@ const AddGroupModal = () => {
                 : "bg-primary hover:bg-primary/90"
             }`}
           >
-            추가하기
+            {loading ? "추가 중..." : "추가하기"}
           </button>
         </div>
       </form>

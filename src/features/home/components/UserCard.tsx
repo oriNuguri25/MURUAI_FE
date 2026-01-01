@@ -1,10 +1,22 @@
-const UserCard = () => {
+import type { Student } from "../model/student.model";
+
+interface UserCardProps {
+  student: Student;
+}
+
+const UserCard = ({ student }: UserCardProps) => {
+  // 현재 연도와 출생 연도로 나이 계산
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - parseInt(student.birth_year);
+
   return (
     <div className="flex flex-col h-85 rounded-xl border border-black-30 p-4 gap-4">
       <div className="flex flex-col text-start gap-1">
-        <span className="flex text-title-20-semibold text-black">팜하니</span>
+        <span className="flex text-title-20-semibold text-black">
+          {student.name}
+        </span>
         <span className="flex text-title-14-semibold text-black-70">
-          만 6세 · 2018년생
+          만 {age}세 · {student.birth_year}년생
         </span>
       </div>
 
@@ -24,7 +36,7 @@ const UserCard = () => {
 
           <div className="flex text-start items-center">
             <span className="flex text-12-regular text-black-100">
-              낯선 환경에 예민함, 시각 자료 선호
+              {student.significant || "특이사항이 없습니다."}
             </span>
           </div>
         </div>
@@ -38,7 +50,7 @@ const UserCard = () => {
 
           <div className="flex text-start items-center">
             <span className="flex text-12-regular text-black-100">
-              기본 발음 교정 및 문장 구성 연습
+              {student.learning_goal || "학습 목표가 없습니다."}
             </span>
           </div>
         </div>
