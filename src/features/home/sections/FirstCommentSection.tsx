@@ -12,7 +12,15 @@ const FirstCommentSection = () => {
       openAuthModal();
       return;
     }
-    // TODO: Navigate to my materials page
+    navigate("/mydoc");
+  };
+
+  const handleStartDesignClick = () => {
+    if (!isAuthenticated) {
+      openAuthModal();
+      return;
+    }
+    navigate("/design");
   };
 
   return (
@@ -27,7 +35,7 @@ const FirstCommentSection = () => {
 
         <div className="flex w-full items-center justify-center gap-4">
           <button
-            onClick={() => navigate("/design")}
+            onClick={handleStartDesignClick}
             className="flex w-50 h-14 items-center justify-center rounded-xl bg-primary cursor-pointer"
           >
             <span className="text-18-title-semibold text-white-100">

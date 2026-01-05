@@ -1,18 +1,22 @@
 import { useEffect } from "react";
-import type { Page } from "../components/BottomBar";
+import type { Page } from "./pageTypes";
 
 interface UseCopyPasteProps {
   selectedPageId: string;
   pages: Page[];
+  selectedIds: string[];
   onDuplicatePage: (pageId: string) => void;
   onDeletePage: (pageId: string) => void;
+  onDeleteElements?: (ids: string[]) => void;
 }
 
 export const useCopyPaste = ({
   selectedPageId,
   pages,
+  selectedIds,
   onDuplicatePage,
   onDeletePage,
+  onDeleteElements,
 }: UseCopyPasteProps) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,6 +50,12 @@ export const useCopyPaste = ({
           return;
         }
 
+        if (selectedIds.length > 0 && onDeleteElements) {
+          e.preventDefault();
+          onDeleteElements(selectedIds);
+          return;
+        }
+
         if (pages.length > 1) {
           e.preventDefault();
           onDeletePage(selectedPageId);
@@ -58,5 +68,12 @@ export const useCopyPaste = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedPageId, pages, onDuplicatePage, onDeletePage]);
+  }, [
+    selectedPageId,
+    pages,
+    selectedIds,
+    onDuplicatePage,
+    onDeletePage,
+    onDeleteElements,
+  ]);
 };

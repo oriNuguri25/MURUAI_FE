@@ -6,19 +6,155 @@ import {
   Monitor,
   Smartphone,
   Printer,
-  Download,
   Plus,
   Minus,
   RotateCcw,
 } from "lucide-react";
-import { Outlet } from "react-router-dom";
-import { useState } from "react";
+import { Outlet, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/shared/supabase/supabase";
+import { useTemplateStore } from "@/features/design/store/templateStore";
+import { TEMPLATE_REGISTRY } from "@/features/design/templates/templateRegistry";
+import { useOrientationStore } from "@/features/design/store/orientationStore";
+import { useHistoryStore } from "@/features/design/store/historyStore";
+import { useToastStore } from "@/features/design/store/toastStore";
+import ExportModal from "@/features/design/components/ExportModal";
+import type { CanvasDocument } from "@/features/design/model/pageTypes";
+import { saveUserMadeVersion } from "@/features/design/utils/userMadeExport";
+
+type TargetOption = {
+  id: string;
+  name: string;
+};
 
 const DesignLayout = () => {
-  const [orientation, setOrientation] = useState<"horizontal" | "vertical">(
-    "horizontal"
-  );
+  const orientation = useOrientationStore((state) => state.orientation);
+  const setOrientation = useOrientationStore((state) => state.setOrientation);
   const [zoom, setZoom] = useState<number>(100);
+  const [docName, setDocName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const { sessionId } = useParams<{ sessionId?: string }>();
+  const [loadedDocument, setLoadedDocument] = useState<CanvasDocument | null>(
+    null
+  );
+  const [loadedDocumentId, setLoadedDocumentId] = useState<string | null>(null);
+  const [lastSavedUserMadeId, setLastSavedUserMadeId] = useState<string | null>(
+    null
+  );
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportModalKey, setExportModalKey] = useState(0);
+  const [exportUserId, setExportUserId] = useState<string | null>(null);
+  const [students, setStudents] = useState<TargetOption[]>([]);
+  const [groups, setGroups] = useState<TargetOption[]>([]);
+  const [isLoadingTargets, setIsLoadingTargets] = useState(false);
+  const canvasGetterRef = useRef<() => CanvasDocument>(() => ({ pages: [] }));
+  const toastMessage = useToastStore((state) => state.message);
+  const showToast = useToastStore((state) => state.showToast);
+  const clearToast = useToastStore((state) => state.clearToast);
+  const toastTimeoutRef = useRef<number | null>(null);
+  const canUndo = useHistoryStore((state) => state.canUndo);
+  const canRedo = useHistoryStore((state) => state.canRedo);
+  const requestUndo = useHistoryStore((state) => state.requestUndo);
+  const requestRedo = useHistoryStore((state) => state.requestRedo);
+  const registerCanvasGetter = useCallback(
+    (getter: () => CanvasDocument) => {
+      canvasGetterRef.current = getter;
+    },
+    []
+  );
+  const clearLoadedDocument = useCallback(() => {
+    setLoadedDocument(null);
+  }, []);
+  const getCanvasData = useCallback(
+    () => canvasGetterRef.current(),
+    []
+  );
+  const getName = useCallback(
+    () => docName.trim() || "제목 없음",
+    [docName]
+  );
+
+  const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
+  const activeTemplate = selectedTemplate
+    ? TEMPLATE_REGISTRY[selectedTemplate]
+    : null;
+  const isVerticalLocked = activeTemplate?.orientation === "vertical-only";
+  const isHorizontalLocked = activeTemplate?.orientation === "horizontal-only";
+  const effectiveOrientation = isVerticalLocked
+    ? "vertical"
+    : isHorizontalLocked
+    ? "horizontal"
+    : orientation;
+  const isHorizontalDisabled = isVerticalLocked;
+  const isVerticalDisabled = isHorizontalLocked;
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      clearToast();
+      toastTimeoutRef.current = null;
+    }, 2000);
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, [toastMessage, clearToast]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setLoadedDocument(null);
+      setLoadedDocumentId(null);
+      return;
+    }
+    if (sessionId === loadedDocumentId) return;
+    let isMounted = true;
+    const loadUserMade = async () => {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user) {
+        showToast("로그인이 필요해요.");
+        return;
+      }
+      const { data: row, error } = await supabase
+        .from("user_made_n")
+        .select("id,name,canvas_data")
+        .eq("id", sessionId)
+        .single();
+      if (!isMounted) return;
+      if (error || !row) {
+        showToast("학습자료를 불러오지 못했어요.");
+        return;
+      }
+      let canvasData: unknown = row.canvas_data;
+      if (typeof canvasData === "string") {
+        try {
+          canvasData = JSON.parse(canvasData);
+        } catch {
+          showToast("학습자료 형식이 올바르지 않아요.");
+          return;
+        }
+      }
+      if (
+        !canvasData ||
+        !Array.isArray((canvasData as CanvasDocument).pages)
+      ) {
+        showToast("학습자료 형식이 올바르지 않아요.");
+        return;
+      }
+      setDocName(row.name ?? "");
+      setLoadedDocument(canvasData as CanvasDocument);
+      setLoadedDocumentId(row.id);
+      setLastSavedUserMadeId(row.id);
+    };
+    loadUserMade();
+    return () => {
+      isMounted = false;
+    };
+  }, [loadedDocumentId, sessionId, showToast]);
 
   const handleZoomIn = () => {
     if (zoom < 200) {
@@ -34,6 +170,84 @@ const DesignLayout = () => {
 
   const handleResetZoom = () => {
     setZoom(100);
+  };
+
+  const handleOrientationChange = (next: "horizontal" | "vertical") => {
+    if (next === "horizontal" && isVerticalLocked) {
+      showToast("해당 템플릿은 세로 버전만 지원합니다.");
+      return;
+    }
+    if (next === "vertical" && isHorizontalLocked) {
+      showToast("해당 템플릿은 가로 버전만 지원합니다.");
+      return;
+    }
+    setOrientation(next);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user) {
+        showToast("로그인이 필요해요.");
+        return;
+      }
+      const { id } = await saveUserMadeVersion({
+        userId: user.id,
+        name: getName(),
+        canvasData: getCanvasData(),
+      });
+      setLastSavedUserMadeId(id);
+      showToast("저장했습니다.");
+    } catch {
+      showToast("저장하지 못했어요.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleOpenExportModal = async () => {
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+    if (!user) {
+      showToast("로그인이 필요해요.");
+      return;
+    }
+    setExportUserId(user.id);
+    setIsExportModalOpen(true);
+    setExportModalKey((prev) => prev + 1);
+    setStudents([]);
+    setGroups([]);
+    setIsLoadingTargets(true);
+    try {
+      const [studentsResult, groupsResult] = await Promise.all([
+        supabase
+          .from("students_n")
+          .select("id,name")
+          .is("deleted_at", null),
+        supabase
+          .from("groups_n")
+          .select("id,name")
+          .is("deleted_at", null),
+      ]);
+
+      if (studentsResult.error) {
+        showToast("아동 목록을 불러오지 못했어요.");
+      }
+      if (groupsResult.error) {
+        showToast("그룹 목록을 불러오지 못했어요.");
+      }
+
+      setStudents(
+        (studentsResult.data as TargetOption[] | null) ?? []
+      );
+      setGroups((groupsResult.data as TargetOption[] | null) ?? []);
+    } catch {
+      showToast("대상을 불러오지 못했어요.");
+    } finally {
+      setIsLoadingTargets(false);
+    }
   };
 
   return (
@@ -52,14 +266,22 @@ const DesignLayout = () => {
             <div className="flex px-3 h-full items-center justify-center">
               <input
                 placeholder="제목을 입력해주세요"
+                value={docName}
+                onChange={(event) => setDocName(event.target.value)}
                 className="flex w-72 h-10 border border-transparent rounded-xl px-2 placeholder:text-black-50 focus:border-[#5500ff] focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap"
               />
             </div>
 
             <div className="flex h-full items-center justify-center pr-3">
-              <div className="flex h-10 w-10 rounded-xl items-center justify-center bg-black-20">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex h-10 w-10 rounded-xl items-center justify-center bg-black-20 transition hover:bg-black-30 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="저장"
+              >
                 <Save className="w-6 h-6 text-black-60" />
-              </div>
+              </button>
             </div>
 
             <div className="h-8 w-px bg-black-25" />
@@ -67,15 +289,27 @@ const DesignLayout = () => {
             <div className="flex h-full items-center justify-center gap-2">
               <button
                 type="button"
-                className="flex h-10 w-10 rounded-xl items-center justify-center hover:bg-black-20 transition cursor-pointer"
+                onClick={canUndo ? requestUndo : undefined}
+                className={`flex h-10 w-10 rounded-xl items-center justify-center transition ${
+                  canUndo
+                    ? "cursor-pointer hover:bg-black-20"
+                    : "cursor-not-allowed opacity-40"
+                }`}
                 aria-label="뒤로가기"
+                aria-disabled={!canUndo}
               >
                 <Undo className="w-5 h-5 text-black-60" />
               </button>
               <button
                 type="button"
-                className="flex h-10 w-10 rounded-xl items-center justify-center hover:bg-black-20 transition cursor-pointer"
+                onClick={canRedo ? requestRedo : undefined}
+                className={`flex h-10 w-10 rounded-xl items-center justify-center transition ${
+                  canRedo
+                    ? "cursor-pointer hover:bg-black-20"
+                    : "cursor-not-allowed opacity-40"
+                }`}
                 aria-label="앞으로가기"
+                aria-disabled={!canRedo}
               >
                 <Redo className="w-5 h-5 text-black-60" />
               </button>
@@ -87,25 +321,32 @@ const DesignLayout = () => {
               <div className="flex h-10 rounded-xl bg-black-10 p-1 gap-1">
                 <button
                   type="button"
-                  onClick={() => setOrientation("horizontal")}
-                  className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition cursor-pointer ${
-                    orientation === "horizontal"
-                      ? "bg-white-100 shadow-sm"
-                      : "hover:bg-black-20"
+                  onClick={() => handleOrientationChange("horizontal")}
+                  className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition ${
+                    effectiveOrientation === "horizontal"
+                      ? "bg-white-100 shadow-sm cursor-pointer"
+                      : isHorizontalDisabled
+                      ? "cursor-not-allowed opacity-40"
+                      : "cursor-pointer hover:bg-black-20"
                   }`}
+                  aria-disabled={isHorizontalDisabled}
                   aria-label="가로 모드"
                 >
                   <Monitor
                     className={`w-4 h-4 ${
-                      orientation === "horizontal"
+                      effectiveOrientation === "horizontal"
                         ? "text-primary"
+                        : isHorizontalDisabled
+                        ? "text-black-40"
                         : "text-black-60"
                     }`}
                   />
                   <span
                     className={`text-12-medium ${
-                      orientation === "horizontal"
+                      effectiveOrientation === "horizontal"
                         ? "text-primary"
+                        : isHorizontalDisabled
+                        ? "text-black-40"
                         : "text-black-60"
                     }`}
                   >
@@ -114,25 +355,32 @@ const DesignLayout = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setOrientation("vertical")}
-                  className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition cursor-pointer ${
-                    orientation === "vertical"
-                      ? "bg-white-100 shadow-sm"
-                      : "hover:bg-black-20"
+                  onClick={() => handleOrientationChange("vertical")}
+                  className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition ${
+                    effectiveOrientation === "vertical"
+                      ? "bg-white-100 shadow-sm cursor-pointer"
+                      : isVerticalDisabled
+                      ? "cursor-not-allowed opacity-40"
+                      : "cursor-pointer hover:bg-black-20"
                   }`}
+                  aria-disabled={isVerticalDisabled}
                   aria-label="세로 모드"
                 >
                   <Smartphone
                     className={`w-4 h-4 ${
-                      orientation === "vertical"
+                      effectiveOrientation === "vertical"
                         ? "text-primary"
+                        : isVerticalDisabled
+                        ? "text-black-40"
                         : "text-black-60"
                     }`}
                   />
                   <span
                     className={`text-12-medium ${
-                      orientation === "vertical"
+                      effectiveOrientation === "vertical"
                         ? "text-primary"
+                        : isVerticalDisabled
+                        ? "text-black-40"
                         : "text-black-60"
                     }`}
                   >
@@ -174,21 +422,57 @@ const DesignLayout = () => {
 
           <div className="flex h-full items-center gap-3 pr-3">
             <div className="flex h-full items-center justify-center">
-              <div className="flex h-10 w-10 rounded-xl items-center justify-center bg-black-20">
+              <button
+                type="button"
+                className="flex h-10 w-10 rounded-xl items-center justify-center bg-black-20 transition hover:bg-black-30"
+                aria-label="프린트"
+              >
                 <Printer className="w-6 h-6 text-black-60" />
-              </div>
+              </button>
             </div>
-
-            <button className="flex gap-2 h-10 rounded-xl items-center justify-center px-3 bg-primary cursor-pointer">
-              <Download className="w-5 h-5 text-white-100" />
-              <span className="flex text-14-semibold text-white">내보내기</span>
-            </button>
+            <div className="flex h-full items-center justify-center">
+              <button
+                type="button"
+                onClick={handleOpenExportModal}
+                className="flex items-center rounded-xl border border-black-25 bg-white-100 px-3 py-2 text-14-semibold text-black-80 transition hover:border-black-40 hover:bg-black-10"
+                aria-label="내보내기"
+              >
+                <span>내보내기</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
+      {toastMessage && (
+        <div className="fixed left-1/2 top-5 z-50 -translate-x-1/2 rounded-full bg-black-90 px-4 py-2 text-14-medium text-white-100 shadow-lg">
+          {toastMessage}
+        </div>
+      )}
       <main className="flex-1 overflow-hidden">
-        <Outlet context={{ zoom, orientation }} />
+      <Outlet
+        context={{
+          zoom,
+          orientation: effectiveOrientation,
+          setOrientation,
+          registerCanvasGetter,
+          loadedDocument,
+          clearLoadedDocument,
+        }}
+      />
       </main>
+      <ExportModal
+        key={exportModalKey}
+        open={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        userId={exportUserId}
+        getCanvasData={getCanvasData}
+        getName={getName}
+        lastSavedUserMadeId={lastSavedUserMadeId}
+        onSavedUserMadeId={setLastSavedUserMadeId}
+        students={students}
+        groups={groups}
+        isLoadingTargets={isLoadingTargets}
+      />
     </div>
   );
 };

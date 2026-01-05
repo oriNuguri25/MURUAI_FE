@@ -1,4 +1,4 @@
-import type { Page } from "../components/BottomBar";
+import type { Page } from "./pageTypes";
 
 interface UseDragAndDropProps {
   pages: Page[];

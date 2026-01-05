@@ -1,0 +1,70 @@
+export type ElementType =
+  | "text"
+  | "rect"
+  | "roundRect"
+  | "ellipse"
+  | "line"
+  | "arrow";
+
+export type ElementBase = {
+  id: string;
+  type: ElementType;
+  visible?: boolean;
+  locked?: boolean;
+};
+
+export type TextElement = ElementBase & {
+  type: "text";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  text: string;
+  style: {
+    fontSize: number;
+    fontWeight: "normal" | "bold";
+    color: string;
+    underline?: boolean;
+    alignX: "left" | "center" | "right";
+    alignY: "top" | "middle" | "bottom";
+  };
+};
+
+export type ShapeElement = ElementBase & {
+  type: "rect" | "roundRect" | "ellipse";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  fill: string;
+  radius?: number;
+  border?: {
+    enabled: boolean;
+    color: string;
+    width: number;
+    style?: "solid" | "dashed" | "dotted" | "double";
+  };
+};
+
+export type LineElement = ElementBase & {
+  type: "line" | "arrow";
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+  stroke: {
+    color: string;
+    width: number;
+  };
+};
+
+export type CanvasElement = TextElement | ShapeElement | LineElement;
+
+export type TemplateElement =
+  | Omit<TextElement, "id">
+  | Omit<ShapeElement, "id">
+  | Omit<LineElement, "id">;
+
+export type Template = {
+  id: string;
+  name: string;
+  elements: TemplateElement[];
+};

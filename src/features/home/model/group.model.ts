@@ -2,9 +2,9 @@ import { supabase } from "@/shared/supabase/supabase";
 import type { Student } from "./student.model";
 
 export interface GroupMember {
-  group_id: string;
+  group_id?: string;
   student_id: string;
-  students_n?: Pick<Student, "id" | "name" | "birth_year"> | null;
+  students_n?: Pick<Student, "id" | "name" | "birth_year">[] | Pick<Student, "id" | "name" | "birth_year"> | null;
 }
 
 export interface Group {
@@ -79,11 +79,12 @@ export const groupModel = {
 
   async getAll(): Promise<{ data: Group[] | null; error: Error | null }> {
     try {
+      // getUser() 대신 getSession() 사용으로 속도 개선
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (!user) {
+      if (!session?.user) {
         throw new Error("로그인이 필요합니다.");
       }
 
@@ -92,7 +93,7 @@ export const groupModel = {
         .select(
           "id, owner_id, name, description, created_at, groups_members_n(student_id, students_n(id, name, birth_year))"
         )
-        .eq("owner_id", user.id)
+        .eq("owner_id", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

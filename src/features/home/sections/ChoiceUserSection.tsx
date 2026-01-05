@@ -10,54 +10,32 @@ import UserCard from "../components/UserCard";
 import GroupCard from "../components/GroupCard";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
-import { studentModel, type Student } from "../model/student.model";
-import { groupModel, type Group } from "../model/group.model";
+import { useStudentStore } from "../store/useStudentStore";
 
 const ChoiceUserSection = () => {
   const [lessonType, setLessonType] = useState<"individual" | "group">(
     "individual"
   );
-  const [students, setStudents] = useState<Student[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
   const [currentStudentPage, setCurrentStudentPage] = useState(0);
   const [currentGroupPage, setCurrentGroupPage] = useState(0);
-  const { openAddUserModal, openAddGroupModal, openAuthModal, openModal } =
+  const { openAddUserModal, openAddGroupModal, openAuthModal } =
     useModalStore();
   const { isAuthenticated } = useAuthStore();
 
-  // 학생 목록 불러오기
+  // Store에서 데이터 가져오기
+  const { students, groups, fetchAll, clear } = useStudentStore();
+
+  // 인증 상태에 따라 데이터 로드
   useEffect(() => {
-    const fetchStudents = async () => {
-      if (!isAuthenticated) {
-        setStudents([]);
-        return;
-      }
-      const { data } = await studentModel.getAll();
+    if (!isAuthenticated) {
+      clear();
+      return;
+    }
 
-      if (data) {
-        setStudents(data);
-      }
-    };
-
-    fetchStudents();
-  }, [isAuthenticated, openModal]); // openModal이 변경될 때마다 다시 불러오기 (모달 닫힐 때)
-
-  useEffect(() => {
-    const fetchGroups = async () => {
-      if (!isAuthenticated) {
-        setGroups([]);
-        return;
-      }
-
-      const { data } = await groupModel.getAll();
-
-      if (data) {
-        setGroups(data);
-      }
-    };
-
-    fetchGroups();
-  }, [isAuthenticated, openModal]);
+    // 캐시된 데이터가 있으면 즉시 표시되고, 백그라운드에서 새로고침
+    fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const handleAddClick = () => {
     if (!isAuthenticated) {

@@ -1,20 +1,26 @@
 import {
   ArrowRight,
   Circle,
-  Table2,
   Minus,
   RectangleHorizontal,
   Square,
 } from "lucide-react";
+import { useElementStore } from "../../store/elementStore";
+import type { ElementType } from "../../model/canvasTypes";
 
 const ElementContent = () => {
-  const shapes = [
-    { id: 1, name: "사각형", icon: Square },
-    { id: 2, name: "둥근 사각형", icon: RectangleHorizontal },
-    { id: 3, name: "원", icon: Circle },
-    { id: 4, name: "카드", icon: Table2 },
-    { id: 5, name: "선", icon: Minus },
-    { id: 6, name: "화살표", icon: ArrowRight },
+  const requestElement = useElementStore((state) => state.requestElement);
+  const shapes: Array<{
+    id: number;
+    name: string;
+    icon: typeof Square;
+    type: ElementType;
+  }> = [
+    { id: 1, name: "사각형", icon: Square, type: "rect" },
+    { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
+    { id: 3, name: "원", icon: Circle, type: "ellipse" },
+    { id: 5, name: "선", icon: Minus, type: "line" },
+    { id: 6, name: "화살표", icon: ArrowRight, type: "arrow" },
   ];
 
   return (
@@ -37,6 +43,9 @@ const ElementContent = () => {
             return (
               <button
                 key={shape.id}
+                onClick={() => {
+                  requestElement(shape.type);
+                }}
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <Icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />

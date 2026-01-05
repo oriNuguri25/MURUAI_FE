@@ -1,12 +1,8 @@
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useDragAndDrop } from "../model/useDragAndDrop";
-
-export interface Page {
-  id: string;
-  thumbnail: string;
-  pageNumber: number;
-}
+import type { Page } from "../model/pageTypes";
+import DesignPaper from "./DesignPaper";
 
 interface BottomBarProps {
   pages: Page[];
@@ -30,6 +26,14 @@ const BottomBar = ({
     pages,
     onReorderPages,
   });
+  const MM_TO_PX = 3.7795;
+  const mmToPx = (mm: number) => mm * MM_TO_PX;
+  const pageWidthPx = mmToPx(210);
+  const pageHeightPx = mmToPx(297);
+  const previewSize = {
+    vertical: { width: 64, height: 90 },
+    horizontal: { width: 90, height: 64 },
+  };
 
   const [hoveredDividerIndex, setHoveredDividerIndex] = useState<number | null>(
     null
@@ -45,26 +49,72 @@ const BottomBar = ({
     <div className="flex shrink-0 w-full h-32 bg-white border-t border-black-25 items-center px-4">
       {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
       <div className="flex flex-1 h-full items-start py-2 gap-2 overflow-x-auto overflow-y-hidden">
-        {pages.map((page, index) => (
-          <>
+        {pages.map((page, index) => {
+          const isHorizontal = page.orientation === "horizontal";
+          const previewBox = isHorizontal
+            ? previewSize.horizontal
+            : previewSize.vertical;
+          const pageSize = {
+            width: isHorizontal ? pageHeightPx : pageWidthPx,
+            height: isHorizontal ? pageWidthPx : pageHeightPx,
+          };
+          const previewScale = Math.min(
+            previewBox.width / pageSize.width,
+            previewBox.height / pageSize.height
+          );
+          const scaledWidth = pageSize.width * previewScale;
+          const scaledHeight = pageSize.height * previewScale;
+          return (
+          <Fragment key={page.id}>
             <div
-              key={page.id}
               draggable
               onDragStart={(e) => handleDragStart(e, page.id)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, page.id)}
               className="flex shrink-0 flex-col items-center gap-2 cursor-move"
             >
-              <div className="relative">
-                <button
-                  onClick={() => onSelectPage(page.id)}
-                  className={`flex items-center justify-center w-16 h-22.5 rounded-lg border-2 transition cursor-pointer ${
-                    selectedPageId === page.id
-                      ? "border-primary bg-primary/5"
-                      : "border-black-25 bg-white hover:border-black-40"
-                  }`}
-                ></button>
-              </div>
+              <button
+                onClick={() => onSelectPage(page.id)}
+                className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
+                  isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
+                } ${
+                  selectedPageId === page.id
+                    ? "border-primary bg-primary/5"
+                    : "border-black-25 bg-white hover:border-black-40"
+                }`}
+              >
+                <div
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  style={{ borderRadius: "inherit" }}
+                >
+                  <div
+                    className="relative"
+                    style={{
+                      width: `${scaledWidth}px`,
+                      height: `${scaledHeight}px`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${pageSize.width}px`,
+                        height: `${pageSize.height}px`,
+                        transform: `scale(${previewScale})`,
+                        transformOrigin: "top left",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <DesignPaper
+                        pageId={page.id}
+                        orientation={page.orientation ?? "vertical"}
+                        elements={page.elements}
+                        selectedIds={[]}
+                        editingTextId={null}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </div>
+              </button>
               {/* 페이지 번호 */}
               <span className="text-12-medium text-black-60">
                 {page.pageNumber}
@@ -94,8 +144,9 @@ const BottomBar = ({
                 </div>
               </div>
             )}
-          </>
-        ))}
+          </Fragment>
+          );
+        })}
 
         {/* 페이지 추가 버튼 */}
         <div className="flex shrink-0 flex-col items-center gap-2 ml-2">

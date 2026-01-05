@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
 import { studentModel } from "../model/student.model";
+import { useStudentStore } from "../store/useStudentStore";
 
 const AddUserModal = () => {
   const { openModal, closeModal } = useModalStore();
+  const { refreshStudents } = useStudentStore();
   const [name, setName] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [notes, setNotes] = useState("");
@@ -50,6 +52,8 @@ const AddUserModal = () => {
     }
 
     if (data) {
+      // Store 업데이트
+      await refreshStudents();
       handleReset();
       closeModal();
     }

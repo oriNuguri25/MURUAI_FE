@@ -54,16 +54,17 @@ export const studentModel = {
 
   async getAll(): Promise<{ data: Student[] | null; error: Error | null }> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // getUser() 대신 getSession() 사용으로 속도 개선
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!user) {
+      if (!session?.user) {
         throw new Error("로그인이 필요합니다.");
       }
 
       const { data, error } = await supabase
         .from("students_n")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

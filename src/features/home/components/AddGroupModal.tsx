@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import { studentModel, type Student } from "../model/student.model";
 import { groupModel } from "../model/group.model";
+import { useStudentStore } from "../store/useStudentStore";
 
 const AddGroupModal = () => {
   const { openModal, closeModal } = useModalStore();
+  const { students: availableMembers, refreshGroups } = useStudentStore();
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [availableMembers, setAvailableMembers] = useState<Student[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,28 +20,13 @@ const AddGroupModal = () => {
     setDescription("");
     setSelectedMembers([]);
     setLoading(false);
-    setLoadingMembers(false);
     setError(null);
   };
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    const fetchStudents = async () => {
-      setLoadingMembers(true);
-      const { data, error: fetchError } = await studentModel.getAll();
-
-      if (fetchError) {
-        setError(fetchError.message);
-        setAvailableMembers([]);
-      } else {
-        setAvailableMembers(data ?? []);
-      }
-
-      setLoadingMembers(false);
-    };
-
-    fetchStudents();
+    if (!isOpen) {
+      handleReset();
+    }
   }, [isOpen]);
 
   const hasMembers = availableMembers.length > 0;
@@ -81,6 +65,8 @@ const AddGroupModal = () => {
     }
 
     if (data) {
+      // Store 업데이트
+      await refreshGroups();
       handleReset();
       closeModal();
     }
@@ -144,11 +130,7 @@ const AddGroupModal = () => {
           <label className="text-title-14-semibold text-black-100">
             멤버 선택 (최대 5명)
           </label>
-          {loadingMembers ? (
-            <div className="rounded-lg border border-black-30 bg-white-100 px-4 py-3 text-15-regular text-black-60">
-              아동 목록을 불러오는 중입니다.
-            </div>
-          ) : hasMembers ? (
+          {hasMembers ? (
             <>
               <div className="flex flex-col gap-2">
                 {availableMembers.map((member) => {

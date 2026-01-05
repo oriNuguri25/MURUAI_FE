@@ -8,13 +8,13 @@ import {
   Grid2X2Icon,
   Construction,
 } from "lucide-react";
-import { useState } from "react";
 import UploadContent from "../components/detail_content/UploadContent";
 import AACContent from "../components/detail_content/AACContent";
 import EmotionContent from "../components/detail_content/EmotionContent";
 import ElementContent from "../components/detail_content/ElementContent";
 import TextContent from "../components/detail_content/TextContent";
 import TemplateContent from "../components/detail_content/TemplateContent";
+import { useSideBarStore } from "../store/sideBarStore";
 
 const ComingSoon = () => (
   <div className="flex flex-col items-center justify-center gap-4 py-20">
@@ -29,7 +29,8 @@ const ComingSoon = () => (
 );
 
 const SideBar = () => {
-  const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
+  const selectedMenu = useSideBarStore((state) => state.selectedMenu);
+  const toggleMenu = useSideBarStore((state) => state.toggleMenu);
 
   const menuItems = [
     { id: "design", icon: PenTool, label: "디자인" },
@@ -40,14 +41,6 @@ const SideBar = () => {
     { id: "upload", icon: Upload, label: "업로드" },
     { id: "aac", icon: Grid2X2Icon, label: "AAC" },
   ];
-
-  const handleMenuClick = (menuId: string) => {
-    if (selectedMenu === menuId) {
-      setSelectedMenu(null);
-    } else {
-      setSelectedMenu(menuId);
-    }
-  };
 
   const getMenuTitle = () => {
     const currentMenu = menuItems.find((item) => item.id === selectedMenu);
@@ -84,7 +77,7 @@ const SideBar = () => {
           return (
             <button
               key={item.id}
-              onClick={() => handleMenuClick(item.id)}
+              onClick={() => toggleMenu(item.id)}
               className={`flex flex-col rounded-xl items-center justify-center gap-1 w-full h-16 cursor-pointer transition ${
                 selectedMenu === item.id
                   ? "bg-[#5500ff]/20"
