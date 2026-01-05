@@ -14,7 +14,7 @@ import EmotionContent from "../components/detail_content/EmotionContent";
 import ElementContent from "../components/detail_content/ElementContent";
 import TextContent from "../components/detail_content/TextContent";
 import TemplateContent from "../components/detail_content/TemplateContent";
-import { useSideBarStore } from "../store/sideBarStore";
+import { useSideBarStore, type SideBarMenu } from "../store/sideBarStore";
 
 const ComingSoon = () => (
   <div className="flex flex-col items-center justify-center gap-4 py-20">
@@ -32,7 +32,11 @@ const SideBar = () => {
   const selectedMenu = useSideBarStore((state) => state.selectedMenu);
   const toggleMenu = useSideBarStore((state) => state.toggleMenu);
 
-  const menuItems = [
+  const menuItems: Array<{
+    id: Exclude<SideBarMenu, null>;
+    icon: typeof PenTool;
+    label: string;
+  }> = [
     { id: "design", icon: PenTool, label: "디자인" },
     { id: "template", icon: Layout, label: "템플릿" },
     { id: "emotion", icon: Smile, label: "감정" },

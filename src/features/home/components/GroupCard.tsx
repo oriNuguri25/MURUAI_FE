@@ -6,10 +6,11 @@ interface GroupCardProps {
 
 const GroupCard = ({ group }: GroupCardProps) => {
   const members =
-    group.groups_members_n
-      ?.map((member) => member.students_n)
-      .filter((member): member is NonNullable<typeof member> => Boolean(member)) ??
-    [];
+    group.groups_members_n?.flatMap((member) => {
+      const students = member.students_n;
+      if (!students) return [];
+      return Array.isArray(students) ? students : [students];
+    }) ?? [];
   const visibleMembers = members.slice(0, 4);
 
   return (

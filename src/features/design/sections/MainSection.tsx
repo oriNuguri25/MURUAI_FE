@@ -60,7 +60,9 @@ const cloneElementsForHistory = (elements: CanvasElement[]) =>
 const areElementsEqual = (a: CanvasElement[], b: CanvasElement[]) =>
   JSON.stringify(a) === JSON.stringify(b);
 
-const isAacLabelElement = (element: CanvasElement) =>
+const isAacLabelElement = (
+  element: CanvasElement
+): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
   element.style.fontSize === 14 &&
   element.style.fontWeight === "normal" &&
@@ -68,7 +70,9 @@ const isAacLabelElement = (element: CanvasElement) =>
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
 
-const isEmotionLabelElement = (element: CanvasElement) =>
+const isEmotionLabelElement = (
+  element: CanvasElement
+): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
   element.style.fontSize === 14 &&
   element.style.fontWeight === "normal" &&
@@ -76,7 +80,9 @@ const isEmotionLabelElement = (element: CanvasElement) =>
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
 
-const isEmotionPlaceholderElement = (element: CanvasElement) =>
+const isEmotionPlaceholderElement = (
+  element: CanvasElement
+): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
   element.style.fontSize === 10 &&
   element.style.fontWeight === "normal" &&
@@ -87,7 +93,9 @@ const isEmotionPlaceholderElement = (element: CanvasElement) =>
 const findLabelElementId = (
   elements: CanvasElement[],
   shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }>,
-  isLabelElement: (element: CanvasElement) => boolean
+  isLabelElement: (
+    element: CanvasElement
+  ) => element is Extract<CanvasElement, { type: "text" }>
 ) => {
   const centerX = shape.x + shape.w / 2;
   const centerY = shape.y + shape.h / 2;
@@ -114,7 +122,9 @@ const findLabelElementId = (
 const findOverlayTextElementId = (
   elements: CanvasElement[],
   shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }>,
-  isOverlayElement: (element: CanvasElement) => boolean
+  isOverlayElement: (
+    element: CanvasElement
+  ) => element is Extract<CanvasElement, { type: "text" }>
 ) => {
   const tolerance = mmToPx(1);
   const matched = elements.find((element) => {
