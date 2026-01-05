@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useCallback,
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
@@ -69,6 +70,16 @@ const mmToPx = (mm: number) => mm * MM_TO_PX;
 const PAGE_WIDTH_PX = mmToPx(210);
 const PAGE_HEIGHT_PX = mmToPx(297);
 const GUIDE_THRESHOLD_PX = 6;
+const RECT_TOLERANCE = 1;
+
+const isEmotionSlotShape = (
+  element: CanvasElement
+): element is ShapeElement =>
+  (element.type === "rect" ||
+    element.type === "roundRect" ||
+    element.type === "ellipse") &&
+  element.border?.enabled &&
+  element.border.color === "#A5B4FC";
 
 const getRectFromElement = (element: CanvasElement): Rect | null => {
   if ("x" in element && "w" in element && "h" in element) {
@@ -81,6 +92,12 @@ const getRectFromElement = (element: CanvasElement): Rect | null => {
   }
   return null;
 };
+
+const isSameRect = (rect: Rect, element: TextElement) =>
+  Math.abs(rect.x - element.x) <= RECT_TOLERANCE &&
+  Math.abs(rect.y - element.y) <= RECT_TOLERANCE &&
+  Math.abs(rect.width - element.w) <= RECT_TOLERANCE &&
+  Math.abs(rect.height - element.h) <= RECT_TOLERANCE;
 
 const DesignPaper = ({
   pageId,
@@ -119,26 +136,17 @@ const DesignPaper = ({
     canvasHeight: pageHeight,
     threshold: GUIDE_THRESHOLD_PX,
   });
-  const rectTolerance = 1;
-  const isEmotionSlotShape = (element: CanvasElement): element is ShapeElement =>
-    (element.type === "rect" ||
-      element.type === "roundRect" ||
-      element.type === "ellipse") &&
-    element.border?.enabled &&
-    element.border.color === "#A5B4FC";
-  const isSameRect = (rect: Rect, element: TextElement) =>
-    Math.abs(rect.x - element.x) <= rectTolerance &&
-    Math.abs(rect.y - element.y) <= rectTolerance &&
-    Math.abs(rect.width - element.w) <= rectTolerance &&
-    Math.abs(rect.height - element.h) <= rectTolerance;
-  const findEmotionSlotTextId = (shape: ShapeElement) => {
-    const shapeRect = getRectFromElement(shape);
-    if (!shapeRect) return null;
-    const matched = elements.find(
-      (element) => element.type === "text" && isSameRect(shapeRect, element)
-    );
-    return matched?.id ?? null;
-  };
+  const findEmotionSlotTextId = useCallback(
+    (shape: ShapeElement) => {
+      const shapeRect = getRectFromElement(shape);
+      if (!shapeRect) return null;
+      const matched = elements.find(
+        (element) => element.type === "text" && isSameRect(shapeRect, element)
+      );
+      return matched?.id ?? null;
+    },
+    [elements]
+  );
   const emotionSlotTextIds = new Set<string>();
   elements.forEach((element) => {
     if (!isEmotionSlotShape(element)) return;
@@ -148,7 +156,7 @@ const DesignPaper = ({
     }
   });
 
-  const updateElement = (id: string, patch: ElementPatch) => {
+  const updateElement = useCallback((id: string, patch: ElementPatch) => {
     if (readOnly || !onElementsChange) return;
     const nextElements = elements.map((element): CanvasElement => {
       if (element.id !== id) return element;
@@ -205,7 +213,7 @@ const DesignPaper = ({
       return { ...element, ...patch } as CanvasElement;
     });
     onElementsChange(nextElements);
-  };
+  }, [elements, onElementsChange, readOnly]);
 
   const getRenderableRect = (element: CanvasElement) => {
     if (activePreview?.id === element.id) return activePreview.rect;
@@ -326,11 +334,11 @@ const DesignPaper = ({
     editingTextId,
     elements,
     findEmotionSlotTextId,
-    isEmotionSlotShape,
     onElementsChange,
     onEditingTextIdChange,
     readOnly,
     selectedIds,
+    updateElement,
   ]);
 
   const openContextMenu = (

@@ -1,19 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useModalStore } from "@/shared/store/useModalStore";
 import BaseModal from "@/shared/ui/BaseModal";
 import { groupModel } from "../model/group.model";
 import { useStudentStore } from "../store/useStudentStore";
 
-const AddGroupModal = () => {
-  const { openModal, closeModal } = useModalStore();
+const AddGroupModalContent = ({ onClose }: { onClose: () => void }) => {
   const { students: availableMembers, refreshGroups } = useStudentStore();
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const isOpen = openModal === "addGroup";
 
   const handleReset = () => {
     setGroupName("");
@@ -22,12 +19,6 @@ const AddGroupModal = () => {
     setLoading(false);
     setError(null);
   };
-
-  useEffect(() => {
-    if (!isOpen) {
-      handleReset();
-    }
-  }, [isOpen]);
 
   const hasMembers = availableMembers.length > 0;
 
@@ -68,7 +59,7 @@ const AddGroupModal = () => {
       // Store 업데이트
       await refreshGroups();
       handleReset();
-      closeModal();
+      onClose();
     }
   };
 
@@ -77,8 +68,8 @@ const AddGroupModal = () => {
 
   return (
     <BaseModal
-      isOpen={isOpen}
-      onClose={closeModal}
+      isOpen
+      onClose={onClose}
       onReset={handleReset}
       title="그룹 추가하기"
     >
@@ -178,7 +169,7 @@ const AddGroupModal = () => {
             type="button"
             onClick={() => {
               handleReset();
-              closeModal();
+              onClose();
             }}
             className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-title-14-semibold text-black-70 transition hover:bg-black-10"
           >
@@ -199,6 +190,15 @@ const AddGroupModal = () => {
       </form>
     </BaseModal>
   );
+};
+
+const AddGroupModal = () => {
+  const { openModal, closeModal } = useModalStore();
+  const isOpen = openModal === "addGroup";
+
+  if (!isOpen) return null;
+
+  return <AddGroupModalContent onClose={closeModal} />;
 };
 
 export default AddGroupModal;
