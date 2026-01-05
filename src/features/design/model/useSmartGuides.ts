@@ -97,8 +97,10 @@ export const useSmartGuides = ({
         );
       });
 
-      let bestX: { delta: number; distance: number } | null = null;
-      let bestY: { delta: number; distance: number } | null = null;
+      let bestXDelta = 0;
+      let bestYDelta = 0;
+      let bestXDistance = Number.POSITIVE_INFINITY;
+      let bestYDistance = Number.POSITIVE_INFINITY;
       const nextGuides: AlignmentGuide[] = [];
 
       targetX.forEach((target) => {
@@ -112,8 +114,9 @@ export const useSmartGuides = ({
             position: target.value,
             reason: target.reason,
           });
-          if (!bestX || distance < bestX.distance) {
-            bestX = { delta, distance };
+          if (distance < bestXDistance) {
+            bestXDistance = distance;
+            bestXDelta = delta;
           }
         });
       });
@@ -129,15 +132,16 @@ export const useSmartGuides = ({
             position: target.value,
             reason: target.reason,
           });
-          if (!bestY || distance < bestY.distance) {
-            bestY = { delta, distance };
+          if (distance < bestYDistance) {
+            bestYDistance = distance;
+            bestYDelta = delta;
           }
         });
       });
 
       const snapOffset = {
-        x: bestX ? bestX.delta : 0,
-        y: bestY ? bestY.delta : 0,
+        x: bestXDelta,
+        y: bestYDelta,
       };
       snapOffsetRef.current = snapOffset;
       const uniqueGuides = dedupeGuides(nextGuides);

@@ -78,8 +78,8 @@ const isEmotionSlotShape = (
   (element.type === "rect" ||
     element.type === "roundRect" ||
     element.type === "ellipse") &&
-  element.border?.enabled &&
-  element.border.color === "#A5B4FC";
+  element.border?.enabled === true &&
+  element.border?.color === "#A5B4FC";
 
 const getRectFromElement = (element: CanvasElement): Rect | null => {
   if ("x" in element && "w" in element && "h" in element) {
