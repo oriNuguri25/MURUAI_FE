@@ -20,6 +20,7 @@ export type TextElement = ElementBase & {
   w: number;
   h: number;
   text: string;
+  richText?: string;
   style: {
     fontSize: number;
     fontWeight: "normal" | "bold";
@@ -37,6 +38,17 @@ export type ShapeElement = ElementBase & {
   w: number;
   h: number;
   fill: string;
+  imageScale?: number;
+  imageOffset?: {
+    x: number;
+    y: number;
+  };
+  imageBox?: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
   radius?: number;
   border?: {
     enabled: boolean;

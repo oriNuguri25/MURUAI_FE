@@ -2,9 +2,10 @@ import type { Group } from "../model/group.model";
 
 interface GroupCardProps {
   group: Group;
+  onClick?: () => void;
 }
 
-const GroupCard = ({ group }: GroupCardProps) => {
+const GroupCard = ({ group, onClick }: GroupCardProps) => {
   const members =
     group.groups_members_n?.flatMap((member) => {
       const students = member.students_n;
@@ -14,7 +15,21 @@ const GroupCard = ({ group }: GroupCardProps) => {
   const visibleMembers = members.slice(0, 4);
 
   return (
-    <div className="flex flex-col h-85 rounded-xl border border-black-30 p-3 gap-2">
+    <div
+      className={`flex flex-col h-85 rounded-xl border border-black-30 p-3 gap-2 ${
+        onClick ? "cursor-pointer transition hover:border-primary" : ""
+      }`}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (!onClick) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <div className="flex min-w-0 flex-col text-start gap-0.5 shrink-0">
         <span className="w-full overflow-hidden text-ellipsis text-title-18-semibold text-black-100 line-clamp-2">
           {group.name}

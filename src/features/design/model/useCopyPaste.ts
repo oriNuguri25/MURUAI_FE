@@ -20,21 +20,43 @@ export const useCopyPaste = ({
 }: UseCopyPasteProps) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // input, textarea 등에서 입력 중일 때는 동작하지 않음
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       // Ctrl+C 또는 Cmd+C (복사)
       if ((e.ctrlKey || e.metaKey) && e.key === "c") {
-        const selectedPage = pages.find((page) => page.id === selectedPageId);
-        if (selectedPage) {
-          // 복사할 페이지 ID를 세션 스토리지에 저장
-          sessionStorage.setItem("copiedPageId", selectedPage.id);
+        // 요소 복사가 있는지 확인
+        const copiedElements = sessionStorage.getItem("copiedElements");
+
+        // 요소 복사가 없는 경우에만 페이지 복사 수행
+        if (!copiedElements || selectedIds.length === 0) {
+          const selectedPage = pages.find((page) => page.id === selectedPageId);
+          if (selectedPage) {
+            // 복사할 페이지 ID를 세션 스토리지에 저장
+            sessionStorage.setItem("copiedPageId", selectedPage.id);
+          }
         }
       }
 
       // Ctrl+V 또는 Cmd+V (붙여넣기)
       if ((e.ctrlKey || e.metaKey) && e.key === "v") {
-        const copiedPageId = sessionStorage.getItem("copiedPageId");
-        if (copiedPageId) {
-          e.preventDefault();
-          onDuplicatePage(copiedPageId);
+        // 요소 클립보드가 있는지 확인
+        const copiedElements = sessionStorage.getItem("copiedElements");
+
+        // 요소 클립보드가 없는 경우에만 페이지 붙여넣기 수행
+        if (!copiedElements) {
+          const copiedPageId = sessionStorage.getItem("copiedPageId");
+          if (copiedPageId) {
+            e.preventDefault();
+            onDuplicatePage(copiedPageId);
+          }
         }
       }
 

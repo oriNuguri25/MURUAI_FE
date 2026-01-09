@@ -17,6 +17,10 @@ export interface CreateStudentInput {
   learning_goal?: string;
 }
 
+export interface UpdateStudentInput extends CreateStudentInput {
+  id: string;
+}
+
 export const studentModel = {
   async create(input: CreateStudentInput): Promise<{ data: Student | null; error: Error | null }> {
     try {
@@ -74,6 +78,58 @@ export const studentModel = {
       return {
         data: null,
         error: err instanceof Error ? err : new Error("아동 목록을 불러오는데 실패했습니다.")
+      };
+    }
+  },
+
+  async update(
+    input: UpdateStudentInput
+  ): Promise<{ data: Student | null; error: Error | null }> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("로그인이 필요합니다.");
+      }
+
+      console.log("Update 시작 - user.id:", user.id, "student.id:", input.id);
+      console.log("Update 할 데이터:", {
+        name: input.name,
+        birth_year: input.birth_year,
+        significant: input.significant || null,
+        learning_goal: input.learning_goal || null,
+      });
+
+      // user_id 조건 제거 - RLS 정책에 의존
+      const { data, error } = await supabase
+        .from("students_n")
+        .update({
+          name: input.name,
+          birth_year: input.birth_year,
+          significant: input.significant || null,
+          learning_goal: input.learning_goal || null,
+        })
+        .eq("id", input.id)
+        .select();
+
+      console.log("Update 응답 - data:", data, "error:", error);
+
+      if (error) throw error;
+      const updated = data?.[0] ?? null;
+
+      if (!updated) {
+        throw new Error("해당 아동 정보를 찾을 수 없거나 수정 권한이 없습니다.");
+      }
+
+      return { data: updated, error: null };
+    } catch (err) {
+      console.error("Update 실패:", err);
+      return {
+        data: null,
+        error:
+          err instanceof Error ? err : new Error("아동 수정에 실패했습니다."),
       };
     }
   },

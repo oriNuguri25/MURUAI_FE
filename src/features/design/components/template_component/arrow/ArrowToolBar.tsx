@@ -1,9 +1,9 @@
 import { RotateCw } from "lucide-react";
-import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useState, type PointerEvent as ReactPointerEvent } from "react";
+import FixedToolBar from "../FixedToolBar";
 
 interface ArrowToolBarProps {
   isVisible: boolean;
-  style?: CSSProperties;
   color: string;
   width: number;
   minWidth?: number;
@@ -16,7 +16,6 @@ interface ArrowToolBarProps {
 
 const ArrowToolBar = ({
   isVisible,
-  style,
   color,
   width,
   minWidth = 1,
@@ -50,14 +49,8 @@ const ArrowToolBar = ({
     onWidthChange(clamped);
   };
 
-  if (!isVisible) return null;
-
   return (
-    <div
-      data-capture-hide="true"
-      className="absolute z-10 flex w-max items-center gap-2 whitespace-nowrap rounded-lg border border-black-30 bg-white-100 px-3 py-2 shadow-sm"
-      style={style}
-      onPointerDown={onPointerDown}
+    <FixedToolBar isVisible={isVisible} onPointerDown={onPointerDown}
     >
       <button
         type="button"
@@ -109,7 +102,7 @@ const ArrowToolBar = ({
           style={{ WebkitAppearance: "none", appearance: "none" }}
         />
       </div>
-    </div>
+    </FixedToolBar>
   );
 };
 

@@ -5,6 +5,7 @@ import DesignPage from "@/pages/design/DesignPage";
 import DesignLayout from "../layout/DesignLayout";
 import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
 import MyDocPage from "@/pages/mydoc/MyDocPage";
+import AdminUserDocsPage from "@/pages/admin/AdminUserDocsPage";
 
 export const router = createBrowserRouter([
   {
@@ -14,6 +15,14 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: "mydoc",
+        element: <MyDocPage />,
+      },
+      {
+        path: "admin/user-docs",
+        element: <AdminUserDocsPage />,
       },
     ],
   },
@@ -34,9 +43,5 @@ export const router = createBrowserRouter([
   {
     path: "/auth/callback",
     element: <AuthCallbackPage />,
-  },
-  {
-    path: "/mydoc",
-    element: <MyDocPage />,
   },
 ]);

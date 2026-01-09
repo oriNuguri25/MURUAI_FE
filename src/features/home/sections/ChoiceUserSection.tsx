@@ -18,8 +18,13 @@ const ChoiceUserSection = () => {
   );
   const [currentStudentPage, setCurrentStudentPage] = useState(0);
   const [currentGroupPage, setCurrentGroupPage] = useState(0);
-  const { openAddUserModal, openAddGroupModal, openAuthModal } =
-    useModalStore();
+  const {
+    openAddUserModal,
+    openAddGroupModal,
+    openEditUserModal,
+    openEditGroupModal,
+    openAuthModal,
+  } = useModalStore();
   const { isAuthenticated } = useAuthStore();
 
   // Store에서 데이터 가져오기
@@ -156,7 +161,13 @@ const ChoiceUserSection = () => {
 
               {currentStudents.map((student, index) => (
                 <div key={student.id} className="relative">
-                  <UserCard student={student} />
+                  <UserCard
+                    student={student}
+                    onClick={() => {
+                      if (!student.id) return;
+                      openEditUserModal(student.id);
+                    }}
+                  />
 
                   {/* 첫 번째 학생 카드에 좌측 화살표 */}
                   {index === 0 && currentStudentPage > 0 && (
@@ -221,7 +232,10 @@ const ChoiceUserSection = () => {
 
               {currentGroups.map((group, index) => (
                 <div key={group.id} className="relative">
-                  <GroupCard group={group} />
+                  <GroupCard
+                    group={group}
+                    onClick={() => openEditGroupModal(group.id)}
+                  />
 
                   {/* 첫 번째 그룹 카드에 좌측 화살표 */}
                   {index === 0 && currentGroupPage > 0 && (
@@ -289,13 +303,24 @@ const ChoiceUserSection = () => {
               {lessonType === "individual" ? (
                 <>
                   {students.map((student) => (
-                    <UserCard key={student.id} student={student} />
+                    <UserCard
+                      key={student.id}
+                      student={student}
+                      onClick={() => {
+                        if (!student.id) return;
+                        openEditUserModal(student.id);
+                      }}
+                    />
                   ))}
                 </>
               ) : (
                 <>
                   {groups.map((group) => (
-                    <GroupCard key={group.id} group={group} />
+                    <GroupCard
+                      key={group.id}
+                      group={group}
+                      onClick={() => openEditGroupModal(group.id)}
+                    />
                   ))}
                 </>
               )}

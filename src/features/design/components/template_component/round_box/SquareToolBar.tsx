@@ -1,16 +1,15 @@
 import {
   useRef,
   useState,
-  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { Ban, Upload } from "lucide-react";
+import FixedToolBar from "../FixedToolBar";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
 interface SquareToolBarProps {
   isVisible: boolean;
-  style?: CSSProperties;
   showRadius?: boolean;
   borderRadius: number;
   minBorderRadius?: number;
@@ -20,6 +19,10 @@ interface SquareToolBarProps {
   borderColor?: string;
   borderWidth?: number;
   borderStyle?: BorderStyle;
+  width?: number;
+  height?: number;
+  minWidth?: number;
+  minHeight?: number;
   onBorderRadiusChange: (value: number) => void;
   onBorderRadiusStep: (delta: number) => void;
   onColorChange: (value: string) => void;
@@ -28,12 +31,12 @@ interface SquareToolBarProps {
   onBorderStyleChange?: (value: BorderStyle) => void;
   onBorderColorChange?: (value: string) => void;
   onBorderWidthChange?: (value: number) => void;
+  onSizeChange?: (width: number, height: number) => void;
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
 }
 
 const SquareToolBar = ({
   isVisible,
-  style,
   showRadius = true,
   borderRadius,
   minBorderRadius = 0,
@@ -43,6 +46,8 @@ const SquareToolBar = ({
   borderColor = "#000000",
   borderWidth = 2,
   borderStyle = "solid",
+  width,
+  height,
   onBorderRadiusChange,
   onBorderRadiusStep,
   onColorChange,
@@ -51,13 +56,58 @@ const SquareToolBar = ({
   onBorderStyleChange,
   onBorderColorChange,
   onBorderWidthChange,
+  onSizeChange,
   onPointerDown,
 }: SquareToolBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isBorderPanelOpen, setIsBorderPanelOpen] = useState(false);
+  const [widthInput, setWidthInput] = useState(() =>
+    width !== undefined ? String(Math.round(width)) : ""
+  );
+  const [heightInput, setHeightInput] = useState(() =>
+    height !== undefined ? String(Math.round(height)) : ""
+  );
+  const [isWidthEditing, setIsWidthEditing] = useState(false);
+  const [isHeightEditing, setIsHeightEditing] = useState(false);
   const clampRadius = (value: number) =>
     Math.min(maxBorderRadius, Math.max(minBorderRadius, value));
   const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
+  const clampWidth = (value: number) => Math.max(1, value);
+  const clampHeight = (value: number) => Math.max(1, value);
+  const displayWidth = isWidthEditing
+    ? widthInput
+    : width !== undefined
+    ? String(Math.round(width))
+    : "";
+  const displayHeight = isHeightEditing
+    ? heightInput
+    : height !== undefined
+    ? String(Math.round(height))
+    : "";
+
+  const commitWidthInput = (value: string) => {
+    if (width === undefined || height === undefined || !onSizeChange) return;
+    const digits = value.replace(/[^0-9]/g, "");
+    if (!digits) {
+      setWidthInput(String(Math.round(width)));
+      return;
+    }
+    const nextWidth = clampWidth(Number(digits));
+    onSizeChange(nextWidth, height);
+    setWidthInput(String(Math.round(nextWidth)));
+  };
+
+  const commitHeightInput = (value: string) => {
+    if (width === undefined || height === undefined || !onSizeChange) return;
+    const digits = value.replace(/[^0-9]/g, "");
+    if (!digits) {
+      setHeightInput(String(Math.round(height)));
+      return;
+    }
+    const nextHeight = clampHeight(Number(digits));
+    onSizeChange(width, nextHeight);
+    setHeightInput(String(Math.round(nextHeight)));
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -103,12 +153,91 @@ const SquareToolBar = ({
   };
 
   return (
-    <div
-      data-capture-hide="true"
-      className="absolute z-50 flex w-max items-center gap-2 whitespace-nowrap rounded-lg border border-black-30 bg-white-100 px-3 py-2 shadow-md"
-      style={style}
-      onPointerDown={onPointerDown}
-    >
+    <FixedToolBar isVisible={isVisible} onPointerDown={onPointerDown}>
+      {width !== undefined && height !== undefined && onSizeChange && (
+        <>
+          <div className="flex items-center text-14-regular text-black-60">
+            가로
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={displayWidth}
+            onChange={(event) => {
+              const digits = event.target.value.replace(/[^0-9]/g, "");
+              setWidthInput(digits);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitWidthInput(widthInput);
+                setIsWidthEditing(false);
+                event.currentTarget.blur();
+              }
+            }}
+            onBlur={() => {
+              if (!isWidthEditing) return;
+              setIsWidthEditing(false);
+              commitWidthInput(widthInput);
+            }}
+            onFocus={(event) => {
+              if (width !== undefined) {
+                setWidthInput(String(Math.round(width)));
+              }
+              setIsWidthEditing(true);
+              event.target.select();
+            }}
+            className="no-spinner w-16 rounded border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
+            style={{
+              textAlign: "center",
+              WebkitAppearance: "none",
+              MozAppearance: "textfield",
+              appearance: "textfield",
+            }}
+          />
+          <div className="flex items-center text-14-regular text-black-60">
+            세로
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={displayHeight}
+            onChange={(event) => {
+              const digits = event.target.value.replace(/[^0-9]/g, "");
+              setHeightInput(digits);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                commitHeightInput(heightInput);
+                setIsHeightEditing(false);
+                event.currentTarget.blur();
+              }
+            }}
+            onBlur={() => {
+              if (!isHeightEditing) return;
+              setIsHeightEditing(false);
+              commitHeightInput(heightInput);
+            }}
+            onFocus={(event) => {
+              if (height !== undefined) {
+                setHeightInput(String(Math.round(height)));
+              }
+              setIsHeightEditing(true);
+              event.target.select();
+            }}
+            className="no-spinner w-16 rounded border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
+            style={{
+              textAlign: "center",
+              WebkitAppearance: "none",
+              MozAppearance: "textfield",
+              appearance: "textfield",
+            }}
+          />
+        </>
+      )}
       {showRadius && (
         <>
           <div className="flex items-center text-14-regular text-black-60">
@@ -284,7 +413,7 @@ const SquareToolBar = ({
         onChange={handleImageUpload}
         className="hidden"
       />
-    </div>
+    </FixedToolBar>
   );
 };
 

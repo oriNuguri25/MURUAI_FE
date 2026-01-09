@@ -2,8 +2,10 @@ import { images } from "@/shared/assets";
 import { useModalStore } from "@/shared/store/useModalStore";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useAuth } from "@/shared/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
+  const navigate = useNavigate();
   const { openAuthModal } = useModalStore();
   const { isAuthenticated } = useAuthStore();
   const { signOut } = useAuth();
@@ -14,13 +16,26 @@ const Header = () => {
 
   return (
     <header className="flex w-full h-18 px-15 justify-between items-center border-b border-b-black-25">
-      <div className="flex items-center justify-center">
+      <button
+        type="button"
+        onClick={() => navigate("/")}
+        className="flex items-center justify-center cursor-pointer"
+        aria-label="홈으로 이동"
+      >
         <img src={images.mainLogo} alt="Main Logo" className="w-40 h-auto" />
-      </div>
+      </button>
 
       <div className="flex h-10 items-center justify-center gap-2">
         {isAuthenticated ? (
           <>
+            {/* // 관리자 테스트 완료 */}
+            {/* <button
+              type="button"
+              onClick={() => navigate("/admin/user-docs")}
+              className="flex items-center justify-center px-4 py-2 border border-black-25 rounded-xl hover:bg-black-10 transition cursor-pointer"
+            >
+              <span className="text-14-semibold text-black-100">관리자</span>
+            </button> */}
             <button
               type="button"
               onClick={handleSignOut}

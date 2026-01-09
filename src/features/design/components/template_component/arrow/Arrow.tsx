@@ -5,7 +5,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import ArrowToolBar from "./ArrowToolBar";
 
 type Point = { x: number; y: number };
 
@@ -16,15 +15,6 @@ interface ArrowShapeProps {
   stroke: { color: string; width: number };
   isSelected?: boolean;
   locked?: boolean;
-  toolbar?: {
-    offset?: number;
-    minWidth?: number;
-    maxWidth?: number;
-    color: string;
-    width: number;
-    onColorChange: (value: string) => void;
-    onWidthChange: (value: number) => void;
-  };
   onLineChange?: (value: { start: Point; end: Point }) => void;
   onDragStateChange?: (isDragging: boolean, value?: { start: Point; end: Point }) => void;
   onSelectChange?: (isSelected: boolean) => void;
@@ -37,6 +27,11 @@ const getScale = (element: HTMLElement | null) => {
   return element.offsetWidth ? rect.width / element.offsetWidth : 1;
 };
 
+const normalizePoint = (point?: Point): Point => ({
+  x: typeof point?.x === "number" ? point.x : 0,
+  y: typeof point?.y === "number" ? point.y : 0,
+});
+
 const Arrow = ({
   id,
   start,
@@ -44,19 +39,20 @@ const Arrow = ({
   stroke,
   isSelected = false,
   locked = false,
-  toolbar,
   onLineChange,
   onDragStateChange,
   onSelectChange,
   onContextMenu,
 }: ArrowShapeProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const lineRef = useRef({ start, end });
+  const safeStart = normalizePoint(start);
+  const safeEnd = normalizePoint(end);
+  const lineRef = useRef({ start: safeStart, end: safeEnd });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    lineRef.current = { start, end };
-  }, [start, end]);
+    lineRef.current = { start: safeStart, end: safeEnd };
+  }, [safeStart, safeEnd]);
 
   const markerPadding = 12;
   const padding = Math.max(6, stroke.width, markerPadding);
@@ -73,13 +69,16 @@ const Arrow = ({
     };
   };
 
-  const { boxX, boxY, boxWidth, boxHeight } = getBounds({ start, end });
-  const startRel = { x: start.x - boxX, y: start.y - boxY };
-  const endRel = { x: end.x - boxX, y: end.y - boxY };
+  const { boxX, boxY, boxWidth, boxHeight } = getBounds({
+    start: safeStart,
+    end: safeEnd,
+  });
+  const startRel = { x: safeStart.x - boxX, y: safeStart.y - boxY };
+  const endRel = { x: safeEnd.x - boxX, y: safeEnd.y - boxY };
   const markerId = `arrow-${id}`;
   const handleSize = 10;
   const halfHandle = handleSize / 2;
-  const angleRad = Math.atan2(end.y - start.y, end.x - start.x);
+  const angleRad = Math.atan2(safeEnd.y - safeStart.y, safeEnd.x - safeStart.x);
   const angleDeg = ((angleRad * 180) / Math.PI + 360) % 360;
 
   const getPointerPosition = (event: PointerEvent, scale: number) => {
@@ -304,24 +303,6 @@ const Arrow = ({
             onPointerDown={(event) => startResize(event, "end")}
           />
         </>
-      )}
-      {toolbar && isSelected && !locked && (
-        <ArrowToolBar
-          isVisible
-          style={{
-            left: 0,
-            top: 0,
-            transform: `translateY(calc(-100% - ${toolbar.offset ?? 0}px))`,
-          }}
-          minWidth={toolbar.minWidth}
-          maxWidth={toolbar.maxWidth}
-          color={toolbar.color}
-          width={toolbar.width}
-          onColorChange={toolbar.onColorChange}
-          onWidthChange={toolbar.onWidthChange}
-          onRotatePointerDown={startRotate}
-          onPointerDown={(event) => event.stopPropagation()}
-        />
       )}
       {!locked && (isHovered || isSelected) && (
         <div

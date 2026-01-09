@@ -19,6 +19,7 @@ interface Rect {
 
 interface TextBoxProps {
   text: string;
+  richText?: string;
   editable?: boolean;
   rect: Rect;
   minWidth?: number;
@@ -50,7 +51,7 @@ interface TextBoxProps {
     onAlignChange: (value: "left" | "center" | "right") => void;
     onAlignYChange: (value: "top" | "middle" | "bottom") => void;
   };
-  onTextChange?: (text: string) => void;
+  onTextChange?: (text: string, richText?: string) => void;
   onRectChange?: (rect: Rect) => void;
   onDragStateChange?: (
     isDragging: boolean,
@@ -80,6 +81,7 @@ const getScale = (element: HTMLElement | null) => {
 
 const TextBox = ({
   text,
+  richText,
   editable = false,
   rect,
   minWidth = 120,
@@ -108,7 +110,7 @@ const TextBox = ({
   const selectAllRef = useRef(false);
   const actionRef = useRef<ActiveListeners | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const editableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     rectRef.current = rect;
@@ -127,16 +129,26 @@ const TextBox = ({
   useEffect(() => {
     if (!isEditing) return;
     requestAnimationFrame(() => {
-      const input = inputRef.current;
-      if (!input) return;
-      input.focus();
+      const editable = editableRef.current;
+      if (!editable) return;
+      editable.focus();
+
       if (selectAllRef.current) {
-        input.select();
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(editable);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
         selectAllRef.current = false;
         return;
       }
-      const textLength = input.value.length;
-      input.setSelectionRange(textLength, textLength);
+
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(editable);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
     });
   }, [isEditing]);
 
@@ -319,6 +331,75 @@ const TextBox = ({
     onStartEditing?.();
   };
 
+  const applyStyleToSelection = (command: string, value?: string) => {
+    if (!isEditing) return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    document.execCommand(command, false, value);
+
+    const editable = editableRef.current;
+    if (!editable) return;
+
+    const plainText = editable.innerText;
+    const html = editable.innerHTML;
+    onTextChange?.(plainText, html);
+  };
+
+  const handleToggleBold = () => {
+    if (isEditing) {
+      applyStyleToSelection("bold");
+    } else {
+      toolbar?.onToggleBold();
+    }
+  };
+
+  const handleToggleUnderline = () => {
+    if (isEditing) {
+      applyStyleToSelection("underline");
+    } else {
+      toolbar?.onToggleUnderline();
+    }
+  };
+
+  const handleColorChange = (color: string) => {
+    if (isEditing) {
+      applyStyleToSelection("foreColor", color);
+    } else {
+      toolbar?.onColorChange(color);
+    }
+  };
+
+  const handleFontSizeChange = (size: number) => {
+    if (isEditing) {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        toolbar?.onFontSizeChange(size);
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      if (range.collapsed) {
+        toolbar?.onFontSizeChange(size);
+        return;
+      }
+
+      const span = document.createElement("span");
+      span.style.fontSize = `${size}px`;
+      range.surroundContents(span);
+
+      const editable = editableRef.current;
+      if (!editable) return;
+
+      const plainText = editable.innerText;
+      const html = editable.innerHTML;
+      onTextChange?.(plainText, html);
+    } else {
+      toolbar?.onFontSizeChange(size);
+    }
+  };
+
   return (
     <div
       ref={boxRef}
@@ -340,29 +421,33 @@ const TextBox = ({
       }}
     >
       {editable && isEditing ? (
-        <input
-          ref={inputRef}
-          value={text}
-          onChange={(event) => {
-            onTextChange?.(event.target.value);
+        <div
+          ref={editableRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={(event) => {
+            const target = event.currentTarget;
+            const plainText = target.innerText;
+            const html = target.innerHTML;
+            onTextChange?.(plainText, html);
           }}
           onBlur={onFinishEditing}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
             event.preventDefault();
-            inputRef.current?.blur();
+            editableRef.current?.blur();
           }}
           onPointerDown={(event) => event.stopPropagation()}
           className={`w-full bg-transparent outline-none ${textClassName}`}
           style={{ ...textStyle, textAlign }}
+          dangerouslySetInnerHTML={{ __html: richText || text }}
         />
       ) : (
-        <span
+        <div
           className={`block w-full ${textClassName}`}
           style={{ ...textStyle, textAlign }}
-        >
-          {text}
-        </span>
+          dangerouslySetInnerHTML={{ __html: richText || text }}
+        />
       )}
       {showOutline && (
         <>
@@ -387,11 +472,6 @@ const TextBox = ({
       {editable && toolbar && isSelected && !locked && (
         <TextToolBar
           isVisible
-          style={{
-            left: 0,
-            top: `-${toolbar.offset ?? 0}px`,
-            transform: "translateY(-100%)",
-          }}
           minFontSize={toolbar.minFontSize}
           maxFontSize={toolbar.maxFontSize}
           fontSize={toolbar.fontSize}
@@ -400,11 +480,11 @@ const TextBox = ({
           isUnderline={toolbar.isUnderline}
           align={toolbar.align}
           alignY={toolbar.alignY}
-          onFontSizeChange={toolbar.onFontSizeChange}
-          onFontSizeStep={toolbar.onFontSizeStep}
-          onColorChange={toolbar.onColorChange}
-          onToggleBold={toolbar.onToggleBold}
-          onToggleUnderline={toolbar.onToggleUnderline}
+          onFontSizeChange={handleFontSizeChange}
+          onFontSizeStep={(delta) => handleFontSizeChange(toolbar.fontSize + delta)}
+          onColorChange={handleColorChange}
+          onToggleBold={handleToggleBold}
+          onToggleUnderline={handleToggleUnderline}
           onAlignChange={toolbar.onAlignChange}
           onAlignYChange={toolbar.onAlignYChange}
           onPointerDown={(event) => event.stopPropagation()}

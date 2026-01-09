@@ -773,7 +773,16 @@ const MainSection = () => {
             }
             if (element.locked) return element;
             hasChanges = true;
-            return { ...element, fill: normalizedUrl };
+            return {
+              ...element,
+              fill: normalizedUrl,
+              imageBox: {
+                x: 0,
+                y: 0,
+                w: element.w,
+                h: element.h,
+              },
+            };
           });
           if (labelUpdates.size === 0 && placeholderUpdates.size === 0) {
             return hasChanges ? { ...page, elements: nextElements } : page;
@@ -833,6 +842,10 @@ const MainSection = () => {
 
   const handleSelectPage = (pageId: string) => {
     setActivePage(pageId);
+    // 페이지 선택 시 요소 선택 해제 및 클립보드 초기화
+    setSelectedIds([]);
+    setEditingTextId(null);
+    sessionStorage.removeItem("copiedElements");
   };
 
   const handleReorderPages = (reorderedPages: Page[]) => {
@@ -933,6 +946,14 @@ const MainSection = () => {
         ref={containerRef}
         className="flex-1 w-full min-h-0 overflow-auto"
         style={{ padding: "10px" }}
+        onClick={(e) => {
+          // 컨테이너 배경 클릭 시 선택 해제
+          if (e.target === e.currentTarget || (e.target as HTMLElement).style.display === "inline-flex") {
+            setSelectedIds([]);
+            setEditingTextId(null);
+            sessionStorage.removeItem("copiedElements");
+          }
+        }}
       >
         <div
           style={{
@@ -941,6 +962,14 @@ const MainSection = () => {
             justifyContent: "center",
             minWidth: "100%",
             minHeight: "100%",
+          }}
+          onClick={(e) => {
+            // 내부 wrapper 클릭 시에도 선택 해제
+            if (e.target === e.currentTarget) {
+              setSelectedIds([]);
+              setEditingTextId(null);
+              sessionStorage.removeItem("copiedElements");
+            }
           }}
         >
           <div style={{ position: "relative" }}>

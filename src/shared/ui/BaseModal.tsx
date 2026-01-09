@@ -31,16 +31,18 @@ const BaseModal = ({ isOpen, onClose, onReset, title, children }: BaseModalProps
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-9999 flex items-center justify-center backdrop-blur-sm overflow-hidden">
+    <div
+      className="fixed inset-0 z-9999 flex items-center justify-center backdrop-blur-sm overflow-hidden"
+      onClick={handleClose}
+    >
       {/* 모달 배경 */}
-      <div
-        className="absolute inset-0"
-        onClick={handleClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0" aria-hidden="true" />
 
       {/* 모달 콘텐츠 */}
-      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white-100 p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div
+        className="relative z-10 w-full max-w-md rounded-2xl bg-white-100 p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
         {/* 닫기 버튼 */}
         <button
           type="button"

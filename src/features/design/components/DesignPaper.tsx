@@ -26,9 +26,12 @@ import type {
 import SmartGuideOverlay from "./SmartGuideOverlay";
 import { useSmartGuides } from "../model/useSmartGuides";
 import Arrow from "./template_component/arrow/Arrow";
+import ArrowToolBar from "./template_component/arrow/ArrowToolBar";
 import CircleBox from "./template_component/circle/CircleBox";
 import Line from "./template_component/line/Line";
+import LineToolBar from "./template_component/line/LineToolBar";
 import RoundBox from "./template_component/round_box/RoundBox";
+import SquareToolBar from "./template_component/round_box/SquareToolBar";
 import TextBox from "./template_component/text/TextBox";
 import { useSideBarStore } from "../store/sideBarStore";
 
@@ -71,6 +74,10 @@ const PAGE_WIDTH_PX = mmToPx(210);
 const PAGE_HEIGHT_PX = mmToPx(297);
 const GUIDE_THRESHOLD_PX = 6;
 const RECT_TOLERANCE = 1;
+const DEFAULT_STROKE: LineElement["stroke"] = {
+  color: "#000000",
+  width: 2,
+};
 
 const isEmotionSlotShape = (
   element: CanvasElement
@@ -200,10 +207,14 @@ const DesignPaper = ({
         (element.type === "line" || element.type === "arrow") &&
         "stroke" in patch
       ) {
-        const nextStroke = {
-          ...(element as LineElement).stroke,
-          ...(patch as LineElementPatch).stroke,
-        };
+        const baseStroke = (element as LineElement).stroke ?? DEFAULT_STROKE;
+        const patchStroke = (patch as LineElementPatch).stroke;
+        const nextStroke = patchStroke
+          ? {
+              ...baseStroke,
+              ...patchStroke,
+            }
+          : baseStroke;
         return {
           ...(element as LineElement),
           ...patch,
@@ -288,6 +299,8 @@ const DesignPaper = ({
     onSelectedIdsChange?.([]);
     onEditingTextIdChange?.(null);
     setContextMenu(null);
+    // 요소 선택 해제 시 요소 클립보드 초기화 (페이지 복사가 가능하도록)
+    sessionStorage.removeItem("copiedElements");
   };
 
   useEffect(() => {
@@ -398,15 +411,15 @@ const DesignPaper = ({
     setContextMenu(null);
   };
 
-  const setClipboard = (items: CanvasElement[]) => {
+  const setClipboard = useCallback((items: CanvasElement[]) => {
     try {
       sessionStorage.setItem("copiedElements", JSON.stringify(items));
     } catch {
       // ignore clipboard failures
     }
-  };
+  }, []);
 
-  const getClipboard = (): CanvasElement[] | null => {
+  const getClipboard = useCallback((): CanvasElement[] | null => {
     try {
       const raw = sessionStorage.getItem("copiedElements");
       if (!raw) return null;
@@ -414,18 +427,18 @@ const DesignPaper = ({
     } catch {
       return null;
     }
-  };
+  }, []);
 
-  const copySelectedElements = () => {
+  const copySelectedElements = useCallback(() => {
     const selected = elements.filter((element) =>
       selectedIds.includes(element.id)
     );
     if (selected.length === 0) return;
     setClipboard(selected);
     setContextMenu(null);
-  };
+  }, [elements, selectedIds, setClipboard]);
 
-  const pasteElements = () => {
+  const pasteElements = useCallback(() => {
     if (readOnly || !onElementsChange) return;
     const clipboard = getClipboard();
     if (!clipboard || clipboard.length === 0) return;
@@ -456,7 +469,40 @@ const DesignPaper = ({
     onElementsChange([...elements, ...nextElements]);
     onSelectedIdsChange?.(nextElements.map((element) => element.id));
     setContextMenu(null);
-  };
+  }, [readOnly, onElementsChange, elements, onSelectedIdsChange, getClipboard]);
+
+  useEffect(() => {
+    if (readOnly || !onElementsChange) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (editingTextId) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Ctrl+C 또는 Cmd+C (요소 복사)
+      if ((event.ctrlKey || event.metaKey) && event.key === "c") {
+        if (selectedIds.length === 0) return;
+        copySelectedElements();
+      }
+
+      // Ctrl+V 또는 Cmd+V (요소 붙여넣기)
+      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+        event.preventDefault();
+        pasteElements();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [readOnly, onElementsChange, editingTextId, selectedIds, copySelectedElements, pasteElements]);
 
   const deleteSelectedElements = () => {
     if (readOnly || !onElementsChange) return;
@@ -502,6 +548,7 @@ const DesignPaper = ({
             <TextBox
               key={element.id}
               text={element.text}
+              richText={element.richText}
               editable={!readOnly && (!element.locked || forceEditable)}
               rect={rect}
               showChrome={!isEmotionSlotText}
@@ -560,8 +607,8 @@ const DesignPaper = ({
                 onAlignYChange: (alignY) =>
                   updateElement(element.id, { style: { alignY } }),
               }}
-              onTextChange={(nextText) =>
-                updateElement(element.id, { text: nextText })
+              onTextChange={(nextText, nextRichText) =>
+                updateElement(element.id, { text: nextText, richText: nextRichText })
               }
               onRectChange={(nextRect) =>
                 handleRectChange(element.id, nextRect)
@@ -641,81 +688,18 @@ const DesignPaper = ({
               : element.type === "ellipse"
               ? Math.min(rect.width, rect.height) / 2
               : 0;
-          const maxRadius = Math.min(rect.width, rect.height) / 2;
-          const minRadius = 0;
-          const clampRadius = (value: number) =>
-            Math.min(maxRadius, Math.max(minRadius, value));
           const isImageFill =
             element.fill.startsWith("url(") ||
             element.fill.startsWith("data:");
-          const colorValue = isImageFill ? "#ffffff" : element.fill;
-          const borderEnabled = element.border?.enabled ?? false;
-          const borderColor = element.border?.color ?? "#000000";
-          const borderWidth = element.border?.width ?? 2;
-          const borderStyle = element.border?.style ?? "solid";
-
-          const toolbar =
-            readOnly || element.locked
-              ? undefined
-              : {
-                  offset: mmToPx(4),
-                  minBorderRadius: minRadius,
-                  maxBorderRadius: maxRadius,
-                  showRadius: element.type !== "ellipse",
-                  borderRadius: radius,
-                  color: colorValue,
-                  borderEnabled,
-                  borderColor,
-                  borderWidth,
-                  borderStyle,
-                  onBorderRadiusChange: (value: number) =>
-                    updateElement(element.id, {
-                      radius: clampRadius(value),
-                    }),
-                  onBorderRadiusStep: (delta: number) =>
-                    updateElement(element.id, {
-                      radius: clampRadius(radius + delta),
-                    }),
-                  onColorChange: (color: string) =>
-                    updateElement(element.id, { fill: color }),
-                  onImageUpload: (imageUrl: string) =>
-                    updateElement(element.id, { fill: imageUrl }),
-                  onBorderEnabledChange: (enabled: boolean) =>
-                    updateElement(element.id, {
-                      border: {
-                        enabled,
-                        color: borderColor,
-                        width: borderWidth,
-                        style: borderStyle,
-                      },
-                    }),
-                  onBorderStyleChange: (
-                    style: "solid" | "dashed" | "dotted" | "double"
-                  ) =>
-                    updateElement(element.id, {
-                      border: {
-                        enabled: true,
-                        color: borderColor,
-                        width: borderWidth,
-                        style,
-                      },
-                    }),
-                  onBorderColorChange: (color: string) =>
-                    updateElement(element.id, {
-                      border: {
-                        color,
-                      },
-                    }),
-                  onBorderWidthChange: (value: number) =>
-                    updateElement(element.id, {
-                      border: {
-                        width: value,
-                      },
-                    }),
-                };
+          const imageBox = element.imageBox;
 
           const ShapeComponent =
             element.type === "ellipse" ? CircleBox : RoundBox;
+          const handleImageBoxChange =
+            readOnly || element.locked || !isImageFill
+              ? undefined
+              : (value: { x: number; y: number; w: number; h: number }) =>
+                  updateElement(element.id, { imageBox: value });
 
           return (
             <ShapeComponent
@@ -725,10 +709,11 @@ const DesignPaper = ({
               minHeight={mmToPx(40)}
               borderRadius={radius}
               fill={element.fill}
+              imageBox={imageBox}
               border={element.border}
               isSelected={isSelected}
               locked={readOnly || element.locked}
-              toolbar={toolbar}
+              onImageBoxChange={handleImageBoxChange}
               onImageDrop={
                 readOnly || element.locked
                   ? undefined
@@ -737,6 +722,12 @@ const DesignPaper = ({
                         fill: imageUrl.startsWith("url(")
                           ? imageUrl
                           : `url(${imageUrl})`,
+                        imageBox: {
+                          x: 0,
+                          y: 0,
+                          w: rect.width,
+                          h: rect.height,
+                        },
                       })
               }
               onRectChange={(nextRect) =>
@@ -800,28 +791,8 @@ const DesignPaper = ({
         }
 
         if (element.type === "line" || element.type === "arrow") {
+          const stroke = element.stroke ?? DEFAULT_STROKE;
           const isSelected = selectedIds.includes(element.id);
-          const minStroke = 1;
-          const maxStroke = 20;
-          const clampStroke = (value: number) =>
-            Math.min(maxStroke, Math.max(minStroke, value));
-          const strokeWidth = element.stroke.width;
-          const strokeColor = element.stroke.color;
-          const commonToolbar = readOnly || element.locked
-            ? undefined
-            : {
-                offset: mmToPx(4),
-                minWidth: minStroke,
-                maxWidth: maxStroke,
-                color: strokeColor,
-                width: strokeWidth,
-                onColorChange: (color: string) =>
-                  updateElement(element.id, { stroke: { color } }),
-                onWidthChange: (value: number) =>
-                  updateElement(element.id, {
-                    stroke: { width: clampStroke(value) },
-                  }),
-              };
 
           if (element.type === "line") {
             return (
@@ -830,10 +801,9 @@ const DesignPaper = ({
                 id={element.id}
                 start={element.start}
                 end={element.end}
-                stroke={element.stroke}
+                stroke={stroke}
                 isSelected={isSelected}
                 locked={readOnly || element.locked}
-                toolbar={commonToolbar}
                 onLineChange={(nextLine) =>
                   updateElement(element.id, {
                     start: nextLine.start,
@@ -852,10 +822,9 @@ const DesignPaper = ({
               id={element.id}
               start={element.start}
               end={element.end}
-              stroke={element.stroke}
+              stroke={stroke}
               isSelected={isSelected}
               locked={readOnly || element.locked}
-              toolbar={commonToolbar}
               onLineChange={(nextLine) =>
                 updateElement(element.id, {
                   start: nextLine.start,
@@ -992,6 +961,194 @@ const DesignPaper = ({
           })()}
         </div>
       )}
+      {(() => {
+        // 선택된 shape의 툴바를 캔버스 상단에 표시
+        if (readOnly || selectedIds.length !== 1) return null;
+
+        const selectedElement = elements.find((el) => el.id === selectedIds[0]);
+        if (
+          !selectedElement ||
+          selectedElement.locked ||
+          (selectedElement.type !== "rect" &&
+            selectedElement.type !== "roundRect" &&
+            selectedElement.type !== "ellipse")
+        ) {
+          return null;
+        }
+
+        const element = selectedElement as ShapeElement;
+        const rect = getRenderableRect(element);
+        if (!rect) return null;
+
+        const radius =
+          element.type === "roundRect"
+            ? element.radius ?? 0
+            : element.type === "ellipse"
+            ? Math.min(rect.width, rect.height) / 2
+            : 0;
+        const maxRadius = Math.min(rect.width, rect.height) / 2;
+        const minRadius = 0;
+        const clampRadius = (value: number) =>
+          Math.min(maxRadius, Math.max(minRadius, value));
+        const isImageFill =
+          element.fill.startsWith("url(") ||
+          element.fill.startsWith("data:");
+        const colorValue = isImageFill ? "#ffffff" : element.fill;
+        const borderEnabled = element.border?.enabled ?? false;
+        const borderColor = element.border?.color ?? "#000000";
+        const borderWidth = element.border?.width ?? 2;
+        const borderStyle = element.border?.style ?? "solid";
+
+        return (
+          <SquareToolBar
+            isVisible
+            showRadius={element.type !== "ellipse"}
+            borderRadius={radius}
+            minBorderRadius={minRadius}
+            maxBorderRadius={maxRadius}
+            color={colorValue}
+            borderEnabled={borderEnabled}
+            borderColor={borderColor}
+            borderWidth={borderWidth}
+            borderStyle={borderStyle}
+            width={rect.width}
+            height={rect.height}
+            minWidth={mmToPx(40)}
+            minHeight={mmToPx(40)}
+            onBorderRadiusChange={(value: number) =>
+              updateElement(element.id, {
+                radius: clampRadius(value),
+              })
+            }
+            onBorderRadiusStep={(delta: number) =>
+              updateElement(element.id, {
+                radius: clampRadius(radius + delta),
+              })
+            }
+            onColorChange={(color: string) =>
+              updateElement(element.id, { fill: color })
+            }
+            onImageUpload={(imageUrl: string) =>
+              updateElement(element.id, {
+                fill: imageUrl,
+                imageBox: {
+                  x: 0,
+                  y: 0,
+                  w: rect.width,
+                  h: rect.height,
+                },
+              })
+            }
+            onBorderEnabledChange={(enabled: boolean) =>
+              updateElement(element.id, {
+                border: {
+                  enabled,
+                  color: borderColor,
+                  width: borderWidth,
+                  style: borderStyle,
+                },
+              })
+            }
+            onBorderStyleChange={(
+              style: "solid" | "dashed" | "dotted" | "double"
+            ) =>
+              updateElement(element.id, {
+                border: {
+                  enabled: true,
+                  color: borderColor,
+                  width: borderWidth,
+                  style,
+                },
+              })
+            }
+            onBorderColorChange={(color: string) =>
+              updateElement(element.id, {
+                border: {
+                  color,
+                },
+              })
+            }
+            onBorderWidthChange={(value: number) =>
+              updateElement(element.id, {
+                border: {
+                  width: value,
+                },
+              })
+            }
+            onSizeChange={(width: number, height: number) =>
+              updateElement(element.id, {
+                w: width,
+                h: height,
+              })
+            }
+            onPointerDown={(event) => event.stopPropagation()}
+          />
+        );
+      })()}
+      {(() => {
+        // 선택된 line 또는 arrow의 툴바를 캔버스 상단에 표시
+        if (readOnly || selectedIds.length !== 1) return null;
+
+        const selectedElement = elements.find((el) => el.id === selectedIds[0]);
+        if (
+          !selectedElement ||
+          selectedElement.locked ||
+          (selectedElement.type !== "line" && selectedElement.type !== "arrow")
+        ) {
+          return null;
+        }
+
+        const element = selectedElement as LineElement;
+        const stroke = element.stroke ?? DEFAULT_STROKE;
+        const minStrokeWidth = 1;
+        const maxStrokeWidth = 20;
+        const clampStrokeWidth = (value: number) =>
+          Math.min(maxStrokeWidth, Math.max(minStrokeWidth, value));
+
+        if (element.type === "line") {
+          return (
+            <LineToolBar
+              isVisible
+              color={stroke.color}
+              width={stroke.width}
+              minWidth={minStrokeWidth}
+              maxWidth={maxStrokeWidth}
+              onColorChange={(color: string) =>
+                updateElement(element.id, {
+                  stroke: { color },
+                })
+              }
+              onWidthChange={(value: number) =>
+                updateElement(element.id, {
+                  stroke: { width: clampStrokeWidth(value) },
+                })
+              }
+              onPointerDown={(event) => event.stopPropagation()}
+            />
+          );
+        }
+
+        return (
+          <ArrowToolBar
+            isVisible
+            color={stroke.color}
+            width={stroke.width}
+            minWidth={minStrokeWidth}
+            maxWidth={maxStrokeWidth}
+            onColorChange={(color: string) =>
+              updateElement(element.id, {
+                stroke: { color },
+              })
+            }
+            onWidthChange={(value: number) =>
+              updateElement(element.id, {
+                stroke: { width: clampStrokeWidth(value) },
+              })
+            }
+            onPointerDown={(event) => event.stopPropagation()}
+          />
+        );
+      })()}
       <SmartGuideOverlay guides={smartGuides.guides} />
     </div>
   );

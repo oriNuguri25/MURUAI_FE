@@ -8,6 +8,6 @@ interface OrientationStore {
 }
 
 export const useOrientationStore = create<OrientationStore>((set) => ({
-  orientation: "horizontal",
+  orientation: "vertical",
   setOrientation: (orientation) => set({ orientation }),
 }));

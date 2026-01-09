@@ -7,6 +7,7 @@ import {
   List,
   Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/shared/supabase/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
@@ -84,6 +85,7 @@ const MyDocPage = () => {
   const [groups, setGroups] = useState<SimpleTarget[]>([]);
   const [currentChildPage, setCurrentChildPage] = useState(0);
   const [currentGroupPage, setCurrentGroupPage] = useState(0);
+  const [selectedTarget, setSelectedTarget] = useState<DocTarget | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -248,12 +250,46 @@ const MyDocPage = () => {
     });
   })();
   const assignedDocs = filteredDocs.filter((doc) => doc.targets.length > 0);
+  const visibleDocs = selectedTarget
+    ? assignedDocs.filter((doc) =>
+        doc.targets.some(
+          (target) =>
+            target.type === selectedTarget.type &&
+            target.id === selectedTarget.id
+        )
+      )
+    : [];
 
   const getInitial = (value: string) => value.trim().slice(0, 1) || "?";
+  const handleDeleteDoc = async (docId: string) => {
+    const confirmed = window.confirm("학습자료를 삭제할까요?");
+    if (!confirmed) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setErrorMessage("로그인이 필요해요.");
+      return;
+    }
+    const { error: targetError } = await supabase
+      .from("user_made_targets_n")
+      .delete()
+      .eq("user_made_id", docId);
+    if (targetError) {
+      setErrorMessage("학습자료를 삭제하지 못했어요.");
+      return;
+    }
+    const { error } = await supabase.from("user_made_n").delete().eq("id", docId);
+    if (error) {
+      setErrorMessage("학습자료를 삭제하지 못했어요.");
+      return;
+    }
+    setDocs((prev) => prev.filter((doc) => doc.id !== docId));
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="flex w-full items-center justify-between border-b border-black-10 px-10 py-4">
+      <div className="flex w-full items-center justify-between px-10 pt-8 pb-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -321,7 +357,31 @@ const MyDocPage = () => {
               {currentChildren.map((target) => (
                 <div
                   key={`child-${target.id}`}
-                  className="flex h-36 flex-col items-center gap-3 rounded-2xl border border-black-10 bg-white-100 px-6 py-5 text-center shadow-sm"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    setSelectedTarget((prev) =>
+                      prev?.type === "child" && prev.id === target.id
+                        ? null
+                        : { type: "child", id: target.id, name: target.name }
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedTarget((prev) =>
+                        prev?.type === "child" && prev.id === target.id
+                          ? null
+                          : { type: "child", id: target.id, name: target.name }
+                      );
+                    }
+                  }}
+                  className={`flex h-36 flex-col items-center gap-3 rounded-2xl border bg-white-100 px-6 py-5 text-center shadow-sm transition ${
+                    selectedTarget?.type === "child" &&
+                    selectedTarget.id === target.id
+                      ? "border-primary ring-1 ring-primary/30"
+                      : "border-black-10 hover:border-black-20"
+                  }`}
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-16-semibold text-white-100">
                     {getInitial(target.name)}
@@ -376,7 +436,31 @@ const MyDocPage = () => {
               {currentGroups.map((target) => (
                 <div
                   key={`group-${target.id}`}
-                  className="flex h-36 flex-col items-center gap-3 rounded-2xl border border-black-10 bg-white-100 px-6 py-5 text-center shadow-sm"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    setSelectedTarget((prev) =>
+                      prev?.type === "group" && prev.id === target.id
+                        ? null
+                        : { type: "group", id: target.id, name: target.name }
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedTarget((prev) =>
+                        prev?.type === "group" && prev.id === target.id
+                          ? null
+                          : { type: "group", id: target.id, name: target.name }
+                      );
+                    }
+                  }}
+                  className={`flex h-36 flex-col items-center gap-3 rounded-2xl border bg-white-100 px-6 py-5 text-center shadow-sm transition ${
+                    selectedTarget?.type === "group" &&
+                    selectedTarget.id === target.id
+                      ? "border-primary ring-1 ring-primary/30"
+                      : "border-black-10 hover:border-black-20"
+                  }`}
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-16-semibold text-white-100">
                     {getInitial(target.name)}
@@ -416,7 +500,7 @@ const MyDocPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-title-16-semibold text-black-100">
-                바로 만들기 자료
+                등록된 학습자료
               </span>
             </div>
             <div className="flex items-center gap-2 text-black-50">
@@ -449,6 +533,27 @@ const MyDocPage = () => {
                 학습자료를 불러오는 중입니다.
               </span>
             </div>
+          ) : !selectedTarget ? (
+            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-14">
+              <span className="text-14-regular text-black-50">
+                학습자 또는 그룹을 선택해주세요.
+              </span>
+            </div>
+          ) : visibleDocs.length === 0 ? (
+            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-14">
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-14-regular text-black-50">
+                  등록된 학습자료가 없습니다.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => navigate("/design")}
+                  className="rounded-lg border border-primary px-4 py-2 text-14-semibold text-primary transition hover:bg-primary/5"
+                >
+                  학습자료 만들어보기
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="grid w-full grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               <button
@@ -461,7 +566,7 @@ const MyDocPage = () => {
                 </div>
                 <span className="text-14-semibold">새 자료 만들기</span>
               </button>
-              {assignedDocs.map((doc) => {
+              {visibleDocs.map((doc) => {
                 const previewPage = doc.canvasData?.pages?.[0];
                 const pageWidthPx = 210 * 3.7795;
                 const pageHeightPx = 297 * 3.7795;
@@ -479,13 +584,31 @@ const MyDocPage = () => {
                 const previewScaledWidth = previewBaseWidth * previewScale;
                 const previewScaledHeight = previewBaseHeight * previewScale;
                 return (
-                  <button
+                  <div
                     key={doc.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => navigate(`/design/${doc.id}`)}
-                    className="flex flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 text-left shadow-sm transition hover:border-primary hover:shadow-md"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        navigate(`/design/${doc.id}`);
+                      }
+                    }}
+                    className="flex cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 text-left shadow-sm transition hover:border-primary hover:shadow-md"
                   >
                     <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-black-10 bg-black-5">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeleteDoc(doc.id);
+                        }}
+                        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                        aria-label="학습자료 삭제"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                       {previewPage ? (
                         <div
                           className="absolute left-1/2 top-1/2"
@@ -539,7 +662,7 @@ const MyDocPage = () => {
                         </span>
                       ))}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

@@ -1,7 +1,4 @@
-import {
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { type PointerEvent as ReactPointerEvent } from "react";
 import {
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -11,10 +8,10 @@ import {
   TextAlignEnd,
   Underline,
 } from "lucide-react";
+import FixedToolBar from "../FixedToolBar";
 
 interface TextToolBarProps {
   isVisible: boolean;
-  style?: CSSProperties;
   minFontSize: number;
   maxFontSize: number;
   fontSize: number;
@@ -35,7 +32,6 @@ interface TextToolBarProps {
 
 const TextToolBar = ({
   isVisible,
-  style,
   minFontSize,
   maxFontSize,
   fontSize,
@@ -56,15 +52,8 @@ const TextToolBar = ({
   const clampFontSize = (value: number) =>
     Math.min(maxFontSize, Math.max(minFontSize, value));
 
-  if (!isVisible) return null;
-
   return (
-    <div
-      data-capture-hide="true"
-      className="absolute z-10 flex w-max items-center gap-2 whitespace-nowrap rounded-lg border border-black-30 bg-white-100 px-3 py-2 shadow-sm"
-      style={style}
-      onPointerDown={onPointerDown}
-    >
+    <FixedToolBar isVisible={isVisible} onPointerDown={onPointerDown}>
       <div className="flex items-center text-14-regular text-black-60">
         텍스트 크기
       </div>
@@ -183,7 +172,7 @@ const TextToolBar = ({
           </button>
         ))}
       </div>
-    </div>
+    </FixedToolBar>
   );
 };
 
