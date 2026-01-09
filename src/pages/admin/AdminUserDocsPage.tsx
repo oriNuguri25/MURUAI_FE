@@ -367,11 +367,11 @@ const AdminUserDocsPage = () => {
                     key={doc.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => navigate(`/design/${doc.id}`)}
+                    onClick={() => navigate(`/${doc.id}/edit`)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        navigate(`/design/${doc.id}`);
+                        navigate(`/${doc.id}/edit`);
                       }
                     }}
                     className="flex cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 text-left shadow-sm transition hover:border-primary hover:shadow-md"

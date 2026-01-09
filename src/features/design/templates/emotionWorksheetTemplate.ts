@@ -71,7 +71,7 @@ export const emotionWorksheetTemplate: Template = {
       y: mmToPx(dateYmm),
       w: mmToPx(dateWidthMm),
       h: mmToPx(dateHeightMm),
-      text: "월   일   요일",
+      text: "월&nbsp;&nbsp;&nbsp;&nbsp;일&nbsp;&nbsp;&nbsp;&nbsp;요일",
       style: {
         fontSize: 24,
         fontWeight: "normal",

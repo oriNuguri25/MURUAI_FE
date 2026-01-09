@@ -10,7 +10,7 @@ import {
   Minus,
   RotateCcw,
 } from "lucide-react";
-import { Outlet, useParams } from "react-router-dom";
+import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/shared/supabase/supabase";
 import { useTemplateStore } from "@/features/design/store/templateStore";
@@ -20,7 +20,10 @@ import { useHistoryStore } from "@/features/design/store/historyStore";
 import { useToastStore } from "@/features/design/store/toastStore";
 import ExportModal from "@/features/design/components/ExportModal";
 import type { CanvasDocument } from "@/features/design/model/pageTypes";
-import { saveUserMadeVersion } from "@/features/design/utils/userMadeExport";
+import {
+  saveUserMadeVersion,
+  updateUserMadeVersion,
+} from "@/features/design/utils/userMadeExport";
 
 type TargetOption = {
   id: string;
@@ -30,10 +33,12 @@ type TargetOption = {
 const DesignLayout = () => {
   const orientation = useOrientationStore((state) => state.orientation);
   const setOrientation = useOrientationStore((state) => state.setOrientation);
+  const navigate = useNavigate();
   const [zoom, setZoom] = useState<number>(100);
   const [docName, setDocName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const { sessionId } = useParams<{ sessionId?: string }>();
+  const [isCreatingNewDoc, setIsCreatingNewDoc] = useState(false);
+  const { docId } = useParams<{ docId?: string }>();
   const [loadedDocument, setLoadedDocument] = useState<CanvasDocument | null>(
     null
   );
@@ -105,12 +110,39 @@ const DesignLayout = () => {
   }, [toastMessage, clearToast]);
 
   useEffect(() => {
-    if (!sessionId) {
+    if (window.location.pathname === "/design" && !isCreatingNewDoc) {
+      setIsCreatingNewDoc(true);
+      const createNewDocument = async () => {
+        try {
+          const { data } = await supabase.auth.getUser();
+          const user = data.user;
+          if (!user) {
+            showToast("로그인이 필요해요.");
+            setIsCreatingNewDoc(false);
+            return;
+          }
+          const { id } = await saveUserMadeVersion({
+            userId: user.id,
+            name: "제목 없음",
+            canvasData: { pages: [] },
+          });
+          navigate(`/${id}/edit`, { replace: true });
+        } catch {
+          showToast("새 문서를 만들지 못했어요.");
+          setIsCreatingNewDoc(false);
+        }
+      };
+      createNewDocument();
+    }
+  }, [navigate, showToast, isCreatingNewDoc]);
+
+  useEffect(() => {
+    if (!docId) {
       setLoadedDocument(null);
       setLoadedDocumentId(null);
       return;
     }
-    if (sessionId === loadedDocumentId) return;
+    if (docId === loadedDocumentId) return;
     let isMounted = true;
     const loadUserMade = async () => {
       const { data } = await supabase.auth.getUser();
@@ -122,7 +154,7 @@ const DesignLayout = () => {
       const { data: row, error } = await supabase
         .from("user_made_n")
         .select("id,name,canvas_data")
-        .eq("id", sessionId)
+        .eq("id", docId)
         .single();
       if (!isMounted) return;
       if (error || !row) {
@@ -149,12 +181,16 @@ const DesignLayout = () => {
       setLoadedDocument(canvasData as CanvasDocument);
       setLoadedDocumentId(row.id);
       setLastSavedUserMadeId(row.id);
+      const initialOrientation = (canvasData as CanvasDocument).pages[0]?.orientation;
+      if (initialOrientation === "horizontal" || initialOrientation === "vertical") {
+        setOrientation(initialOrientation);
+      }
     };
     loadUserMade();
     return () => {
       isMounted = false;
     };
-  }, [loadedDocumentId, sessionId, showToast]);
+  }, [loadedDocumentId, docId, showToast, setOrientation]);
 
   const handleZoomIn = () => {
     if (zoom < 200) {
@@ -193,13 +229,24 @@ const DesignLayout = () => {
         showToast("로그인이 필요해요.");
         return;
       }
-      const { id } = await saveUserMadeVersion({
-        userId: user.id,
-        name: getName(),
-        canvasData: getCanvasData(),
-      });
-      setLastSavedUserMadeId(id);
-      showToast("저장했습니다.");
+      if (docId) {
+        await updateUserMadeVersion({
+          docId,
+          name: getName(),
+          canvasData: getCanvasData(),
+        });
+        setLastSavedUserMadeId(docId);
+        showToast("저장했습니다.");
+      } else {
+        const { id } = await saveUserMadeVersion({
+          userId: user.id,
+          name: getName(),
+          canvasData: getCanvasData(),
+        });
+        setLastSavedUserMadeId(id);
+        navigate(`/${id}/edit`, { replace: true });
+        showToast("저장했습니다.");
+      }
     } catch {
       showToast("저장하지 못했어요.");
     } finally {
@@ -457,6 +504,9 @@ const DesignLayout = () => {
           registerCanvasGetter,
           loadedDocument,
           clearLoadedDocument,
+          loadedDocumentId,
+          docId,
+          docName,
         }}
       />
       </main>

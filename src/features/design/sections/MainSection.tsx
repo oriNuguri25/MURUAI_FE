@@ -35,14 +35,19 @@ import {
   buildStorySequenceElements,
   type StorySequenceConfig,
 } from "../utils/storySequenceUtils";
+import { updateUserMadeVersion } from "../utils/userMadeExport";
+import { supabase } from "@/shared/supabase/supabase";
 
-interface OutletContext {
+export interface OutletContext {
   zoom: number;
   orientation: "horizontal" | "vertical";
   setOrientation: Dispatch<SetStateAction<"horizontal" | "vertical">>;
   registerCanvasGetter: (getter: () => CanvasDocument) => void;
   loadedDocument: CanvasDocument | null;
   clearLoadedDocument: () => void;
+  loadedDocumentId: string | null;
+  docId?: string;
+  docName: string;
 }
 
 const MM_TO_PX = 3.7795;
@@ -52,6 +57,35 @@ type PageHistory = {
   past: CanvasElement[][];
   present: CanvasElement[];
   future: CanvasElement[][];
+};
+
+const normalizeOrientationValue = (
+  value: unknown,
+  fallback: "horizontal" | "vertical"
+) => (value === "horizontal" || value === "vertical" ? value : fallback);
+
+const buildInitialPages = (
+  document: CanvasDocument | null,
+  fallbackOrientation: "horizontal" | "vertical"
+) => {
+  const nextPages = Array.isArray(document?.pages) ? document.pages : [];
+  if (nextPages.length === 0) {
+    return [
+      {
+        id: "1",
+        pageNumber: 1,
+        templateId: null,
+        elements: withLogoCanvasElements([]),
+        orientation: fallbackOrientation,
+      },
+    ];
+  }
+  return nextPages.map((page, index) => ({
+    ...page,
+    pageNumber: page.pageNumber ?? index + 1,
+    orientation: normalizeOrientationValue(page.orientation, fallbackOrientation),
+    elements: Array.isArray(page.elements) ? page.elements : [],
+  }));
 };
 
 const cloneElementsForHistory = (elements: CanvasElement[]) =>
@@ -367,23 +401,19 @@ const MainSection = () => {
     setOrientation,
     registerCanvasGetter,
     loadedDocument,
-    clearLoadedDocument,
+    docId,
+    docName,
   } = useOutletContext<OutletContext>();
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
   const setSelectedTemplate = useTemplateStore(
     (state) => state.setSelectedTemplate
   );
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
-  const [pages, setPages] = useState<Page[]>([
-    {
-      id: "1",
-      pageNumber: 1,
-      templateId: null,
-      elements: withLogoCanvasElements([]),
-      orientation,
-    },
-  ]);
-  const [selectedPageId, setSelectedPageId] = useState<string>("1");
+  const initialPages = buildInitialPages(loadedDocument, orientation);
+  const [pages, setPages] = useState<Page[]>(initialPages);
+  const [selectedPageId, setSelectedPageId] = useState<string>(
+    initialPages[0].id
+  );
   const selectedPageIdRef = useRef(selectedPageId);
   const pagesRef = useRef(pages);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -402,6 +432,12 @@ const MainSection = () => {
       id: crypto.randomUUID(),
     }));
 
+  const normalizeOrientation = useCallback(
+    (value: unknown): "horizontal" | "vertical" =>
+      normalizeOrientationValue(value, orientation),
+    [orientation]
+  );
+
   useEffect(() => {
     orientationRef.current = orientation;
   }, [orientation]);
@@ -418,6 +454,27 @@ const MainSection = () => {
     selectedIdsRef.current = selectedIds;
   }, [selectedIds]);
 
+  useEffect(() => {
+    if (!docId) return;
+    const autoSaveTimeout = setTimeout(async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data.user;
+        if (!user) return;
+
+        await updateUserMadeVersion({
+          docId,
+          name: docName || "제목 없음",
+          canvasData: { pages },
+        });
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      }
+    }, 1000);
+
+    return () => clearTimeout(autoSaveTimeout);
+  }, [pages, docId, docName]);
+
   const getCanvasData = useCallback<() => CanvasDocument>(
     () => ({
       pages: pagesRef.current,
@@ -428,39 +485,6 @@ const MainSection = () => {
   useEffect(() => {
     registerCanvasGetter(getCanvasData);
   }, [getCanvasData, registerCanvasGetter]);
-
-  useEffect(() => {
-    if (!loadedDocument) return;
-    const nextPages = Array.isArray(loadedDocument.pages)
-      ? loadedDocument.pages
-      : [];
-    if (nextPages.length === 0) {
-      clearLoadedDocument();
-      return;
-    }
-
-    // orientation 값 검증 함수
-    const normalizeOrientation = (value: unknown): "horizontal" | "vertical" => {
-      if (value === "horizontal" || value === "vertical") {
-        return value;
-      }
-      // 잘못된 값이나 없는 경우 기본값 사용
-      return orientationRef.current;
-    };
-
-    const normalizedPages = nextPages.map((page, index) => ({
-      ...page,
-      pageNumber: page.pageNumber ?? index + 1,
-      orientation: normalizeOrientation(page.orientation),
-      elements: Array.isArray(page.elements) ? page.elements : [],
-    }));
-    setPages(normalizedPages);
-    setSelectedPageId(normalizedPages[0].id);
-    setSelectedIds([]);
-    setEditingTextId(null);
-    setOrientation(normalizedPages[0].orientation);
-    clearLoadedDocument();
-  }, [clearLoadedDocument, loadedDocument, setOrientation]);
 
   const ensureHistory = useCallback(
     (pageId: string, elements: CanvasElement[]) => {
@@ -1037,27 +1061,35 @@ const MainSection = () => {
         onAddPageAtIndex={handleAddPageAtIndex}
       />
       <div
-        className="fixed top-0 pointer-events-none"
-        style={{ left: "-10000px" }}
+        className="fixed pointer-events-none"
+        style={{
+          top: "-999999px",
+          left: "-999999px",
+          zIndex: -9999,
+          position: "fixed"
+        }}
         aria-hidden="true"
       >
-        {pages.map((page) => (
-          <div
-            key={`pdf-${page.id}`}
-            className="pdf-page"
-            data-orientation={page.orientation ?? "vertical"}
-            style={{ display: "inline-block" }}
-          >
-            <DesignPaper
-              pageId={`pdf-${page.id}`}
-              orientation={page.orientation ?? "vertical"}
-              elements={page.elements}
-              selectedIds={[]}
-              editingTextId={null}
-              readOnly
-            />
-          </div>
-        ))}
+        {pages.map((page) => {
+          const normalizedOrientation = normalizeOrientation(page.orientation);
+          return (
+            <div
+              key={`pdf-${page.id}`}
+              className="pdf-page"
+              data-orientation={normalizedOrientation}
+              style={{ display: "inline-block" }}
+            >
+              <DesignPaper
+                pageId={`pdf-${page.id}`}
+                orientation={normalizedOrientation}
+                elements={page.elements}
+                selectedIds={[]}
+                editingTextId={null}
+                readOnly
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

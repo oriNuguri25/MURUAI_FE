@@ -35,7 +35,7 @@ export const router = createBrowserRouter([
         element: <DesignPage />,
       },
       {
-        path: "design/:sessionId",
+        path: ":docId/edit",
         element: <DesignPage />,
       },
     ],

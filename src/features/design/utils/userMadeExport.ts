@@ -55,6 +55,49 @@ export const saveUserMadeVersion = async ({
   return { id: data.id };
 };
 
+type UpdateUserMadeOptions = {
+  docId: string;
+  name: string;
+  canvasData: unknown;
+};
+
+export const updateUserMadeVersion = async ({
+  docId,
+  name,
+  canvasData,
+}: UpdateUserMadeOptions): Promise<void> => {
+  if (!docId) {
+    console.error("updateUserMadeVersion: missing docId");
+    throw new Error("Missing document ID");
+  }
+  if (!name) {
+    console.warn("updateUserMadeVersion: empty name");
+  }
+  if (canvasData == null) {
+    console.error("updateUserMadeVersion: missing canvasData", canvasData);
+  }
+
+  const payload = {
+    name,
+    canvas_data: canvasData,
+  };
+
+  const { error } = await supabase
+    .from("user_made_n")
+    .update(payload)
+    .eq("id", docId);
+
+  if (error) {
+    console.error("updateUserMadeVersion failed", {
+      error,
+      docId,
+      name,
+      canvasDataType: typeof canvasData,
+    });
+    throw error;
+  }
+};
+
 export const assignUserMadeToTarget = async ({
   userMadeId,
   targetType,

@@ -111,6 +111,7 @@ const TextBox = ({
   const actionRef = useRef<ActiveListeners | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef<HTMLDivElement>(null);
+  const wasEditingRef = useRef(false);
 
   useEffect(() => {
     rectRef.current = rect;
@@ -125,6 +126,16 @@ const TextBox = ({
       actionRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (isEditing && !wasEditingRef.current) {
+      const editable = editableRef.current;
+      if (editable) {
+        editable.innerHTML = richText || text;
+      }
+    }
+    wasEditingRef.current = isEditing;
+  }, [isEditing, richText, text]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -440,7 +451,6 @@ const TextBox = ({
           onPointerDown={(event) => event.stopPropagation()}
           className={`w-full bg-transparent outline-none ${textClassName}`}
           style={{ ...textStyle, textAlign }}
-          dangerouslySetInnerHTML={{ __html: richText || text }}
         />
       ) : (
         <div
