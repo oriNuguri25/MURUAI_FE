@@ -1,12 +1,11 @@
 import {
   useEffect,
   useRef,
-  useState,
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-
-type Point = { x: number; y: number };
+import type { Point } from "../../../model/canvasTypes";
+import { getScale, normalizePoint } from "../../../utils/domUtils";
 
 interface ArrowShapeProps {
   id: string;
@@ -16,21 +15,14 @@ interface ArrowShapeProps {
   isSelected?: boolean;
   locked?: boolean;
   onLineChange?: (value: { start: Point; end: Point }) => void;
-  onDragStateChange?: (isDragging: boolean, value?: { start: Point; end: Point }) => void;
-  onSelectChange?: (isSelected: boolean) => void;
+  onDragStateChange?: (
+    isDragging: boolean,
+    value?: { start: Point; end: Point },
+    context?: { type: "drag" | "resize" }
+  ) => void;
+  onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
 }
-
-const getScale = (element: HTMLElement | null) => {
-  if (!element) return 1;
-  const rect = element.getBoundingClientRect();
-  return element.offsetWidth ? rect.width / element.offsetWidth : 1;
-};
-
-const normalizePoint = (point?: Point): Point => ({
-  x: typeof point?.x === "number" ? point.x : 0,
-  y: typeof point?.y === "number" ? point.y : 0,
-});
 
 const Arrow = ({
   id,
@@ -44,7 +36,6 @@ const Arrow = ({
   onSelectChange,
   onContextMenu,
 }: ArrowShapeProps) => {
-  const [isHovered, setIsHovered] = useState(false);
   const safeStart = normalizePoint(start);
   const safeEnd = normalizePoint(end);
   const lineRef = useRef({ start: safeStart, end: safeEnd });
@@ -93,9 +84,10 @@ const Arrow = ({
 
   const startDrag = (event: ReactPointerEvent<SVGLineElement>) => {
     if (locked) return;
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true);
+    onSelectChange?.(true, { additive: event.shiftKey });
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -113,7 +105,7 @@ const Arrow = ({
       };
       if (!hasMoved) {
         hasMoved = true;
-        onDragStateChange?.(true, next);
+        onDragStateChange?.(true, next, { type: "drag" });
       }
       lineRef.current = next;
       onLineChange?.(next);
@@ -123,7 +115,7 @@ const Arrow = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       if (hasMoved) {
-        onDragStateChange?.(false, lineRef.current);
+        onDragStateChange?.(false, lineRef.current, { type: "drag" });
       }
     };
 
@@ -136,9 +128,10 @@ const Arrow = ({
     handle: "start" | "end"
   ) => {
     if (locked) return;
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true);
+    onSelectChange?.(true, { additive: event.shiftKey });
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -153,7 +146,7 @@ const Arrow = ({
           : { start: dragStart.start, end: pointer };
       if (!hasMoved) {
         hasMoved = true;
-        onDragStateChange?.(true, next);
+        onDragStateChange?.(true, next, { type: "resize" });
       }
       lineRef.current = next;
       onLineChange?.(next);
@@ -163,7 +156,7 @@ const Arrow = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       if (hasMoved) {
-        onDragStateChange?.(false, lineRef.current);
+        onDragStateChange?.(false, lineRef.current, { type: "resize" });
       }
     };
 
@@ -171,7 +164,16 @@ const Arrow = ({
     window.addEventListener("pointerup", upListener);
   };
 
-  const showOutline = !locked && (isHovered || isSelected);
+  const handleWrapperPointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>
+  ) => {
+    if (locked || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onSelectChange?.(true, { additive: event.shiftKey });
+  };
+
+  const showOutline = !locked && isSelected;
 
   return (
     <div
@@ -183,9 +185,8 @@ const Arrow = ({
         width: boxWidth,
         height: boxHeight,
       }}
+      onPointerDown={handleWrapperPointerDown}
       onContextMenu={onContextMenu}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {showOutline && (
         <div className="absolute inset-0 rounded border border-primary/60 pointer-events-none" />
@@ -231,7 +232,7 @@ const Arrow = ({
           pointerEvents="none"
         />
       </svg>
-      {!locked && (isHovered || isSelected) && (
+      {!locked && isSelected && (
         <>
           <div
             className="absolute rounded-full border border-primary bg-white-100"
@@ -257,7 +258,7 @@ const Arrow = ({
           />
         </>
       )}
-      {!locked && (isHovered || isSelected) && (
+      {!locked && isSelected && (
         <div
           className="absolute left-1/2 top-full mt-1 -translate-x-1/2 w-24 rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap"
           style={{ pointerEvents: "none" }}

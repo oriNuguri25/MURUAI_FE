@@ -20,6 +20,7 @@ export const useCopyPaste = ({
 }: UseCopyPasteProps) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       // input, textarea 등에서 입력 중일 때는 동작하지 않음
       const target = e.target as HTMLElement;
       if (

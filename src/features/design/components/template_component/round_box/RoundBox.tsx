@@ -7,16 +7,10 @@ import {
   type MouseEvent as ReactMouseEvent,
   type DragEvent as ReactDragEvent,
 } from "react";
+import type { Rect, ResizeHandle } from "../../../model/canvasTypes";
+import { getScale } from "../../../utils/domUtils";
 
-type ResizeHandle = "n" | "s" | "e" | "w" | "nw" | "ne" | "sw" | "se";
 type ImageHandle = ResizeHandle;
-
-interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 interface RoundBoxProps {
   rect: Rect;
@@ -44,6 +38,7 @@ interface RoundBoxProps {
   };
   children?: React.ReactNode;
   isSelected?: boolean;
+  isImageEditing?: boolean;
   locked?: boolean;
   transformRect?: (
     rect: Rect,
@@ -58,7 +53,8 @@ interface RoundBoxProps {
   onImageScaleChange?: (value: number) => void;
   onImageOffsetChange?: (value: { x: number; y: number }) => void;
   onImageBoxChange?: (value: { x: number; y: number; w: number; h: number }) => void;
-  onSelectChange?: (isSelected: boolean) => void;
+  onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
+  onImageEditingChange?: (isEditing: boolean) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onImageDrop?: (imageUrl: string) => void;
 }
@@ -67,12 +63,6 @@ interface ActiveListeners {
   moveListener: (event: PointerEvent) => void;
   upListener: () => void;
 }
-
-const getScale = (element: HTMLElement | null) => {
-  if (!element) return 1;
-  const rect = element.getBoundingClientRect();
-  return element.offsetWidth ? rect.width / element.offsetWidth : 1;
-};
 
 const RoundBox = ({
   rect,
@@ -87,6 +77,7 @@ const RoundBox = ({
   border,
   children,
   isSelected = false,
+  isImageEditing: isImageEditingProp,
   locked = false,
   transformRect,
   onRectChange,
@@ -95,11 +86,22 @@ const RoundBox = ({
   onImageOffsetChange,
   onImageBoxChange,
   onSelectChange,
+  onImageEditingChange,
   onContextMenu,
   onImageDrop,
 }: RoundBoxProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isImageEditing, setIsImageEditing] = useState(false);
+  const [isImageEditingState, setIsImageEditingState] = useState(false);
+
+  // Use controlled prop if provided, otherwise use local state
+  const isImageEditing = isImageEditingProp ?? isImageEditingState;
+  const setIsImageEditing = (value: boolean | ((prev: boolean) => boolean)) => {
+    const newValue = typeof value === 'function' ? value(isImageEditing) : value;
+    if (isImageEditingProp === undefined) {
+      setIsImageEditingState(newValue);
+    }
+    onImageEditingChange?.(newValue);
+  };
   const rectRef = useRef(rect);
   const imageScaleRef = useRef(imageScale);
   const imageOffsetRef = useRef(imageOffset);

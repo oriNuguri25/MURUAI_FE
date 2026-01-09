@@ -1,4 +1,8 @@
-import { type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -8,13 +12,14 @@ import {
   TextAlignEnd,
   Underline,
 } from "lucide-react";
-import FixedToolBar from "../FixedToolBar";
 
 interface TextToolBarProps {
   isVisible: boolean;
   minFontSize: number;
   maxFontSize: number;
   fontSize: number;
+  lineHeight: number;
+  letterSpacing: number;
   color: string;
   isBold: boolean;
   isUnderline: boolean;
@@ -22,6 +27,8 @@ interface TextToolBarProps {
   alignY: "top" | "middle" | "bottom";
   onFontSizeChange: (value: number) => void;
   onFontSizeStep: (delta: number) => void;
+  onLineHeightChange: (value: number) => void;
+  onLetterSpacingChange: (value: number) => void;
   onColorChange: (value: string) => void;
   onToggleBold: () => void;
   onToggleUnderline: () => void;
@@ -35,6 +42,8 @@ const TextToolBar = ({
   minFontSize,
   maxFontSize,
   fontSize,
+  lineHeight,
+  letterSpacing,
   color,
   isBold,
   isUnderline,
@@ -42,6 +51,8 @@ const TextToolBar = ({
   alignY,
   onFontSizeChange,
   onFontSizeStep,
+  onLineHeightChange,
+  onLetterSpacingChange,
   onColorChange,
   onToggleBold,
   onToggleUnderline,
@@ -51,9 +62,96 @@ const TextToolBar = ({
 }: TextToolBarProps) => {
   const clampFontSize = (value: number) =>
     Math.min(maxFontSize, Math.max(minFontSize, value));
+  const clampLineHeight = (value: number) =>
+    Math.min(5, Math.max(0.5, value));
+  const clampLetterSpacing = (value: number) =>
+    Math.min(20, Math.max(-10, value));
+  const formatNumber = (value: number) =>
+    String(Math.round(value * 100) / 100);
+  const [fontSizeInput, setFontSizeInput] = useState(() => String(fontSize));
+  const [isFontSizeEditing, setIsFontSizeEditing] = useState(false);
+  const [lineHeightInput, setLineHeightInput] = useState(() =>
+    formatNumber(lineHeight)
+  );
+  const [isLineHeightEditing, setIsLineHeightEditing] = useState(false);
+  const [letterSpacingInput, setLetterSpacingInput] = useState(() =>
+    formatNumber(letterSpacing)
+  );
+  const [isLetterSpacingEditing, setIsLetterSpacingEditing] = useState(false);
+
+  if (!isVisible) return null;
+
+  useEffect(() => {
+    if (!isFontSizeEditing) {
+      setFontSizeInput(String(fontSize));
+    }
+  }, [fontSize, isFontSizeEditing]);
+
+  useEffect(() => {
+    if (!isLineHeightEditing) {
+      setLineHeightInput(formatNumber(lineHeight));
+    }
+  }, [isLineHeightEditing, lineHeight]);
+
+  useEffect(() => {
+    if (!isLetterSpacingEditing) {
+      setLetterSpacingInput(formatNumber(letterSpacing));
+    }
+  }, [isLetterSpacingEditing, letterSpacing]);
+
+  const commitFontSizeInput = () => {
+    const trimmed = fontSizeInput.trim();
+    if (!trimmed) {
+      setFontSizeInput(String(fontSize));
+      return;
+    }
+    const nextValue = Number(trimmed);
+    if (!Number.isFinite(nextValue) || nextValue <= 0) {
+      setFontSizeInput(String(fontSize));
+      return;
+    }
+    const clamped = clampFontSize(nextValue);
+    onFontSizeChange(clamped);
+    setFontSizeInput(String(clamped));
+  };
+
+  const commitLineHeightInput = () => {
+    const trimmed = lineHeightInput.trim();
+    if (!trimmed) {
+      setLineHeightInput(formatNumber(lineHeight));
+      return;
+    }
+    const nextValue = Number(trimmed);
+    if (!Number.isFinite(nextValue) || nextValue <= 0) {
+      setLineHeightInput(formatNumber(lineHeight));
+      return;
+    }
+    const clamped = clampLineHeight(nextValue);
+    onLineHeightChange(clamped);
+    setLineHeightInput(formatNumber(clamped));
+  };
+
+  const commitLetterSpacingInput = () => {
+    const trimmed = letterSpacingInput.trim();
+    if (!trimmed) {
+      setLetterSpacingInput(formatNumber(letterSpacing));
+      return;
+    }
+    const nextValue = Number(trimmed);
+    if (!Number.isFinite(nextValue)) {
+      setLetterSpacingInput(formatNumber(letterSpacing));
+      return;
+    }
+    const clamped = clampLetterSpacing(nextValue);
+    onLetterSpacingChange(clamped);
+    setLetterSpacingInput(formatNumber(clamped));
+  };
 
   return (
-    <FixedToolBar isVisible={isVisible} onPointerDown={onPointerDown}>
+    <div
+      className="flex flex-nowrap items-center gap-2 whitespace-nowrap"
+      onPointerDown={onPointerDown}
+    >
       <div className="flex items-center text-14-regular text-black-60">
         텍스트 크기
       </div>
@@ -70,11 +168,26 @@ const TextToolBar = ({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          value={String(fontSize)}
+          value={isFontSizeEditing ? fontSizeInput : String(fontSize)}
           onChange={(event) => {
             const digits = event.target.value.replace(/[^0-9]/g, "");
-            if (!digits) return;
-            onFontSizeChange(clampFontSize(Number(digits)));
+            setFontSizeInput(digits);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            commitFontSizeInput();
+            setIsFontSizeEditing(false);
+            event.currentTarget.blur();
+          }}
+          onBlur={() => {
+            if (!isFontSizeEditing) return;
+            setIsFontSizeEditing(false);
+            commitFontSizeInput();
+          }}
+          onFocus={() => {
+            setFontSizeInput(String(fontSize));
+            setIsFontSizeEditing(true);
           }}
           className="no-spinner w-12 appearance-none border-x border-black-30 px-1 py-1 text-center text-14-regular text-black-90"
           style={{
@@ -92,6 +205,84 @@ const TextToolBar = ({
         >
           +
         </button>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-14-regular text-black-60">자간</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={
+            isLetterSpacingEditing
+              ? letterSpacingInput
+              : formatNumber(letterSpacing)
+          }
+          onChange={(event) => {
+            const nextValue = event.target.value.replace(/[^0-9.-]/g, "");
+            setLetterSpacingInput(nextValue);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            commitLetterSpacingInput();
+            setIsLetterSpacingEditing(false);
+            event.currentTarget.blur();
+          }}
+          onBlur={() => {
+            if (!isLetterSpacingEditing) return;
+            setIsLetterSpacingEditing(false);
+            commitLetterSpacingInput();
+          }}
+          onFocus={(event) => {
+            setLetterSpacingInput(formatNumber(letterSpacing));
+            setIsLetterSpacingEditing(true);
+            event.target.select();
+          }}
+          className="no-spinner w-12 rounded border border-black-30 px-1 py-1 text-center text-14-regular text-black-90"
+          style={{
+            textAlign: "center",
+            WebkitAppearance: "none",
+            MozAppearance: "textfield",
+            appearance: "textfield",
+          }}
+        />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-14-regular text-black-60">행간</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={
+            isLineHeightEditing ? lineHeightInput : formatNumber(lineHeight)
+          }
+          onChange={(event) => {
+            const nextValue = event.target.value.replace(/[^0-9.-]/g, "");
+            setLineHeightInput(nextValue);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            commitLineHeightInput();
+            setIsLineHeightEditing(false);
+            event.currentTarget.blur();
+          }}
+          onBlur={() => {
+            if (!isLineHeightEditing) return;
+            setIsLineHeightEditing(false);
+            commitLineHeightInput();
+          }}
+          onFocus={(event) => {
+            setLineHeightInput(formatNumber(lineHeight));
+            setIsLineHeightEditing(true);
+            event.target.select();
+          }}
+          className="no-spinner w-12 rounded border border-black-30 px-1 py-1 text-center text-14-regular text-black-90"
+          style={{
+            textAlign: "center",
+            WebkitAppearance: "none",
+            MozAppearance: "textfield",
+            appearance: "textfield",
+          }}
+        />
       </div>
       <label className="flex items-center gap-2">
         <span className="text-14-regular text-black-60">텍스트 색상</span>
@@ -172,7 +363,7 @@ const TextToolBar = ({
           </button>
         ))}
       </div>
-    </FixedToolBar>
+    </div>
   );
 };
 

@@ -14,12 +14,12 @@ const dateYmm = 10;
 const titleWidthMm = 160;
 const titleHeightMm = 12;
 const titleXmm = (pageWidthMm - titleWidthMm) / 2;
-const titleYmm = 28;
+const titleYmm = 38;
 
 const heroWidthMm = 160;
-const heroHeightMm = 70;
+const heroHeightMm = 90;
 const heroXmm = (pageWidthMm - heroWidthMm) / 2;
-const heroYmm = 48;
+const heroYmm = 58;
 
 const questionWidthMm = 160;
 const questionHeightMm = 10;
@@ -150,7 +150,7 @@ export const emotionInferenceTemplate: Template = {
           h: mmToPx(labelHeightMm),
           text: "(감정)",
           style: {
-            fontSize: 14,
+            fontSize: 20,
             fontWeight: "normal" as const,
             color: "#111827",
             underline: false as const,
@@ -183,7 +183,7 @@ export const emotionInferenceTemplate: Template = {
       h: mmToPx(pillHeightMm),
       text: "아이는 __________",
       style: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: "normal",
         color: "#111827",
         underline: false,

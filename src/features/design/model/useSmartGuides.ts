@@ -17,6 +17,7 @@ type Rect = { x: number; y: number; width: number; height: number };
 type AxisTarget = {
   value: number;
   reason: "center" | "edge" | "spacing";
+  priority: number;
 };
 
 const dedupeGuides = (guides: AlignmentGuide[]) => {
@@ -36,10 +37,12 @@ export const useSmartGuides = ({
   canvasWidth,
   canvasHeight,
   threshold = 6,
+  snapThreshold = 3,
 }: {
   canvasWidth: number;
   canvasHeight: number;
   threshold?: number;
+  snapThreshold?: number;
 }) => {
   const [guides, setGuides] = useState<AlignmentGuide[]>([]);
   const snapOffsetRef = useRef({ x: 0, y: 0 });
@@ -74,26 +77,26 @@ export const useSmartGuides = ({
           : activeY;
 
       const targetX: AxisTarget[] = [
-        { value: 0, reason: "edge" },
-        { value: canvasWidth / 2, reason: "center" },
-        { value: canvasWidth, reason: "edge" },
+        { value: 0, reason: "edge", priority: 0 },
+        { value: canvasWidth / 2, reason: "center", priority: 0 },
+        { value: canvasWidth, reason: "edge", priority: 0 },
       ];
       const targetY: AxisTarget[] = [
-        { value: 0, reason: "edge" },
-        { value: canvasHeight / 2, reason: "center" },
-        { value: canvasHeight, reason: "edge" },
+        { value: 0, reason: "edge", priority: 0 },
+        { value: canvasHeight / 2, reason: "center", priority: 0 },
+        { value: canvasHeight, reason: "edge", priority: 0 },
       ];
 
       otherRects.forEach((rect) => {
         targetX.push(
-          { value: rect.x, reason: "edge" },
-          { value: rect.x + rect.width / 2, reason: "center" },
-          { value: rect.x + rect.width, reason: "edge" }
+          { value: rect.x, reason: "edge", priority: 1 },
+          { value: rect.x + rect.width / 2, reason: "center", priority: 1 },
+          { value: rect.x + rect.width, reason: "edge", priority: 1 }
         );
         targetY.push(
-          { value: rect.y, reason: "edge" },
-          { value: rect.y + rect.height / 2, reason: "center" },
-          { value: rect.y + rect.height, reason: "edge" }
+          { value: rect.y, reason: "edge", priority: 1 },
+          { value: rect.y + rect.height / 2, reason: "center", priority: 1 },
+          { value: rect.y + rect.height, reason: "edge", priority: 1 }
         );
       });
 
@@ -101,6 +104,8 @@ export const useSmartGuides = ({
       let bestYDelta = 0;
       let bestXDistance = Number.POSITIVE_INFINITY;
       let bestYDistance = Number.POSITIVE_INFINITY;
+      let bestXPriority = Number.POSITIVE_INFINITY;
+      let bestYPriority = Number.POSITIVE_INFINITY;
       const nextGuides: AlignmentGuide[] = [];
 
       targetX.forEach((target) => {
@@ -114,9 +119,15 @@ export const useSmartGuides = ({
             position: target.value,
             reason: target.reason,
           });
-          if (distance < bestXDistance) {
+          if (
+            distance <= snapThreshold &&
+            (distance < bestXDistance ||
+              (distance === bestXDistance &&
+                target.priority < bestXPriority))
+          ) {
             bestXDistance = distance;
             bestXDelta = delta;
+            bestXPriority = target.priority;
           }
         });
       });
@@ -132,16 +143,22 @@ export const useSmartGuides = ({
             position: target.value,
             reason: target.reason,
           });
-          if (distance < bestYDistance) {
+          if (
+            distance <= snapThreshold &&
+            (distance < bestYDistance ||
+              (distance === bestYDistance &&
+                target.priority < bestYPriority))
+          ) {
             bestYDistance = distance;
             bestYDelta = delta;
+            bestYPriority = target.priority;
           }
         });
       });
 
       const snapOffset = {
-        x: bestXDelta,
-        y: bestYDelta,
+        x: bestXDistance <= snapThreshold ? bestXDelta : 0,
+        y: bestYDistance <= snapThreshold ? bestYDelta : 0,
       };
       snapOffsetRef.current = snapOffset;
       const uniqueGuides = dedupeGuides(nextGuides);
@@ -149,7 +166,7 @@ export const useSmartGuides = ({
 
       return { guides: uniqueGuides, snapOffset };
     },
-    [canvasHeight, canvasWidth, threshold]
+    [canvasHeight, canvasWidth, snapThreshold, threshold]
   );
 
   const clear = useCallback(() => {

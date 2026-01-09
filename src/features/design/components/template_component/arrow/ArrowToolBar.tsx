@@ -1,6 +1,7 @@
 import { RotateCw } from "lucide-react";
-import { useEffect, useState, type PointerEvent as ReactPointerEvent } from "react";
-import FixedToolBar from "../FixedToolBar";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { useNumberInput } from "../../../model/useNumberInput";
+import { clamp } from "../../../utils/domUtils";
 
 interface ArrowToolBarProps {
   isVisible: boolean;
@@ -25,33 +26,17 @@ const ArrowToolBar = ({
   onRotatePointerDown,
   onPointerDown,
 }: ArrowToolBarProps) => {
-  const clampWidth = (value: number) =>
-    Math.min(maxWidth, Math.max(minWidth, value));
-  const [widthInput, setWidthInput] = useState(() => String(width));
+  const widthInput = useNumberInput({
+    value: width,
+    min: minWidth,
+    max: maxWidth,
+    onChange: onWidthChange,
+  });
 
-  useEffect(() => {
-    setWidthInput(String(width));
-  }, [width]);
-
-  const commitWidth = () => {
-    const trimmed = widthInput.trim();
-    if (!trimmed) {
-      setWidthInput(String(width));
-      return;
-    }
-    const nextValue = Number(trimmed);
-    if (!Number.isFinite(nextValue) || nextValue <= 0) {
-      setWidthInput(String(width));
-      return;
-    }
-    const clamped = clampWidth(nextValue);
-    setWidthInput(String(clamped));
-    onWidthChange(clamped);
-  };
+  if (!isVisible) return null;
 
   return (
-    <FixedToolBar isVisible={isVisible} onPointerDown={onPointerDown}
-    >
+    <div className="flex items-center gap-3" onPointerDown={onPointerDown}>
       <button
         type="button"
         onPointerDown={onRotatePointerDown}
@@ -60,9 +45,7 @@ const ArrowToolBar = ({
       >
         <RotateCw className="h-4 w-4" />
       </button>
-      <div className="flex items-center text-14-regular text-black-60">
-        굵기
-      </div>
+      <div className="flex items-center text-14-regular text-black-60">굵기</div>
       <div className="flex items-center gap-2">
         <input
           type="range"
@@ -70,7 +53,7 @@ const ArrowToolBar = ({
           max={maxWidth}
           value={width}
           onChange={(event) =>
-            onWidthChange(clampWidth(Number(event.target.value)))
+            onWidthChange(clamp(Number(event.target.value), minWidth, maxWidth))
           }
           className="w-28"
         />
@@ -78,16 +61,16 @@ const ArrowToolBar = ({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          value={widthInput}
-          onChange={(event) => {
-            const digits = event.target.value.replace(/[^0-9]/g, "");
-            setWidthInput(digits);
-          }}
-          onBlur={commitWidth}
+          value={widthInput.displayValue}
+          onChange={(event) => widthInput.handleChange(event.target.value)}
+          onBlur={widthInput.handleBlur}
+          onFocus={widthInput.handleFocus}
           onKeyDown={(event) => {
-            if (event.key !== "Enter") return;
-            event.preventDefault();
-            commitWidth();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              widthInput.commit();
+              event.currentTarget.blur();
+            }
           }}
           className="no-spinner w-12 rounded-lg border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
         />
@@ -102,7 +85,7 @@ const ArrowToolBar = ({
           style={{ WebkitAppearance: "none", appearance: "none" }}
         />
       </div>
-    </FixedToolBar>
+    </div>
   );
 };
 

@@ -1,42 +1,14 @@
-import { useEffect, useState, type DragEvent as ReactDragEvent } from "react";
+import { useState, type DragEvent as ReactDragEvent, useMemo } from "react";
 import { Utensils, Dog, Shirt, Search } from "lucide-react";
-import { supabase } from "@/shared/supabase/supabase";
 import { useImageFillStore } from "../../store/imageFillStore";
+import { useAacCards } from "../../hooks/useAacCards";
 
 type Category = "food" | "animal" | "clothing";
-type CloudinaryImage = {
-  id: string;
-  url: string;
-  alt: string;
-  emoji: string;
-};
-
-type AacCardRow = {
-  id: string;
-  label: string;
-  category: string;
-  emoji: string | null;
-  image_path: string;
-};
-
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
-  | string
-  | undefined;
 
 const CATEGORY_VALUE_MAP: Record<Category, string> = {
   food: "food",
   animal: "animal",
   clothing: "clothes",
-};
-
-const getImageUrl = (path: string) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (CLOUDINARY_CLOUD_NAME) {
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}`;
-  }
-  return path;
 };
 
 const setDragImageData = (
@@ -51,8 +23,7 @@ const setDragImageData = (
 const AACContent = () => {
   const [selectedCategory, setSelectedCategory] = useState<Category>("food");
   const [searchQuery, setSearchQuery] = useState("");
-  const [images, setImages] = useState<CloudinaryImage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: allCards, isLoading } = useAacCards();
   const requestImageFill = useImageFillStore(
     (state) => state.requestImageFill
   );
@@ -63,49 +34,19 @@ const AACContent = () => {
     { id: "clothing" as Category, name: "옷", icon: Shirt },
   ];
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchImages = async () => {
-      try {
-        setIsLoading(true);
-        const categoryValue = CATEGORY_VALUE_MAP[selectedCategory];
-        const { data, error } = await supabase
-          .from("aac_cards")
-          .select("id,label,category,emoji,image_path")
-          .eq("category", categoryValue)
-          .abortSignal(controller.signal);
-        if (error) {
-          setImages([]);
-          return;
-        }
-        const nextImages = (data as AacCardRow[]).map((item) => ({
-          id: item.id,
-          url: getImageUrl(item.image_path),
-          alt: item.label,
-          emoji: item.emoji ?? "",
-        }));
-        setImages(nextImages);
-      } catch {
-        if (!controller.signal.aborted) {
-          setImages([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    };
+  // 선택된 카테고리로 필터링
+  const categoryImages = useMemo(() => {
+    if (!allCards) return [];
+    const categoryValue = CATEGORY_VALUE_MAP[selectedCategory];
+    return allCards.filter((card) => card.category === categoryValue);
+  }, [allCards, selectedCategory]);
 
-    fetchImages();
-
-    return () => {
-      controller.abort();
-    };
-  }, [selectedCategory]);
-
-  const filteredImages = images.filter((image) =>
-    image.alt.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // 검색어로 필터링
+  const filteredImages = useMemo(() => {
+    return categoryImages.filter((image) =>
+      image.alt.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [categoryImages, searchQuery]);
 
   const handleImageError = (
     event: React.SyntheticEvent<HTMLImageElement>,

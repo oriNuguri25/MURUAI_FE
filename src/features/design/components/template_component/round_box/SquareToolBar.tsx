@@ -4,7 +4,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { Ban, Upload } from "lucide-react";
-import FixedToolBar from "../FixedToolBar";
+import { useNumberInput } from "../../../model/useNumberInput";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -61,52 +61,44 @@ const SquareToolBar = ({
 }: SquareToolBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isBorderPanelOpen, setIsBorderPanelOpen] = useState(false);
-  const [widthInput, setWidthInput] = useState(() =>
-    width !== undefined ? String(Math.round(width)) : ""
-  );
-  const [heightInput, setHeightInput] = useState(() =>
-    height !== undefined ? String(Math.round(height)) : ""
-  );
-  const [isWidthEditing, setIsWidthEditing] = useState(false);
-  const [isHeightEditing, setIsHeightEditing] = useState(false);
-  const clampRadius = (value: number) =>
-    Math.min(maxBorderRadius, Math.max(minBorderRadius, value));
+
+  // Width input management
+  const widthInputHook = useNumberInput({
+    value: width ?? 0,
+    min: 1,
+    onChange: (nextWidth) => {
+      if (height !== undefined && onSizeChange) {
+        onSizeChange(nextWidth, height);
+      }
+    },
+  });
+
+  // Height input management
+  const heightInputHook = useNumberInput({
+    value: height ?? 0,
+    min: 1,
+    onChange: (nextHeight) => {
+      if (width !== undefined && onSizeChange) {
+        onSizeChange(width, nextHeight);
+      }
+    },
+  });
+
+  // Border radius input management
+  const radiusInputHook = useNumberInput({
+    value: borderRadius,
+    min: minBorderRadius,
+    max: maxBorderRadius,
+    onChange: onBorderRadiusChange,
+  });
+
   const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
-  const clampWidth = (value: number) => Math.max(1, value);
-  const clampHeight = (value: number) => Math.max(1, value);
-  const displayWidth = isWidthEditing
-    ? widthInput
-    : width !== undefined
-    ? String(Math.round(width))
-    : "";
-  const displayHeight = isHeightEditing
-    ? heightInput
-    : height !== undefined
-    ? String(Math.round(height))
-    : "";
 
-  const commitWidthInput = (value: string) => {
-    if (width === undefined || height === undefined || !onSizeChange) return;
-    const digits = value.replace(/[^0-9]/g, "");
-    if (!digits) {
-      setWidthInput(String(Math.round(width)));
-      return;
+  const handleBorderRadiusStep = (delta: number) => {
+    onBorderRadiusStep(delta);
+    if (radiusInputHook.isEditing) {
+      radiusInputHook.step(delta);
     }
-    const nextWidth = clampWidth(Number(digits));
-    onSizeChange(nextWidth, height);
-    setWidthInput(String(Math.round(nextWidth)));
-  };
-
-  const commitHeightInput = (value: string) => {
-    if (width === undefined || height === undefined || !onSizeChange) return;
-    const digits = value.replace(/[^0-9]/g, "");
-    if (!digits) {
-      setHeightInput(String(Math.round(height)));
-      return;
-    }
-    const nextHeight = clampHeight(Number(digits));
-    onSizeChange(width, nextHeight);
-    setHeightInput(String(Math.round(nextHeight)));
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,7 +145,7 @@ const SquareToolBar = ({
   };
 
   return (
-    <FixedToolBar isVisible={isVisible} onPointerDown={onPointerDown}>
+    <div className="flex items-center gap-3" onPointerDown={onPointerDown}>
       {width !== undefined && height !== undefined && onSizeChange && (
         <>
           <div className="flex items-center text-14-regular text-black-60">
@@ -163,30 +155,16 @@ const SquareToolBar = ({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            value={displayWidth}
-            onChange={(event) => {
-              const digits = event.target.value.replace(/[^0-9]/g, "");
-              setWidthInput(digits);
-            }}
+            value={widthInputHook.displayValue}
+            onChange={(event) => widthInputHook.handleChange(event.target.value)}
+            onBlur={widthInputHook.handleBlur}
+            onFocus={widthInputHook.handleFocus}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                commitWidthInput(widthInput);
-                setIsWidthEditing(false);
+                widthInputHook.commit();
                 event.currentTarget.blur();
               }
-            }}
-            onBlur={() => {
-              if (!isWidthEditing) return;
-              setIsWidthEditing(false);
-              commitWidthInput(widthInput);
-            }}
-            onFocus={(event) => {
-              if (width !== undefined) {
-                setWidthInput(String(Math.round(width)));
-              }
-              setIsWidthEditing(true);
-              event.target.select();
             }}
             className="no-spinner w-16 rounded border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
             style={{
@@ -203,30 +181,16 @@ const SquareToolBar = ({
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            value={displayHeight}
-            onChange={(event) => {
-              const digits = event.target.value.replace(/[^0-9]/g, "");
-              setHeightInput(digits);
-            }}
+            value={heightInputHook.displayValue}
+            onChange={(event) => heightInputHook.handleChange(event.target.value)}
+            onBlur={heightInputHook.handleBlur}
+            onFocus={heightInputHook.handleFocus}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
-                commitHeightInput(heightInput);
-                setIsHeightEditing(false);
+                heightInputHook.commit();
                 event.currentTarget.blur();
               }
-            }}
-            onBlur={() => {
-              if (!isHeightEditing) return;
-              setIsHeightEditing(false);
-              commitHeightInput(heightInput);
-            }}
-            onFocus={(event) => {
-              if (height !== undefined) {
-                setHeightInput(String(Math.round(height)));
-              }
-              setIsHeightEditing(true);
-              event.target.select();
             }}
             className="no-spinner w-16 rounded border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
             style={{
@@ -246,7 +210,7 @@ const SquareToolBar = ({
           <div className="flex items-center gap-1 rounded border border-black-30 px-1">
             <button
               type="button"
-              onClick={() => onBorderRadiusStep(-1)}
+              onClick={() => handleBorderRadiusStep(-1)}
               className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
               aria-label="Decrease border radius"
             >
@@ -256,11 +220,16 @@ const SquareToolBar = ({
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
-              value={String(Math.round(borderRadius))}
-              onChange={(event) => {
-                const digits = event.target.value.replace(/[^0-9]/g, "");
-                if (!digits) return;
-                onBorderRadiusChange(clampRadius(Number(digits)));
+              value={radiusInputHook.displayValue}
+              onChange={(event) => radiusInputHook.handleChange(event.target.value)}
+              onBlur={radiusInputHook.handleBlur}
+              onFocus={radiusInputHook.handleFocus}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  radiusInputHook.commit();
+                  event.currentTarget.blur();
+                }
               }}
               className="no-spinner w-12 appearance-none border-x border-black-30 px-1 py-1 text-center text-14-regular text-black-90"
               style={{
@@ -272,7 +241,7 @@ const SquareToolBar = ({
             />
             <button
               type="button"
-              onClick={() => onBorderRadiusStep(1)}
+              onClick={() => handleBorderRadiusStep(1)}
               className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
               aria-label="Increase border radius"
             >
@@ -413,7 +382,7 @@ const SquareToolBar = ({
         onChange={handleImageUpload}
         className="hidden"
       />
-    </FixedToolBar>
+    </div>
   );
 };
 

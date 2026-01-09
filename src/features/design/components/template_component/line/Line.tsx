@@ -1,12 +1,11 @@
 import {
   useEffect,
   useRef,
-  useState,
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-
-type Point = { x: number; y: number };
+import type { Point } from "../../../model/canvasTypes";
+import { getScale, normalizePoint } from "../../../utils/domUtils";
 
 interface LineShapeProps {
   id: string;
@@ -18,22 +17,12 @@ interface LineShapeProps {
   onLineChange?: (value: { start: Point; end: Point }) => void;
   onDragStateChange?: (
     isDragging: boolean,
-    value?: { start: Point; end: Point }
+    value?: { start: Point; end: Point },
+    context?: { type: "drag" | "resize" }
   ) => void;
-  onSelectChange?: (isSelected: boolean) => void;
+  onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
 }
-
-const getScale = (element: HTMLElement | null) => {
-  if (!element) return 1;
-  const rect = element.getBoundingClientRect();
-  return element.offsetWidth ? rect.width / element.offsetWidth : 1;
-};
-
-const normalizePoint = (point?: Point): Point => ({
-  x: typeof point?.x === "number" ? point.x : 0,
-  y: typeof point?.y === "number" ? point.y : 0,
-});
 
 const Line = ({
   start,
@@ -46,7 +35,6 @@ const Line = ({
   onSelectChange,
   onContextMenu,
 }: LineShapeProps) => {
-  const [isHovered, setIsHovered] = useState(false);
   const safeStart = normalizePoint(start);
   const safeEnd = normalizePoint(end);
   const lineRef = useRef({ start: safeStart, end: safeEnd });
@@ -91,9 +79,10 @@ const Line = ({
 
   const startDrag = (event: ReactPointerEvent<SVGLineElement>) => {
     if (locked) return;
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true);
+    onSelectChange?.(true, { additive: event.shiftKey });
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -111,7 +100,7 @@ const Line = ({
       };
       if (!hasMoved) {
         hasMoved = true;
-        onDragStateChange?.(true, next);
+        onDragStateChange?.(true, next, { type: "drag" });
       }
       lineRef.current = next;
       onLineChange?.(next);
@@ -121,7 +110,7 @@ const Line = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       if (hasMoved) {
-        onDragStateChange?.(false, lineRef.current);
+        onDragStateChange?.(false, lineRef.current, { type: "drag" });
       }
     };
 
@@ -134,9 +123,10 @@ const Line = ({
     handle: "start" | "end"
   ) => {
     if (locked) return;
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true);
+    onSelectChange?.(true, { additive: event.shiftKey });
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -151,7 +141,7 @@ const Line = ({
           : { start: dragStart.start, end: pointer };
       if (!hasMoved) {
         hasMoved = true;
-        onDragStateChange?.(true, next);
+        onDragStateChange?.(true, next, { type: "resize" });
       }
       lineRef.current = next;
       onLineChange?.(next);
@@ -161,7 +151,7 @@ const Line = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       if (hasMoved) {
-        onDragStateChange?.(false, lineRef.current);
+        onDragStateChange?.(false, lineRef.current, { type: "resize" });
       }
     };
 
@@ -169,7 +159,7 @@ const Line = ({
     window.addEventListener("pointerup", upListener);
   };
 
-  const showOutline = !locked && (isHovered || isSelected);
+  const showOutline = !locked && isSelected;
 
   return (
     <div
@@ -182,8 +172,6 @@ const Line = ({
         height: boxHeight,
       }}
       onContextMenu={onContextMenu}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {showOutline && (
         <div className="absolute inset-0 rounded border border-primary/60 pointer-events-none" />
@@ -210,7 +198,7 @@ const Line = ({
           pointerEvents="none"
         />
       </svg>
-      {!locked && (isHovered || isSelected) && (
+      {!locked && isSelected && (
         <>
           <div
             className="absolute rounded-full border border-primary bg-white-100"

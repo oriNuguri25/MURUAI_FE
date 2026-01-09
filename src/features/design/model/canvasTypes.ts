@@ -1,3 +1,18 @@
+// Common utility types
+export type Point = {
+  x: number;
+  y: number;
+};
+
+export type Rect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type ResizeHandle = "n" | "s" | "e" | "w" | "nw" | "ne" | "sw" | "se";
+
 export type ElementType =
   | "text"
   | "rect"
@@ -11,6 +26,7 @@ export type ElementBase = {
   type: ElementType;
   visible?: boolean;
   locked?: boolean;
+  groupId?: string;
 };
 
 export type TextElement = ElementBase & {
@@ -28,6 +44,8 @@ export type TextElement = ElementBase & {
     underline?: boolean;
     alignX: "left" | "center" | "right";
     alignY: "top" | "middle" | "bottom";
+    lineHeight?: number;
+    letterSpacing?: number;
   };
 };
 

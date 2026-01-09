@@ -6,10 +6,10 @@ import {
   Search,
   User,
 } from "lucide-react";
-import { useEffect, useState, type DragEvent as ReactDragEvent } from "react";
+import { useState, type DragEvent as ReactDragEvent, useMemo } from "react";
 import type { ReactNode } from "react";
-import { supabase } from "@/shared/supabase/supabase";
 import { useImageFillStore } from "../../store/imageFillStore";
+import { useEmotionPhotos } from "../../hooks/useEmotionPhotos";
 
 // 더미 데이터
 const EMOTIONS = [
@@ -24,26 +24,6 @@ const EMOTIONS = [
   { id: 9, name: "평온함", image: "😌" },
   { id: 10, name: "불안함", image: "😰" },
 ];
-
-type EmotionPhotoCard = {
-  id: string;
-  label: string;
-  url: string;
-};
-
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
-  | string
-  | undefined;
-
-const getImageUrl = (path: string) => {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (CLOUDINARY_CLOUD_NAME) {
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${path}`;
-  }
-  return path;
-};
 
 const getTwemojiUrl = (emoji: string) => {
   const codepoints = Array.from(emoji).map((char) => {
@@ -294,57 +274,23 @@ const EmotionContentArea = () => {
 const PhotoEmotionContent = () => {
   const [gender, setGender] = useState<"boy" | "girl">("boy");
   const [searchTerm, setSearchTerm] = useState("");
-  const [photoEmotions, setPhotoEmotions] = useState<EmotionPhotoCard[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: allEmotionPhotos, isLoading } = useEmotionPhotos();
   const requestImageFill = useImageFillStore(
     (state) => state.requestImageFill
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchEmotionPhotos = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from("emotion_photo")
-          .select("id,label,category,image_path")
-          .eq("category", gender)
-          .abortSignal(controller.signal);
-        if (error) {
-          setPhotoEmotions([]);
-          return;
-        }
-        const nextEmotions = (data as Array<{
-          id: string;
-          label: string;
-          image_path: string;
-        }>).map((item) => ({
-          id: item.id,
-          label: item.label,
-          url: getImageUrl(item.image_path),
-        }));
-        setPhotoEmotions(nextEmotions);
-      } catch {
-        if (!controller.signal.aborted) {
-          setPhotoEmotions([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    };
+  // 선택된 성별로 필터링
+  const genderEmotions = useMemo(() => {
+    if (!allEmotionPhotos) return [];
+    return allEmotionPhotos.filter((photo) => photo.category === gender);
+  }, [allEmotionPhotos, gender]);
 
-    fetchEmotionPhotos();
-
-    return () => {
-      controller.abort();
-    };
-  }, [gender]);
-
-  const filteredEmotions = photoEmotions.filter((emotion) =>
-    emotion.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 검색어로 필터링
+  const filteredEmotions = useMemo(() => {
+    return genderEmotions.filter((emotion) =>
+      emotion.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [genderEmotions, searchTerm]);
 
   return (
     <div className="flex flex-col w-full h-full gap-3">

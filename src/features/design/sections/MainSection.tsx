@@ -10,6 +10,10 @@ import { useOutletContext } from "react-router-dom";
 import BottomBar from "../components/BottomBar";
 import type { CanvasDocument, Page } from "../model/pageTypes";
 import DesignPaper from "../components/DesignPaper";
+import SquareToolBar from "../components/template_component/round_box/SquareToolBar";
+import ArrowToolBar from "../components/template_component/arrow/ArrowToolBar";
+import LineToolBar from "../components/template_component/line/LineToolBar";
+import type { ShapeElement, LineElement } from "../model/canvasTypes";
 import { useCopyPaste } from "../model/useCopyPaste";
 import { useCanvasZoom } from "../model/useCanvasZoom";
 import { useTemplateStore } from "../store/templateStore";
@@ -22,7 +26,10 @@ import { useStoryBoardStore } from "../store/storyBoardStore";
 import { useHistoryStore } from "../store/historyStore";
 import type { CanvasElement } from "../model/canvasTypes";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
-import { TEMPLATE_REGISTRY, type TemplateId } from "../templates/templateRegistry";
+import {
+  TEMPLATE_REGISTRY,
+  type TemplateId,
+} from "../templates/templateRegistry";
 import {
   buildAacBoardElements,
   type AacBoardConfig,
@@ -83,7 +90,10 @@ const buildInitialPages = (
   return nextPages.map((page, index) => ({
     ...page,
     pageNumber: page.pageNumber ?? index + 1,
-    orientation: normalizeOrientationValue(page.orientation, fallbackOrientation),
+    orientation: normalizeOrientationValue(
+      page.orientation,
+      fallbackOrientation
+    ),
     elements: Array.isArray(page.elements) ? page.elements : [],
   }));
 };
@@ -192,7 +202,7 @@ const addTemplatePage = ({
   const newPageId = Date.now().toString();
   setPages((prevPages) => {
     const newPageNumber = prevPages.length + 1;
-  const newPage: Page = {
+    const newPage: Page = {
       id: newPageId,
       pageNumber: newPageNumber,
       templateId,
@@ -531,14 +541,17 @@ const MainSection = () => {
     [ensureHistory, updateAvailabilityForPage]
   );
 
-  const applyHistory = useCallback((pageId: string, nextElements: CanvasElement[]) => {
-    isApplyingHistoryRef.current = true;
-    setPages((prevPages) =>
-      prevPages.map((page) =>
-        page.id === pageId ? { ...page, elements: nextElements } : page
-      )
-    );
-  }, []);
+  const applyHistory = useCallback(
+    (pageId: string, nextElements: CanvasElement[]) => {
+      isApplyingHistoryRef.current = true;
+      setPages((prevPages) =>
+        prevPages.map((page) =>
+          page.id === pageId ? { ...page, elements: nextElements } : page
+        )
+      );
+    },
+    []
+  );
 
   const setActivePage = useCallback(
     (pageId: string, nextOrientation?: "horizontal" | "vertical") => {
@@ -648,14 +661,13 @@ const MainSection = () => {
         state.requestedType === "text"
           ? addTextElement({
               pageId: activePageId,
-              preset:
-                state.requestedText ?? {
-                  text: "텍스트",
-                  fontSize: 14,
-                  fontWeight: "normal",
-                  alignX: "left",
-                  alignY: "middle",
-                },
+              preset: state.requestedText ?? {
+                text: "텍스트",
+                fontSize: 14,
+                fontWeight: "normal",
+                alignX: "left",
+                alignY: "middle",
+              },
               setPages,
               getOrientation,
             })
@@ -668,8 +680,7 @@ const MainSection = () => {
               setPages,
               getOrientation,
             })
-          : state.requestedType === "line" ||
-            state.requestedType === "arrow"
+          : state.requestedType === "line" || state.requestedType === "arrow"
           ? addLineElement({
               pageId: activePageId,
               elementType: state.requestedType,
@@ -740,8 +751,7 @@ const MainSection = () => {
       const activeSelectedIds = selectedIdsRef.current;
       if (activeSelectedIds.length === 0) return;
       const normalizedUrl =
-        state.imageUrl.startsWith("url(") ||
-        state.imageUrl.startsWith("data:")
+        state.imageUrl.startsWith("url(") || state.imageUrl.startsWith("data:")
           ? state.imageUrl
           : `url(${state.imageUrl})`;
       const labelText = state.label?.trim();
@@ -826,7 +836,10 @@ const MainSection = () => {
             if (!nextLabel && nextPlaceholder === undefined) return element;
             if (element.type !== "text") return element;
             hasChanges = true;
-            return { ...element, text: nextLabel ?? nextPlaceholder ?? element.text };
+            return {
+              ...element,
+              text: nextLabel ?? nextPlaceholder ?? element.text,
+            };
           });
           return hasChanges
             ? { ...page, elements: nextElementsWithLabels }
@@ -973,15 +986,450 @@ const MainSection = () => {
     orientation: activeOrientation,
   });
 
+  // 선택된 요소 정보 가져오기
+  const activePage = pages.find((page) => page.id === selectedPageId);
+  const selectedElement =
+    selectedIds.length === 1
+      ? activePage?.elements.find((el) => el.id === selectedIds[0])
+      : null;
+
+  // 선택된 line/arrow 요소의 툴바 정보
+  const lineToolbarData = (() => {
+    if (
+      !selectedElement ||
+      selectedElement.locked ||
+      (selectedElement.type !== "line" && selectedElement.type !== "arrow")
+    ) {
+      return null;
+    }
+
+    const element = selectedElement as LineElement;
+    const stroke = element.stroke ?? { color: "#000000", width: 2 };
+    return {
+      element,
+      stroke,
+    };
+  })();
+
+  // 선택된 shape 요소의 툴바 정보
+  const shapeToolbarData = (() => {
+    if (
+      !selectedElement ||
+      selectedElement.locked ||
+      (selectedElement.type !== "rect" &&
+        selectedElement.type !== "roundRect" &&
+        selectedElement.type !== "ellipse")
+    ) {
+      return null;
+    }
+
+    const element = selectedElement as ShapeElement;
+    const rect = {
+      x: element.x,
+      y: element.y,
+      width: element.w,
+      height: element.h,
+    };
+    const radius =
+      element.type === "roundRect"
+        ? element.radius ?? 0
+        : element.type === "ellipse"
+        ? Math.min(rect.width, rect.height) / 2
+        : 0;
+    const maxRadius = Math.min(rect.width, rect.height) / 2;
+    const minRadius = 0;
+    const clampRadius = (value: number) =>
+      Math.min(maxRadius, Math.max(minRadius, value));
+    const isImageFill =
+      element.fill.startsWith("url(") || element.fill.startsWith("data:");
+    const colorValue = isImageFill ? "#ffffff" : element.fill;
+    const borderEnabled = element.border?.enabled ?? false;
+    const borderColor = element.border?.color ?? "#000000";
+    const borderWidth = element.border?.width ?? 2;
+    const borderStyle = element.border?.style ?? "solid";
+
+    return {
+      element,
+      rect,
+      radius,
+      minRadius,
+      maxRadius,
+      clampRadius,
+      colorValue,
+      borderEnabled,
+      borderColor,
+      borderWidth,
+      borderStyle,
+    };
+  })();
+
   return (
-    <div className="flex flex-col w-full h-full overflow-hidden bg-black-20">
+    <div className="relative flex flex-col w-full h-full overflow-hidden bg-black-20">
+      <div
+        id="text-toolbar-root"
+        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none"
+      />
+      {/* 상단 툴바 영역 */}
+      {shapeToolbarData && (
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
+          <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
+            <SquareToolBar
+              isVisible
+              showRadius={shapeToolbarData.element.type !== "ellipse"}
+              borderRadius={shapeToolbarData.radius}
+              minBorderRadius={shapeToolbarData.minRadius}
+              maxBorderRadius={shapeToolbarData.maxRadius}
+              color={shapeToolbarData.colorValue}
+              borderEnabled={shapeToolbarData.borderEnabled}
+              borderColor={shapeToolbarData.borderColor}
+              borderWidth={shapeToolbarData.borderWidth}
+              borderStyle={shapeToolbarData.borderStyle}
+              width={shapeToolbarData.rect.width}
+              height={shapeToolbarData.rect.height}
+              minWidth={1}
+              minHeight={1}
+              onBorderRadiusChange={(value: number) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  radius: shapeToolbarData.clampRadius(value),
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onBorderRadiusStep={(delta: number) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  radius: shapeToolbarData.clampRadius(
+                                    shapeToolbarData.radius + delta
+                                  ),
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onColorChange={(color: string) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? { ...el, fill: color }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onImageUpload={(imageUrl: string) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  fill: imageUrl,
+                                  imageBox: {
+                                    x: 0,
+                                    y: 0,
+                                    w: shapeToolbarData.rect.width,
+                                    h: shapeToolbarData.rect.height,
+                                  },
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onBorderEnabledChange={(enabled: boolean) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  border: {
+                                    enabled,
+                                    color: shapeToolbarData.borderColor,
+                                    width: shapeToolbarData.borderWidth,
+                                    style: shapeToolbarData.borderStyle,
+                                  },
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onBorderStyleChange={(
+                style: "solid" | "dashed" | "dotted" | "double"
+              ) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  border: {
+                                    enabled: true,
+                                    color: shapeToolbarData.borderColor,
+                                    width: shapeToolbarData.borderWidth,
+                                    style,
+                                  },
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onBorderColorChange={(color: string) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? ({
+                                  ...el,
+                                  border: {
+                                    ...shapeToolbarData.element.border,
+                                    color,
+                                    enabled:
+                                      shapeToolbarData.element.border
+                                        ?.enabled ?? false,
+                                  },
+                                } as CanvasElement)
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onBorderWidthChange={(value: number) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? ({
+                                  ...el,
+                                  border: {
+                                    ...shapeToolbarData.element.border,
+                                    width: value,
+                                    enabled:
+                                      shapeToolbarData.element.border
+                                        ?.enabled ?? false,
+                                  },
+                                } as CanvasElement)
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onSizeChange={(width: number, height: number) => {
+                if (!activePage) return;
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === shapeToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  w: width,
+                                  h: height,
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Line 툴바 */}
+      {lineToolbarData && lineToolbarData.element.type === "line" && (
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
+          <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
+            <LineToolBar
+              isVisible
+              color={lineToolbarData.stroke.color}
+              width={lineToolbarData.stroke.width}
+              onColorChange={(color: string) => {
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === lineToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  stroke: {
+                                    ...lineToolbarData.stroke,
+                                    color,
+                                  },
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onWidthChange={(width: number) => {
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === lineToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  stroke: {
+                                    ...lineToolbarData.stroke,
+                                    width,
+                                  },
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Arrow 툴바 */}
+      {lineToolbarData && lineToolbarData.element.type === "arrow" && (
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
+          <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
+            <ArrowToolBar
+              isVisible
+              color={lineToolbarData.stroke.color}
+              width={lineToolbarData.stroke.width}
+              onColorChange={(color: string) => {
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === lineToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  stroke: {
+                                    ...lineToolbarData.stroke,
+                                    color,
+                                  },
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onWidthChange={(width: number) => {
+                setPages((prevPages) =>
+                  prevPages.map((page) =>
+                    page.id === selectedPageId
+                      ? {
+                          ...page,
+                          elements: page.elements.map((el) =>
+                            el.id === lineToolbarData.element.id
+                              ? {
+                                  ...el,
+                                  stroke: {
+                                    ...lineToolbarData.stroke,
+                                    width,
+                                  },
+                                }
+                              : el
+                          ),
+                        }
+                      : page
+                  )
+                );
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
       <div
         ref={containerRef}
         className="flex-1 w-full min-h-0 overflow-auto"
         style={{ padding: "10px" }}
         onClick={(e) => {
           // 컨테이너 배경 클릭 시 선택 해제
-          if (e.target === e.currentTarget || (e.target as HTMLElement).style.display === "inline-flex") {
+          if (
+            e.target === e.currentTarget ||
+            (e.target as HTMLElement).style.display === "inline-flex"
+          ) {
             setSelectedIds([]);
             setEditingTextId(null);
             sessionStorage.removeItem("copiedElements");
@@ -1066,7 +1514,7 @@ const MainSection = () => {
           top: "-999999px",
           left: "-999999px",
           zIndex: -9999,
-          position: "fixed"
+          position: "fixed",
         }}
         aria-hidden="true"
       >
