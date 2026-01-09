@@ -28,13 +28,13 @@ const Header = () => {
       <div className="flex h-10 items-center justify-center gap-2">
         {isAuthenticated ? (
           <>
-            <button
+            {/* <button
               type="button"
               onClick={() => navigate("/admin/user-docs")}
               className="flex items-center justify-center px-4 py-2 border border-black-25 rounded-xl hover:bg-black-10 transition cursor-pointer"
             >
               <span className="text-14-semibold text-black-100">관리자</span>
-            </button>
+            </button> */}
             <button
               type="button"
               onClick={handleSignOut}
