@@ -1,4 +1,4 @@
-import { useRef, useCallback, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useEffect, useCallback, type PointerEvent as ReactPointerEvent } from "react";
 import type { Rect, ResizeHandle } from "./canvasTypes";
 import { getScale } from "../utils/domUtils";
 
@@ -16,7 +16,7 @@ interface UseDragResizeOptions {
   onDragStateChange?: (
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize"; handle?: ResizeHandle }
   ) => void;
   onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
 }
@@ -53,7 +53,9 @@ export const useDragResize = ({
   const actionRef = useRef<ActiveListeners | null>(null);
 
   // rect 동기화
-  rectRef.current = rect;
+  useEffect(() => {
+    rectRef.current = rect;
+  }, [rect]);
 
   // 액션 시작
   const startAction = useCallback(
