@@ -80,12 +80,11 @@ const ShapeProperties = ({
   onUpdateElement: (elementId: string, updates: Partial<CanvasElement>) => void;
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isBorderPanelOpen, setIsBorderPanelOpen] = useState(false);
   const [widthInput, setWidthInput] = useState(() =>
-    String(Math.round(element.width))
+    String(Math.round(element.w))
   );
   const [heightInput, setHeightInput] = useState(() =>
-    String(Math.round(element.height))
+    String(Math.round(element.h))
   );
   const [radiusInput, setRadiusInput] = useState(() =>
     String(Math.round(element.radius ?? 0))
@@ -94,7 +93,7 @@ const ShapeProperties = ({
   const [isHeightEditing, setIsHeightEditing] = useState(false);
   const [isRadiusEditing, setIsRadiusEditing] = useState(false);
 
-  const rect = { width: element.width, height: element.height };
+  const rect = { width: element.w, height: element.h };
   const radius = element.radius ?? 0;
   const minRadius = element.type === "ellipse" ? 50 : 0;
   const maxRadius = element.type === "ellipse" ? 50 : 100;
@@ -109,29 +108,29 @@ const ShapeProperties = ({
   const clampWidth = (value: number) => Math.max(1, value);
   const clampHeight = (value: number) => Math.max(1, value);
 
-  const displayWidth = isWidthEditing ? widthInput : String(Math.round(element.width));
-  const displayHeight = isHeightEditing ? heightInput : String(Math.round(element.height));
+  const displayWidth = isWidthEditing ? widthInput : String(Math.round(element.w));
+  const displayHeight = isHeightEditing ? heightInput : String(Math.round(element.h));
   const displayRadius = isRadiusEditing ? radiusInput : String(Math.round(radius));
 
   const commitWidthInput = (value: string) => {
     const digits = value.replace(/[^0-9]/g, "");
     if (!digits) {
-      setWidthInput(String(Math.round(element.width)));
+      setWidthInput(String(Math.round(element.w)));
       return;
     }
     const nextWidth = clampWidth(Number(digits));
-    onUpdateElement(element.id, { width: nextWidth });
+    onUpdateElement(element.id, { w: nextWidth });
     setWidthInput(String(Math.round(nextWidth)));
   };
 
   const commitHeightInput = (value: string) => {
     const digits = value.replace(/[^0-9]/g, "");
     if (!digits) {
-      setHeightInput(String(Math.round(element.height)));
+      setHeightInput(String(Math.round(element.h)));
       return;
     }
     const nextHeight = clampHeight(Number(digits));
-    onUpdateElement(element.id, { height: nextHeight });
+    onUpdateElement(element.id, { h: nextHeight });
     setHeightInput(String(Math.round(nextHeight)));
   };
 
@@ -233,7 +232,7 @@ const ShapeProperties = ({
                 commitWidthInput(widthInput);
               }}
               onFocus={(event) => {
-                setWidthInput(String(Math.round(element.width)));
+                setWidthInput(String(Math.round(element.w)));
                 setIsWidthEditing(true);
                 event.target.select();
               }}
@@ -265,7 +264,7 @@ const ShapeProperties = ({
                 commitHeightInput(heightInput);
               }}
               onFocus={(event) => {
-                setHeightInput(String(Math.round(element.height)));
+                setHeightInput(String(Math.round(element.h)));
                 setIsHeightEditing(true);
                 event.target.select();
               }}
@@ -475,9 +474,9 @@ const TextProperties = ({
   const maxFontSize = 200;
   const fontSize = element.style?.fontSize ?? 16;
   const color = element.style?.color ?? "#000000";
-  const isBold = element.style?.bold ?? false;
+  const isBold = element.style?.fontWeight === "bold";
   const isUnderline = element.style?.underline ?? false;
-  const align = element.style?.align ?? "left";
+  const align = element.style?.alignX ?? "left";
   const alignY = element.style?.alignY ?? "top";
 
   const clampFontSize = (value: number) => Math.min(maxFontSize, Math.max(minFontSize, value));
@@ -554,7 +553,7 @@ const TextProperties = ({
             type="button"
             onClick={() =>
               onUpdateElement(element.id, {
-                style: { ...element.style, bold: !isBold },
+                style: { ...element.style, fontWeight: isBold ? "normal" : "bold" },
               })
             }
             className={`flex h-10 w-10 items-center justify-center rounded-lg border text-16-semibold transition-colors ${
@@ -599,7 +598,7 @@ const TextProperties = ({
               type="button"
               onClick={() =>
                 onUpdateElement(element.id, {
-                  style: { ...element.style, align: key },
+                  style: { ...element.style, alignX: key },
                 })
               }
               className={`flex-1 flex h-10 items-center justify-center rounded-lg border transition-colors ${
