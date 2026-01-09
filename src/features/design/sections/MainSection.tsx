@@ -438,18 +438,27 @@ const MainSection = () => {
       clearLoadedDocument();
       return;
     }
+
+    // orientation 값 검증 함수
+    const normalizeOrientation = (value: unknown): "horizontal" | "vertical" => {
+      if (value === "horizontal" || value === "vertical") {
+        return value;
+      }
+      // 잘못된 값이나 없는 경우 기본값 사용
+      return orientationRef.current;
+    };
+
     const normalizedPages = nextPages.map((page, index) => ({
       ...page,
       pageNumber: page.pageNumber ?? index + 1,
-      orientation: page.orientation ?? orientationRef.current,
+      orientation: normalizeOrientation(page.orientation),
+      elements: Array.isArray(page.elements) ? page.elements : [],
     }));
     setPages(normalizedPages);
     setSelectedPageId(normalizedPages[0].id);
     setSelectedIds([]);
     setEditingTextId(null);
-    setOrientation(
-      normalizedPages[0].orientation ?? orientationRef.current
-    );
+    setOrientation(normalizedPages[0].orientation);
     clearLoadedDocument();
   }, [clearLoadedDocument, loadedDocument, setOrientation]);
 

@@ -564,8 +564,14 @@ const MyDocPage = () => {
                 const previewPage = doc.canvasData?.pages?.[0];
                 const pageWidthPx = 210 * 3.7795;
                 const pageHeightPx = 297 * 3.7795;
+
+                // orientation 값 검증
+                const rawOrientation = previewPage?.orientation;
                 const previewOrientation =
-                  previewPage?.orientation ?? "vertical";
+                  rawOrientation === "horizontal" || rawOrientation === "vertical"
+                    ? rawOrientation
+                    : "vertical";
+
                 const previewBaseWidth =
                   previewOrientation === "horizontal"
                     ? pageHeightPx
@@ -577,6 +583,11 @@ const MyDocPage = () => {
                 const previewScale = 0.18;
                 const previewScaledWidth = previewBaseWidth * previewScale;
                 const previewScaledHeight = previewBaseHeight * previewScale;
+
+                // elements 검증
+                const previewElements = Array.isArray(previewPage?.elements)
+                  ? previewPage.elements
+                  : [];
                 return (
                   <div
                     key={doc.id}
@@ -624,7 +635,7 @@ const MyDocPage = () => {
                             <DesignPaper
                               pageId={`mydoc-${doc.id}`}
                               orientation={previewOrientation}
-                              elements={previewPage.elements}
+                              elements={previewElements}
                               selectedIds={[]}
                               editingTextId={null}
                               readOnly
