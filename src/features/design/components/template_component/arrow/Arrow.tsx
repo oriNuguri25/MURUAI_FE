@@ -171,53 +171,6 @@ const Arrow = ({
     window.addEventListener("pointerup", upListener);
   };
 
-  const startRotate = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (locked) return;
-    event.preventDefault();
-    event.stopPropagation();
-    onSelectChange?.(true);
-
-    const scale = getScale(wrapperRef.current);
-    const dragStart = lineRef.current;
-    const center = {
-      x: (dragStart.start.x + dragStart.end.x) / 2,
-      y: (dragStart.start.y + dragStart.end.y) / 2,
-    };
-    const length = Math.max(
-      1,
-      Math.hypot(dragStart.end.x - dragStart.start.x, dragStart.end.y - dragStart.start.y)
-    );
-    let hasMoved = false;
-
-    const moveListener = (moveEvent: PointerEvent) => {
-      moveEvent.preventDefault();
-      const pointer = getPointerPosition(moveEvent, scale);
-      const angle = Math.atan2(pointer.y - center.y, pointer.x - center.x);
-      const half = length / 2;
-      const next = {
-        start: { x: center.x - Math.cos(angle) * half, y: center.y - Math.sin(angle) * half },
-        end: { x: center.x + Math.cos(angle) * half, y: center.y + Math.sin(angle) * half },
-      };
-      if (!hasMoved) {
-        hasMoved = true;
-        onDragStateChange?.(true, next);
-      }
-      lineRef.current = next;
-      onLineChange?.(next);
-    };
-
-    const upListener = () => {
-      window.removeEventListener("pointermove", moveListener);
-      window.removeEventListener("pointerup", upListener);
-      if (hasMoved) {
-        onDragStateChange?.(false, lineRef.current);
-      }
-    };
-
-    window.addEventListener("pointermove", moveListener);
-    window.addEventListener("pointerup", upListener);
-  };
-
   const showOutline = !locked && (isHovered || isSelected);
 
   return (
