@@ -249,16 +249,16 @@ const MyDocPage = () => {
       return nameMatch || targetMatch;
     });
   })();
-  const assignedDocs = filteredDocs.filter((doc) => doc.targets.length > 0);
+
   const visibleDocs = selectedTarget
-    ? assignedDocs.filter((doc) =>
+    ? filteredDocs.filter((doc) =>
         doc.targets.some(
           (target) =>
             target.type === selectedTarget.type &&
             target.id === selectedTarget.id
         )
       )
-    : [];
+    : filteredDocs;
 
   const getInitial = (value: string) => value.trim().slice(0, 1) || "?";
   const handleDeleteDoc = async (docId: string) => {
@@ -531,12 +531,6 @@ const MyDocPage = () => {
             <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-14">
               <span className="text-14-regular text-black-50">
                 학습자료를 불러오는 중입니다.
-              </span>
-            </div>
-          ) : !selectedTarget ? (
-            <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-14">
-              <span className="text-14-regular text-black-50">
-                학습자 또는 그룹을 선택해주세요.
               </span>
             </div>
           ) : visibleDocs.length === 0 ? (
