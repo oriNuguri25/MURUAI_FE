@@ -281,7 +281,9 @@ const TextBox = ({
     if (type === "resize") {
       isResizingRef.current = true;
     }
-    onSelectChange?.(true, { additive: event.shiftKey });
+    if (!isSelected || event.shiftKey) {
+      onSelectChange?.(true, { additive: event.shiftKey });
+    }
 
     const scale = getScale(boxRef.current);
     const startRect = rectRef.current;

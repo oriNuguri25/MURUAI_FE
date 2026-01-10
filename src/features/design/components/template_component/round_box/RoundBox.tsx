@@ -36,9 +36,16 @@ interface RoundBoxProps {
     width: number;
     style?: "solid" | "dashed" | "dotted" | "double";
   };
+  text?: string;
+  textStyle?: {
+    fontSize?: number;
+    fontWeight?: "normal" | "bold";
+    color?: string;
+  };
   children?: React.ReactNode;
   isSelected?: boolean;
   isImageEditing?: boolean;
+  isTextEditing?: boolean;
   locked?: boolean;
   transformRect?: (
     rect: Rect,
@@ -55,6 +62,8 @@ interface RoundBoxProps {
   onImageBoxChange?: (value: { x: number; y: number; w: number; h: number }) => void;
   onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
   onImageEditingChange?: (isEditing: boolean) => void;
+  onTextEditingChange?: (isEditing: boolean) => void;
+  onTextChange?: (text: string) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onImageDrop?: (imageUrl: string) => void;
 }
@@ -75,9 +84,12 @@ const RoundBox = ({
   imageBox,
   borderRadius = 16,
   border,
+  text = "",
+  textStyle,
   children,
   isSelected = false,
   isImageEditing: isImageEditingProp,
+  isTextEditing: isTextEditingProp,
   locked = false,
   transformRect,
   onRectChange,
@@ -87,11 +99,16 @@ const RoundBox = ({
   onImageBoxChange,
   onSelectChange,
   onImageEditingChange,
+  onTextEditingChange,
+  onTextChange,
   onContextMenu,
   onImageDrop,
 }: RoundBoxProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isImageEditingState, setIsImageEditingState] = useState(false);
+  const [isTextEditingState, setIsTextEditingState] = useState(false);
+  const [editingText, setEditingText] = useState(text);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   // Use controlled prop if provided, otherwise use local state
   const isImageEditing = isImageEditingProp ?? isImageEditingState;
@@ -101,6 +118,15 @@ const RoundBox = ({
       setIsImageEditingState(newValue);
     }
     onImageEditingChange?.(newValue);
+  };
+
+  const isTextEditing = isTextEditingProp ?? isTextEditingState;
+  const setIsTextEditing = (value: boolean | ((prev: boolean) => boolean)) => {
+    const newValue = typeof value === 'function' ? value(isTextEditing) : value;
+    if (isTextEditingProp === undefined) {
+      setIsTextEditingState(newValue);
+    }
+    onTextEditingChange?.(newValue);
   };
   const rectRef = useRef(rect);
   const imageScaleRef = useRef(imageScale);
@@ -127,6 +153,17 @@ const RoundBox = ({
   }, [imageBox, rect.width, rect.height]);
 
   useEffect(() => {
+    setEditingText(text);
+  }, [text]);
+
+  useEffect(() => {
+    if (isTextEditing && textInputRef.current) {
+      textInputRef.current.focus();
+      textInputRef.current.select();
+    }
+  }, [isTextEditing]);
+
+  useEffect(() => {
     return () => {
       const action = actionRef.current;
       if (!action) return;
@@ -148,7 +185,9 @@ const RoundBox = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true, { additive: event.shiftKey });
+    if (!isSelected || event.shiftKey) {
+      onSelectChange?.(true, { additive: event.shiftKey });
+    }
 
     const scale = getScale(boxRef.current);
     const startRect = rectRef.current;
@@ -506,6 +545,9 @@ const RoundBox = ({
       ref={boxRef}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
+        if (isTextEditing) {
+          return;
+        }
         if (isImageEditing) {
           const target = event.target as HTMLElement;
           if (target.closest('[data-image-handle="true"]')) {
@@ -515,6 +557,16 @@ const RoundBox = ({
           return;
         }
         startAction(event, "drag");
+      }}
+      onClick={(event) => {
+        if (locked || !isSelected) return;
+        if (isImageFill) return;
+        const target = event.target as HTMLElement;
+        if (target.closest('[data-capture-handle="true"]')) return;
+        if (!isTextEditing && isSelected) {
+          event.stopPropagation();
+          setIsTextEditing(true);
+        }
       }}
       onContextMenu={onContextMenu}
       onDragOver={(event: ReactDragEvent<HTMLDivElement>) => {
@@ -620,6 +672,54 @@ const RoundBox = ({
               transform: "translateY(-0.5px)",
               pointerEvents: "none",
             }}
+          />
+        )}
+        {!isImageFill && text && !isTextEditing && (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ pointerEvents: "none" }}
+          >
+            <div
+              className="text-center px-2"
+              style={{
+                fontSize: `${textStyle?.fontSize ?? 16}px`,
+                fontWeight: textStyle?.fontWeight ?? "normal",
+                color: textStyle?.color ?? "#000000",
+                wordBreak: "break-word",
+              }}
+            >
+              {text}
+            </div>
+          </div>
+        )}
+        {isTextEditing && (
+          <input
+            ref={textInputRef}
+            type="text"
+            value={editingText}
+            onChange={(e) => setEditingText(e.target.value)}
+            onBlur={() => {
+              setIsTextEditing(false);
+              onTextChange?.(editingText);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setIsTextEditing(false);
+                onTextChange?.(editingText);
+              } else if (e.key === "Escape") {
+                setEditingText(text);
+                setIsTextEditing(false);
+              }
+            }}
+            className="absolute inset-0 bg-transparent text-center outline-none w-full px-2"
+            style={{
+              fontSize: `${textStyle?.fontSize ?? 16}px`,
+              fontWeight: textStyle?.fontWeight ?? "normal",
+              color: textStyle?.color ?? "#000000",
+              caretColor: textStyle?.color ?? "#000000",
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
           />
         )}
         {children}

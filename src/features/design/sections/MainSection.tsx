@@ -442,6 +442,11 @@ const MainSection = () => {
   const setAvailability = useHistoryStore((state) => state.setAvailability);
   const historyRef = useRef<Record<string, PageHistory>>({});
   const isApplyingHistoryRef = useRef(false);
+  const historyTransactionRef = useRef<{
+    active: boolean;
+    pageId: string | null;
+  }>({ active: false, pageId: null });
+  const editingSessionRef = useRef<string | null>(null);
   const cloneElementsWithNewIds = (elements: CanvasElement[]) =>
     elements.map((element) => ({
       ...element,
@@ -531,6 +536,10 @@ const MainSection = () => {
       ensureHistory(pageId, nextElements);
       const history = historyRef.current[pageId];
       if (!history) return;
+      const transaction = historyTransactionRef.current;
+      if (transaction.active && transaction.pageId === pageId) {
+        return;
+      }
       if (isApplyingHistoryRef.current) {
         history.present = cloneElementsForHistory(nextElements);
         isApplyingHistoryRef.current = false;
@@ -557,6 +566,24 @@ const MainSection = () => {
       );
     },
     []
+  );
+
+  const beginHistoryTransaction = useCallback((pageId: string) => {
+    const transaction = historyTransactionRef.current;
+    if (transaction.active && transaction.pageId === pageId) return;
+    historyTransactionRef.current = { active: true, pageId };
+  }, []);
+
+  const commitHistoryTransaction = useCallback(
+    (pageId: string) => {
+      const transaction = historyTransactionRef.current;
+      if (!transaction.active || transaction.pageId !== pageId) return;
+      historyTransactionRef.current = { active: false, pageId: null };
+      const page = pagesRef.current.find((item) => item.id === pageId);
+      if (!page) return;
+      recordHistory(pageId, page.elements);
+    },
+    [recordHistory]
   );
 
   const setActivePage = useCallback(
@@ -595,6 +622,23 @@ const MainSection = () => {
     selectedPageId,
     updateAvailabilityForPage,
   ]);
+
+  useEffect(() => {
+    const pageId = selectedPageIdRef.current;
+    const prevEditingId = editingSessionRef.current;
+    if (editingTextId && editingTextId !== prevEditingId) {
+      if (prevEditingId) {
+        commitHistoryTransaction(pageId);
+      }
+      beginHistoryTransaction(pageId);
+      editingSessionRef.current = editingTextId;
+      return;
+    }
+    if (!editingTextId && prevEditingId) {
+      commitHistoryTransaction(pageId);
+      editingSessionRef.current = null;
+    }
+  }, [beginHistoryTransaction, commitHistoryTransaction, editingTextId]);
 
   useEffect(() => {
     if (!undoRequestId) return;
@@ -1543,6 +1587,14 @@ const MainSection = () => {
                   elements={selectedPage.elements}
                   selectedIds={selectedIds}
                   editingTextId={editingTextId}
+                  onInteractionChange={(isActive) => {
+                    const pageId = selectedPageIdRef.current;
+                    if (isActive) {
+                      beginHistoryTransaction(pageId);
+                    } else {
+                      commitHistoryTransaction(pageId);
+                    }
+                  }}
                   onSelectedIdsChange={setSelectedIds}
                   onEditingTextIdChange={setEditingTextId}
                   onElementsChange={(nextElements) =>

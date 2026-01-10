@@ -82,7 +82,9 @@ const Line = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true, { additive: event.shiftKey });
+    if (!isSelected || event.shiftKey) {
+      onSelectChange?.(true, { additive: event.shiftKey });
+    }
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -126,7 +128,9 @@ const Line = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true, { additive: event.shiftKey });
+    if (!isSelected || event.shiftKey) {
+      onSelectChange?.(true, { additive: event.shiftKey });
+    }
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;

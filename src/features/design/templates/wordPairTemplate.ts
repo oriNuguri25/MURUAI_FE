@@ -64,6 +64,8 @@ export const wordPairTemplate: Template = {
       w: mmToPx(pageWidthMm),
       h: mmToPx(headerHeightMm),
       text: "제목",
+      widthMode: "fixed" as const,
+      lockHeight: true,
       style: {
         fontSize: 28,
         fontWeight: "bold",
@@ -80,6 +82,8 @@ export const wordPairTemplate: Template = {
       w: mmToPx(pageWidthMm),
       h: mmToPx(instructionHeightMm),
       text: "낱말 짝꿍을 비교해요.",
+      widthMode: "fixed" as const,
+      lockHeight: true,
       style: {
         fontSize: 24,
         fontWeight: "bold",
@@ -102,9 +106,11 @@ export const wordPairTemplate: Template = {
           type: "text" as const,
           x: mmToPx(cardXmm),
           y: mmToPx(cardYmm),
-          w: mmToPx(cardWidthMm),
-          h: mmToPx(cardLabelHeightMm),
-          text: "단어 입력",
+        w: mmToPx(cardWidthMm),
+        h: mmToPx(cardLabelHeightMm),
+        text: "단어 입력",
+          widthMode: "fixed" as const,
+        lockHeight: true,
           style: {
             fontSize: 14,
             fontWeight: "normal" as const,

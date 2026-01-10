@@ -45,6 +45,10 @@ interface DesignPaperProps {
   onElementsChange?: (elements: CanvasElement[]) => void;
   onSelectedIdsChange?: (ids: string[]) => void;
   onEditingTextIdChange?: (id: string | null) => void;
+  onInteractionChange?: (
+    isActive: boolean,
+    context?: { type: "drag" | "resize" }
+  ) => void;
   readOnly?: boolean;
   className?: string;
   showShadow?: boolean;
@@ -154,6 +158,7 @@ const DesignPaper = ({
   onElementsChange,
   onSelectedIdsChange,
   onEditingTextIdChange,
+  onInteractionChange,
   readOnly = false,
   className,
   showShadow = false,
@@ -171,6 +176,7 @@ const DesignPaper = ({
   } | null>(null);
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
+  const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(null);
   const activeInteractionRef = useRef<{
     id: string;
     type: "drag" | "resize";
@@ -755,6 +761,7 @@ const DesignPaper = ({
       } else {
         groupDragRef.current = null;
       }
+      onInteractionChange?.(true, context);
       return;
     }
     const hadGroupDrag = groupDragRef.current?.activeId === elementId;
@@ -817,6 +824,9 @@ const DesignPaper = ({
         });
       }
     }
+    if (context?.type) {
+      onInteractionChange?.(false, context);
+    }
     activeInteractionRef.current = null;
     setActivePreview(null);
     smartGuides.clear();
@@ -860,12 +870,16 @@ const DesignPaper = ({
       } else {
         groupDragRef.current = null;
       }
+      onInteractionChange?.(true, context);
       return;
     }
     if (groupDragRef.current?.activeId === elementId) {
       groupDragRef.current = null;
     }
     activeInteractionRef.current = null;
+    if (context?.type) {
+      onInteractionChange?.(false, context);
+    }
   };
 
   const handleSelect = (
@@ -901,6 +915,9 @@ const DesignPaper = ({
     if (editingImageId && editingImageId !== elementId) {
       setEditingImageId(null);
     }
+    if (editingShapeTextId && editingShapeTextId !== elementId) {
+      setEditingShapeTextId(null);
+    }
     if (editingTextId && editingTextId !== elementId) {
       onEditingTextIdChange?.(null);
     }
@@ -918,6 +935,7 @@ const DesignPaper = ({
     event.stopPropagation();
     setContextMenu(null);
     setEditingImageId(null);
+    setEditingShapeTextId(null);
     const startPoint = getPointerPosition(event);
     selectionStartRef.current = startPoint;
     selectionAdditiveRef.current = event.shiftKey;
@@ -1702,6 +1720,8 @@ const DesignPaper = ({
               : (value: { x: number; y: number; w: number; h: number }) =>
                   updateElement(element.id, { imageBox: value });
 
+          const isShapeTextEditing = editingShapeTextId === element.id;
+
           return (
             <ShapeComponent
               key={element.id}
@@ -1712,11 +1732,20 @@ const DesignPaper = ({
               fill={element.fill}
               imageBox={imageBox}
               border={element.border}
+              text={element.text}
+              textStyle={element.textStyle}
               isSelected={isSelected}
               isImageEditing={isImageEditing}
+              isTextEditing={isShapeTextEditing}
               locked={readOnly || element.locked}
               onImageEditingChange={(isEditing: boolean) =>
                 setEditingImageId(isEditing ? element.id : null)
+              }
+              onTextEditingChange={(isEditing: boolean) =>
+                setEditingShapeTextId(isEditing ? element.id : null)
+              }
+              onTextChange={(text: string) =>
+                updateElement(element.id, { text })
               }
               onImageBoxChange={handleImageBoxChange}
               onImageDrop={

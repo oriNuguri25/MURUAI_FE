@@ -87,7 +87,9 @@ const Arrow = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true, { additive: event.shiftKey });
+    if (!isSelected || event.shiftKey) {
+      onSelectChange?.(true, { additive: event.shiftKey });
+    }
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -131,7 +133,9 @@ const Arrow = ({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true, { additive: event.shiftKey });
+    if (!isSelected || event.shiftKey) {
+      onSelectChange?.(true, { additive: event.shiftKey });
+    }
 
     const scale = getScale(wrapperRef.current);
     const dragStart = lineRef.current;
@@ -170,7 +174,9 @@ const Arrow = ({
     if (locked || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true, { additive: event.shiftKey });
+    if (!isSelected || event.shiftKey) {
+      onSelectChange?.(true, { additive: event.shiftKey });
+    }
   };
 
   const showOutline = !locked && isSelected;

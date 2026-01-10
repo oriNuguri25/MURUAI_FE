@@ -76,6 +76,12 @@ export type ShapeElement = ElementBase & {
     width: number;
     style?: "solid" | "dashed" | "dotted" | "double";
   };
+  text?: string;
+  textStyle?: {
+    fontSize?: number;
+    fontWeight?: "normal" | "bold";
+    color?: string;
+  };
 };
 
 export type LineElement = ElementBase & {

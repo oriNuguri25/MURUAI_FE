@@ -38,7 +38,8 @@ const labelYmm = cardsStartYmm + cardHeightMm + 6;
 const pillWidthMm = 140;
 const pillHeightMm = 18;
 const pillXmm = (pageWidthMm - pillWidthMm) / 2;
-const pillYmm = labelYmm + labelHeightMm + 12;
+const pillTextYmm = labelYmm + labelHeightMm + 6;
+const pillYmm = pillTextYmm + pillHeightMm + 4;
 
 export const emotionInferenceTemplate: Template = {
   id: "emotionInference",
@@ -70,7 +71,7 @@ export const emotionInferenceTemplate: Template = {
       widthMode: "fixed",
       lockHeight: true,
       style: {
-        fontSize: 26,
+        fontSize: 35,
         fontWeight: "bold",
         color: "#111827",
         underline: false,
@@ -103,7 +104,7 @@ export const emotionInferenceTemplate: Template = {
       widthMode: "fixed",
       lockHeight: true,
       style: {
-        fontSize: 20,
+        fontSize: 25,
         fontWeight: "bold",
         color: "#111827",
         underline: false,
@@ -184,14 +185,14 @@ export const emotionInferenceTemplate: Template = {
     {
       type: "text",
       x: mmToPx(pillXmm),
-      y: mmToPx(pillYmm),
+      y: mmToPx(pillTextYmm),
       w: mmToPx(pillWidthMm),
       h: mmToPx(pillHeightMm),
       text: "아이는 __________",
       widthMode: "fixed",
       lockHeight: true,
       style: {
-        fontSize: 20,
+        fontSize: 35,
         fontWeight: "normal",
         color: "#111827",
         underline: false,
