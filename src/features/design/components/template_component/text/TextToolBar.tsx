@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -80,24 +76,6 @@ const TextToolBar = ({
   const [isLetterSpacingEditing, setIsLetterSpacingEditing] = useState(false);
 
   if (!isVisible) return null;
-
-  useEffect(() => {
-    if (!isFontSizeEditing) {
-      setFontSizeInput(String(fontSize));
-    }
-  }, [fontSize, isFontSizeEditing]);
-
-  useEffect(() => {
-    if (!isLineHeightEditing) {
-      setLineHeightInput(formatNumber(lineHeight));
-    }
-  }, [isLineHeightEditing, lineHeight]);
-
-  useEffect(() => {
-    if (!isLetterSpacingEditing) {
-      setLetterSpacingInput(formatNumber(letterSpacing));
-    }
-  }, [isLetterSpacingEditing, letterSpacing]);
 
   const commitFontSizeInput = () => {
     const trimmed = fontSizeInput.trim();

@@ -88,6 +88,7 @@ export const emotionWorksheetTemplate: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: "제목을 입력하세요",
+      widthMode: "fixed",
       style: {
         fontSize: 26,
         fontWeight: "bold",

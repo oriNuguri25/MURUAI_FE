@@ -67,6 +67,8 @@ export const emotionInferenceTemplate: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: "제목을 입력하세요",
+      widthMode: "fixed",
+      lockHeight: true,
       style: {
         fontSize: 26,
         fontWeight: "bold",
@@ -98,6 +100,8 @@ export const emotionInferenceTemplate: Template = {
       w: mmToPx(questionWidthMm),
       h: mmToPx(questionHeightMm),
       text: "기분이 어떨까요?",
+      widthMode: "fixed",
+      lockHeight: true,
       style: {
         fontSize: 20,
         fontWeight: "bold",
@@ -133,6 +137,7 @@ export const emotionInferenceTemplate: Template = {
           h: mmToPx(cardHeightMm),
           text: "감정을 선택해주세요",
           locked: true,
+          widthMode: "fixed" as const,
           style: {
             fontSize: 10,
             fontWeight: "normal" as const,
@@ -149,6 +154,7 @@ export const emotionInferenceTemplate: Template = {
           w: mmToPx(cardWidthMm),
           h: mmToPx(labelHeightMm),
           text: "(감정)",
+          widthMode: "fixed" as const,
           style: {
             fontSize: 20,
             fontWeight: "normal" as const,
@@ -182,6 +188,8 @@ export const emotionInferenceTemplate: Template = {
       w: mmToPx(pillWidthMm),
       h: mmToPx(pillHeightMm),
       text: "아이는 __________",
+      widthMode: "fixed",
+      lockHeight: true,
       style: {
         fontSize: 20,
         fontWeight: "normal",

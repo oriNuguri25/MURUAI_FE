@@ -37,6 +37,8 @@ export type TextElement = ElementBase & {
   h: number;
   text: string;
   richText?: string;
+  widthMode?: "auto" | "fixed";
+  lockHeight?: boolean;
   style: {
     fontSize: number;
     fontWeight: "normal" | "bold";

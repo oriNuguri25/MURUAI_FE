@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 interface UseNumberInputOptions {
   value: number;
@@ -35,13 +35,6 @@ export const useNumberInput = ({
 }: UseNumberInputOptions) => {
   const [inputValue, setInputValue] = useState(() => String(Math.round(value)));
   const [isEditing, setIsEditing] = useState(false);
-
-  // 외부 value 변경 시 동기화
-  useEffect(() => {
-    if (!isEditing) {
-      setInputValue(String(Math.round(value)));
-    }
-  }, [value, isEditing]);
 
   // 값 제한
   const clamp = useCallback(

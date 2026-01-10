@@ -145,9 +145,10 @@ const RoundBox = ({
     handle?: ResizeHandle | ImageHandle
   ) => {
     if (locked) return;
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    onSelectChange?.(true);
+    onSelectChange?.(true, { additive: event.shiftKey });
 
     const scale = getScale(boxRef.current);
     const startRect = rectRef.current;
@@ -504,6 +505,7 @@ const RoundBox = ({
     <div
       ref={boxRef}
       onPointerDown={(event) => {
+        if (event.button !== 0) return;
         if (isImageEditing) {
           const target = event.target as HTMLElement;
           if (target.closest('[data-image-handle="true"]')) {

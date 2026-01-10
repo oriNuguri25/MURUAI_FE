@@ -26,6 +26,8 @@ interface TextBoxProps {
   isSelected?: boolean;
   isEditing?: boolean;
   locked?: boolean;
+  widthMode?: "auto" | "fixed";
+  showToolbar?: boolean;
   toolbar?: {
     offset?: number;
     minFontSize: number;
@@ -50,15 +52,17 @@ interface TextBoxProps {
   };
   onTextChange?: (text: string, richText?: string) => void;
   onRectChange?: (rect: Rect) => void;
+  onWidthModeChange?: (mode: "auto" | "fixed") => void;
   onDragStateChange?: (
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize"; handle?: ResizeHandle }
   ) => void;
   onSelectChange?: (isSelected: boolean, options?: { additive?: boolean }) => void;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>) => void;
   onStartEditing?: () => void;
   onFinishEditing?: () => void;
+  onRequestDelete?: () => void;
   transformRect?: (
     rect: Rect,
     context: { type: "drag" | "resize"; handle?: ResizeHandle }
@@ -69,6 +73,22 @@ interface ActiveListeners {
   moveListener: (event: PointerEvent) => void;
   upListener: () => void;
 }
+
+const stripHtml = (value: string) => {
+  if (!value) return "";
+  if (typeof window === "undefined" || typeof DOMParser === "undefined") {
+    return value.replace(/<[^>]*>/g, "");
+  }
+  const doc = new DOMParser().parseFromString(value, "text/html");
+  return doc.body.textContent ?? "";
+};
+
+const normalizeTextValue = (value: string) =>
+  value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+
+const isTextEmpty = (text?: string, richText?: string) =>
+  normalizeTextValue(text ?? "") === "" &&
+  normalizeTextValue(stripHtml(richText ?? "")) === "";
 
 const TextBox = ({
   text,
@@ -86,14 +106,18 @@ const TextBox = ({
   isSelected = false,
   isEditing = false,
   locked = false,
+  widthMode = "auto",
+  showToolbar = true,
   toolbar,
   onTextChange,
   onRectChange,
+  onWidthModeChange,
   onDragStateChange,
   onSelectChange,
   onContextMenu,
   onStartEditing,
   onFinishEditing,
+  onRequestDelete,
   transformRect,
 }: TextBoxProps) => {
   const rectRef = useRef(rect);
@@ -101,11 +125,22 @@ const TextBox = ({
   const actionRef = useRef<ActiveListeners | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const wasEditingRef = useRef(false);
+  const isComposingRef = useRef(false);
+  const isResizingRef = useRef(false);
   const toolbarPortal =
     typeof document !== "undefined"
       ? document.getElementById("text-toolbar-root")
       : null;
+  const styleSignature = [
+    textStyle?.fontSize,
+    textStyle?.fontWeight,
+    textStyle?.lineHeight,
+    textStyle?.letterSpacing,
+    textStyle?.fontFamily,
+    textStyle?.fontStyle,
+  ].join("|");
 
   useEffect(() => {
     rectRef.current = rect;
@@ -122,14 +157,18 @@ const TextBox = ({
   }, []);
 
   useEffect(() => {
-    if (isEditing && !wasEditingRef.current) {
+    const wasEditing = wasEditingRef.current;
+    if (!isEditing && wasEditing && isTextEmpty(text, richText)) {
+      onRequestDelete?.();
+    }
+    if (isEditing && !wasEditing) {
       const editable = editableRef.current;
       if (editable) {
         editable.innerHTML = richText || text;
       }
     }
     wasEditingRef.current = isEditing;
-  }, [isEditing, richText, text]);
+  }, [isEditing, richText, text, onRequestDelete]);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -157,6 +196,68 @@ const TextBox = ({
     });
   }, [isEditing]);
 
+  useEffect(() => {
+    if (!onRectChange) return;
+    if (isResizingRef.current) return;
+    const measure = measureRef.current;
+    if (!measure) return;
+    const editableNode = editableRef.current;
+    const htmlContent = isEditing ? editableNode?.innerHTML : richText;
+    if (htmlContent != null && htmlContent !== "") {
+      measure.innerHTML = htmlContent;
+    } else {
+      measure.textContent = text ?? "";
+    }
+    const currentRect = rectRef.current ?? rect;
+    const rectWidth = currentRect.width;
+    const rectHeight = currentRect.height;
+    const maxWidth =
+      boxRef.current?.parentElement?.clientWidth ?? rectWidth;
+    const widthBuffer = 12;
+    const isAutoWidth = widthMode !== "fixed";
+    let targetWidth = Math.max(rectWidth, minWidth);
+
+    if (isAutoWidth) {
+      measure.style.width = "auto";
+      measure.style.whiteSpace = "pre";
+      const intrinsicWidth = Math.ceil(measure.scrollWidth) + widthBuffer;
+      targetWidth = Math.min(
+        Math.max(intrinsicWidth, minWidth),
+        maxWidth
+      );
+    } else {
+      measure.style.width = `${rectWidth}px`;
+      measure.style.whiteSpace = "pre-wrap";
+      targetWidth = rectWidth;
+    }
+
+    const targetHeight = Math.max(
+      Math.ceil(measure.scrollHeight),
+      minHeight
+    );
+
+    const widthChanged =
+      isAutoWidth && Math.abs(targetWidth - rectWidth) > 1;
+    const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
+    if (widthChanged || heightChanged) {
+      onRectChange({
+        ...currentRect,
+        width: isAutoWidth ? targetWidth : rectWidth,
+        height: targetHeight,
+      });
+    }
+  }, [
+    isEditing,
+    widthMode,
+    minHeight,
+    minWidth,
+    onRectChange,
+    rect,
+    richText,
+    styleSignature,
+    text,
+  ]);
+
   const startAction = (
     event: ReactPointerEvent<HTMLDivElement>,
     type: "drag" | "resize",
@@ -168,7 +269,17 @@ const TextBox = ({
     event.stopPropagation();
     if (editable && isEditing && type === "drag") return;
     if (editable && isEditing && type === "resize") {
-      onFinishEditing?.();
+      const editableNode = editableRef.current;
+      const nextText = editableNode?.innerText ?? text;
+      const nextRichText = editableNode?.innerHTML ?? richText;
+      if (isTextEmpty(nextText, nextRichText)) {
+        onRequestDelete?.();
+      } else {
+        onFinishEditing?.();
+      }
+    }
+    if (type === "resize") {
+      isResizingRef.current = true;
     }
     onSelectChange?.(true, { additive: event.shiftKey });
 
@@ -177,7 +288,20 @@ const TextBox = ({
     const startX = event.clientX;
     const startY = event.clientY;
 
-    onDragStateChange?.(true, rectRef.current, { type });
+    // 모서리 핸들인지 확인 (nw, ne, sw, se)
+    const isCornerHandle = handle && (handle === "nw" || handle === "ne" || handle === "sw" || handle === "se");
+    // 초기 폰트 크기 저장
+    const startFontSize = toolbar?.fontSize ?? (textStyle?.fontSize as number) ?? 16;
+    const startHeight = startRect.height;
+    const startWidth = startRect.width;
+    const aspectRatio = startWidth / startHeight;
+
+    // 모서리 핸들로 리사이즈 시작 시 widthMode를 fixed로 변경
+    if (isCornerHandle && widthMode === "auto") {
+      onWidthModeChange?.("fixed");
+    }
+
+    onDragStateChange?.(true, rectRef.current, { type, handle });
 
     const moveListener = (moveEvent: PointerEvent) => {
       moveEvent.preventDefault();
@@ -214,32 +338,95 @@ const TextBox = ({
       let nextWidth = startRect.width;
       let nextHeight = startRect.height;
 
-      if (handle.includes("e")) {
-        nextWidth = startRect.width + dx;
-      }
-      if (handle.includes("s")) {
-        nextHeight = startRect.height + dy;
-      }
-      if (handle.includes("w")) {
-        nextWidth = startRect.width - dx;
-        nextX = startRect.x + dx;
-      }
-      if (handle.includes("n")) {
-        nextHeight = startRect.height - dy;
-        nextY = startRect.y + dy;
+      // 모서리 핸들: 비율 유지하며 리사이즈
+      if (isCornerHandle) {
+        // 드래그 거리 계산 (대각선 방향)
+        let delta = 0;
+        if (handle === "se") {
+          delta = Math.max(dx / aspectRatio, dy);
+        } else if (handle === "sw") {
+          delta = Math.max(-dx / aspectRatio, dy);
+        } else if (handle === "ne") {
+          delta = Math.max(dx / aspectRatio, -dy);
+        } else if (handle === "nw") {
+          delta = Math.max(-dx / aspectRatio, -dy);
+        }
+
+        nextHeight = startHeight + delta;
+        nextWidth = nextHeight * aspectRatio;
+
+        if (handle.includes("w")) {
+          nextX = startRect.x + (startRect.width - nextWidth);
+        }
+        if (handle.includes("n")) {
+          nextY = startRect.y + (startRect.height - nextHeight);
+        }
+      } else {
+        // 좌우 핸들: 폭 변경하고 높이는 텍스트에 맞춰 자동 조절
+        if (handle.includes("e")) {
+          nextWidth = startRect.width + dx;
+        }
+        if (handle.includes("w")) {
+          nextWidth = startRect.width - dx;
+          nextX = startRect.x + dx;
+        }
+
+        // 폭 변경 시 텍스트가 넘치지 않도록 높이 재계산
+        const measure = measureRef.current;
+        if (measure) {
+          const editableNode = editableRef.current;
+          const htmlContent = isEditing ? editableNode?.innerHTML : richText;
+          if (htmlContent != null && htmlContent !== "") {
+            measure.innerHTML = htmlContent;
+          } else {
+            measure.textContent = text ?? "";
+          }
+          measure.style.width = `${Math.max(nextWidth, minWidth)}px`;
+          measure.style.whiteSpace = "pre-wrap";
+          nextHeight = Math.max(
+            Math.ceil(measure.scrollHeight),
+            minHeight
+          );
+        }
       }
 
       if (nextWidth < minWidth) {
         nextWidth = minWidth;
+        if (isCornerHandle) {
+          nextHeight = nextWidth / aspectRatio;
+        }
         if (handle.includes("w")) {
           nextX = startRect.x + (startRect.width - minWidth);
+        }
+        if (isCornerHandle && handle.includes("n")) {
+          nextY = startRect.y + (startRect.height - nextHeight);
         }
       }
 
       if (nextHeight < minHeight) {
         nextHeight = minHeight;
+        if (isCornerHandle) {
+          nextWidth = nextHeight * aspectRatio;
+        }
         if (handle.includes("n")) {
           nextY = startRect.y + (startRect.height - minHeight);
+        }
+        if (isCornerHandle && handle.includes("w")) {
+          nextX = startRect.x + (startRect.width - nextWidth);
+        }
+      }
+
+      // 모서리 핸들로 리사이즈 중이면 높이 변화에 따라 폰트 크기 조정
+      if (isCornerHandle && toolbar) {
+        const heightRatio = nextHeight / startHeight;
+        const newFontSize = Math.round(startFontSize * heightRatio);
+        const clampedFontSize = Math.max(
+          toolbar.minFontSize,
+          Math.min(newFontSize, toolbar.maxFontSize)
+        );
+
+        if (clampedFontSize !== toolbar.fontSize) {
+          toolbar.onFontSizeChange(clampedFontSize);
         }
       }
 
@@ -267,7 +454,10 @@ const TextBox = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       actionRef.current = null;
-      onDragStateChange?.(false, rectRef.current, { type });
+      if (type === "resize") {
+        isResizingRef.current = false;
+      }
+      onDragStateChange?.(false, rectRef.current, { type, handle });
     };
 
     actionRef.current = { moveListener, upListener };
@@ -326,6 +516,7 @@ const TextBox = ({
       : "items-center";
   const showOutline = showChrome && !locked && isSelected;
   const showHandles = showChrome && !locked && isSelected;
+  const contentWhiteSpace = widthMode === "fixed" ? "pre-wrap" : "pre";
 
   const beginEditing = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!editable || locked) return;
@@ -407,15 +598,68 @@ const TextBox = ({
     }
   };
 
+  const insertPlainText = (value: string) => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    if (document.queryCommandSupported?.("insertText")) {
+      document.execCommand("insertText", false, value);
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    const fragment = document.createDocumentFragment();
+    const lines = value.split(/\r?\n/);
+    let lastNode: ChildNode | null = null;
+    lines.forEach((line, index) => {
+      if (index > 0) {
+        const br = document.createElement("br");
+        fragment.appendChild(br);
+        lastNode = br;
+      }
+      if (line.length > 0) {
+        const textNode = document.createTextNode(line);
+        fragment.appendChild(textNode);
+        lastNode = textNode;
+      }
+    });
+    range.insertNode(fragment);
+    if (lastNode) {
+      range.setStartAfter(lastNode);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  };
+
+  const handleEditingBlur = () => {
+    if (isComposingRef.current) return;
+    const editableNode = editableRef.current;
+    const nextText = editableNode?.innerText ?? text;
+    const nextRichText = editableNode?.innerHTML ?? richText;
+    if (isTextEmpty(nextText, nextRichText)) {
+      if (onRequestDelete) {
+        onRequestDelete();
+      } else {
+        onFinishEditing?.();
+      }
+      return;
+    }
+    onFinishEditing?.();
+  };
+
   return (
     <div
       ref={boxRef}
-      onPointerDown={(event) => startAction(event, "drag")}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        if (editable && !isEditing && !isSelected) {
+          onSelectChange?.(true, { additive: event.shiftKey });
+        }
+        startAction(event, "drag");
+      }}
       onDoubleClick={beginEditing}
       onContextMenu={onContextMenu}
-      className={`absolute flex select-none px-2 ${justifyClass} ${alignYClass} border-2 ${
-        showOutline ? "border-primary" : "border-transparent"
-      } ${className}`}
+      className={`absolute flex select-none ${justifyClass} ${alignYClass} ${className}`}
       style={{
         left: rect.x,
         top: rect.y,
@@ -423,8 +667,12 @@ const TextBox = ({
         height: rect.height,
         touchAction: "none",
         pointerEvents: locked ? "none" : "auto",
+        cursor: editable && !isEditing ? "text" : "move",
       }}
     >
+      {showOutline && (
+        <div className="absolute inset-0 border-2 border-primary pointer-events-none" />
+      )}
       {editable && isEditing ? (
         <div
           ref={editableRef}
@@ -436,28 +684,42 @@ const TextBox = ({
             const html = target.innerHTML;
             onTextChange?.(plainText, html);
           }}
-          onBlur={onFinishEditing}
+          onPaste={(event) => {
+            event.preventDefault();
+            const pastedText =
+              event.clipboardData?.getData("text/plain") ?? "";
+            if (!pastedText) return;
+            insertPlainText(pastedText);
+            const editableNode = editableRef.current;
+            if (!editableNode) return;
+            onTextChange?.(editableNode.innerText, editableNode.innerHTML);
+          }}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
+          onCompositionEnd={() => {
+            isComposingRef.current = false;
+          }}
+          onBlur={handleEditingBlur}
           onPointerDown={(event) => event.stopPropagation()}
-          className={`w-full bg-transparent outline-none ${textClassName}`}
-          style={{ ...textStyle, textAlign }}
+          className={`w-full bg-transparent outline-none border-0 p-0 ${textClassName}`}
+          style={{ ...textStyle, textAlign, whiteSpace: contentWhiteSpace }}
         />
       ) : (
         <div
-          className={`block w-full ${textClassName}`}
-          style={{ ...textStyle, textAlign }}
+          className={`block w-full pointer-events-none bg-transparent border-0 p-0 ${textClassName}`}
+          style={{ ...textStyle, textAlign, whiteSpace: contentWhiteSpace }}
           dangerouslySetInnerHTML={{ __html: richText || text }}
         />
       )}
       {showHandles && (
         <>
-          {renderHandle("n", "ns-resize")}
-          {renderHandle("s", "ns-resize")}
-          {renderHandle("e", "ew-resize")}
-          {renderHandle("w", "ew-resize")}
           {renderHandle("nw", "nwse-resize")}
           {renderHandle("ne", "nesw-resize")}
           {renderHandle("sw", "nesw-resize")}
           {renderHandle("se", "nwse-resize")}
+          {renderHandle("e", "ew-resize")}
+          {renderHandle("w", "ew-resize")}
         </>
       )}
       {showHandles && (
@@ -472,6 +734,7 @@ const TextBox = ({
         toolbar &&
         isSelected &&
         !locked &&
+        showToolbar &&
         (toolbarPortal
           ? createPortal(
               <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
@@ -532,6 +795,17 @@ const TextBox = ({
                 />
               </div>
             ))}
+      <div
+        ref={measureRef}
+        aria-hidden
+        className={`absolute left-0 top-0 pointer-events-none opacity-0 ${textClassName}`}
+        style={{
+          ...textStyle,
+          display: "inline-block",
+          visibility: "hidden",
+          whiteSpace: contentWhiteSpace,
+        }}
+      />
     </div>
   );
 };

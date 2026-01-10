@@ -13,7 +13,11 @@ import DesignPaper from "../components/DesignPaper";
 import SquareToolBar from "../components/template_component/round_box/SquareToolBar";
 import ArrowToolBar from "../components/template_component/arrow/ArrowToolBar";
 import LineToolBar from "../components/template_component/line/LineToolBar";
-import type { ShapeElement, LineElement } from "../model/canvasTypes";
+import type {
+  CanvasElement,
+  LineElement,
+  ShapeElement,
+} from "../model/canvasTypes";
 import { useCopyPaste } from "../model/useCopyPaste";
 import { useCanvasZoom } from "../model/useCanvasZoom";
 import { useTemplateStore } from "../store/templateStore";
@@ -24,7 +28,6 @@ import { useAacBoardStore } from "../store/aacBoardStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";
 import { useHistoryStore } from "../store/historyStore";
-import type { CanvasElement } from "../model/canvasTypes";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import {
   TEMPLATE_REGISTRY,
@@ -43,6 +46,7 @@ import {
   type StorySequenceConfig,
 } from "../utils/storySequenceUtils";
 import { updateUserMadeVersion } from "../utils/userMadeExport";
+import { measureTextBoxSize } from "../utils/textMeasure";
 import { supabase } from "@/shared/supabase/supabase";
 
 export interface OutletContext {
@@ -118,7 +122,7 @@ const isEmotionLabelElement = (
   element: CanvasElement
 ): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
-  element.style.fontSize === 14 &&
+  (element.style.fontSize === 14 || element.style.fontSize === 20) &&
   element.style.fontWeight === "normal" &&
   element.style.color === "#111827" &&
   element.style.alignX === "center" &&
@@ -335,9 +339,10 @@ const addTextElement = ({
   const pageOrientation = getOrientation();
   const pageWidth = mmToPx(pageOrientation === "horizontal" ? 297 : 210);
   const pageHeight = mmToPx(pageOrientation === "horizontal" ? 210 : 297);
-  const textLength = Math.max(preset.text.length, 2);
-  const textWidth = Math.max(preset.fontSize * textLength * 1.8, 320);
-  const textHeight = Math.max(preset.fontSize * 2.2, 80);
+  const { width: measuredWidth, height: measuredHeight } =
+    measureTextBoxSize(preset.text, preset.fontSize, preset.fontWeight);
+  const textWidth = Math.max(measuredWidth, 1);
+  const textHeight = Math.max(measuredHeight, 1);
   const x = (pageWidth - textWidth) / 2;
   const y = (pageHeight - textHeight) / 2;
   const nextElement: CanvasElement = {
@@ -348,6 +353,7 @@ const addTextElement = ({
     w: textWidth,
     h: textHeight,
     text: preset.text,
+    widthMode: "auto",
     style: {
       fontSize: preset.fontSize,
       fontWeight: preset.fontWeight,
@@ -925,6 +931,46 @@ const MainSection = () => {
     setActivePage(newPage.id, newPage.orientation);
   };
 
+  const handleCopyPage = useCallback((pageId: string) => {
+    try {
+      sessionStorage.setItem("copiedPageId", pageId);
+    } catch {
+      // ignore clipboard failures
+    }
+  }, []);
+
+  const handlePastePage = useCallback(
+    (targetPageId: string) => {
+      let copiedPageId: string | null = null;
+      try {
+        copiedPageId = sessionStorage.getItem("copiedPageId");
+      } catch {
+        copiedPageId = null;
+      }
+      if (!copiedPageId) return;
+      const sourcePage = pages.find((page) => page.id === copiedPageId);
+      if (!sourcePage) return;
+      const targetIndex = pages.findIndex((page) => page.id === targetPageId);
+      if (targetIndex === -1) return;
+      const newPage: Page = {
+        id: Date.now().toString(),
+        pageNumber: targetIndex + 2,
+        templateId: sourcePage.templateId,
+        orientation: sourcePage.orientation,
+        elements: cloneElementsWithNewIds(sourcePage.elements),
+      };
+      const newPages = [...pages];
+      newPages.splice(targetIndex + 1, 0, newPage);
+      const reorderedPages = newPages.map((page, index) => ({
+        ...page,
+        pageNumber: index + 1,
+      }));
+      setPages(reorderedPages);
+      setActivePage(newPage.id, newPage.orientation);
+    },
+    [pages, setActivePage, setPages]
+  );
+
   const handleDeletePage = (pageId: string) => {
     if (pages.length <= 1) return;
 
@@ -988,11 +1034,26 @@ const MainSection = () => {
 
   // 선택된 요소 정보 가져오기
   const activePage = pages.find((page) => page.id === selectedPageId);
-  const selectedElement =
+  const selectedElements = activePage
+    ? activePage.elements.filter((element) =>
+        selectedIds.includes(element.id)
+      )
+    : [];
+  const groupSelectionId =
+    selectedElements.length > 1 ? selectedElements[0]?.groupId ?? null : null;
+  const isGroupedSelection =
+    groupSelectionId != null &&
+    selectedElements.length > 1 &&
+    selectedElements.every((element) => element.groupId === groupSelectionId);
+  const activeToolbarElementId =
     selectedIds.length === 1
-      ? activePage?.elements.find((el) => el.id === selectedIds[0])
+      ? selectedIds[0]
+      : isGroupedSelection
+      ? selectedIds[0]
       : null;
-
+  const selectedElement = activeToolbarElementId
+    ? activePage?.elements.find((el) => el.id === activeToolbarElementId)
+    : null;
   // 선택된 line/arrow 요소의 툴바 정보
   const lineToolbarData = (() => {
     if (
@@ -1504,6 +1565,8 @@ const MainSection = () => {
         selectedPageId={selectedPageId}
         onAddPage={handleAddPage}
         onSelectPage={handleSelectPage}
+        onCopyPage={handleCopyPage}
+        onPastePage={handlePastePage}
         onReorderPages={handleReorderPages}
         onDeletePage={handleDeletePage}
         onAddPageAtIndex={handleAddPageAtIndex}

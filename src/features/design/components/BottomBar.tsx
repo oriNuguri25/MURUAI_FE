@@ -1,5 +1,5 @@
-import { Plus } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Clipboard, Copy, Plus, Trash2 } from "lucide-react";
+import { Fragment, useRef, useState } from "react";
 import { useDragAndDrop } from "../model/useDragAndDrop";
 import type { Page } from "../model/pageTypes";
 import DesignPaper from "./DesignPaper";
@@ -9,6 +9,8 @@ interface BottomBarProps {
   selectedPageId: string;
   onAddPage: () => void;
   onSelectPage: (pageId: string) => void;
+  onCopyPage: (pageId: string) => void;
+  onPastePage: (pageId: string) => void;
   onReorderPages: (pages: Page[]) => void;
   onDeletePage: (pageId: string) => void;
   onAddPageAtIndex?: (index: number) => void;
@@ -19,9 +21,13 @@ const BottomBar = ({
   selectedPageId,
   onAddPage,
   onSelectPage,
+  onCopyPage,
+  onPastePage,
   onReorderPages,
+  onDeletePage,
   onAddPageAtIndex,
 }: BottomBarProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { handleDragStart, handleDragOver, handleDrop } = useDragAndDrop({
     pages,
     onReorderPages,
@@ -38,6 +44,19 @@ const BottomBar = ({
   const [hoveredDividerIndex, setHoveredDividerIndex] = useState<number | null>(
     null
   );
+  const [contextMenu, setContextMenu] = useState<{
+    pageId: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const getCopiedPageId = () => {
+    try {
+      return sessionStorage.getItem("copiedPageId");
+    } catch {
+      return null;
+    }
+  };
 
   const handleAddPageBetween = (index: number) => {
     if (onAddPageAtIndex) {
@@ -46,7 +65,12 @@ const BottomBar = ({
   };
 
   return (
-    <div className="flex shrink-0 w-full h-32 bg-white border-t border-black-25 items-center px-4">
+    <div
+      ref={containerRef}
+      className="relative flex shrink-0 w-full h-32 bg-white border-t border-black-25 items-center px-4"
+      onPointerDown={() => setContextMenu(null)}
+      onContextMenu={(event) => event.preventDefault()}
+    >
       {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
       <div className="flex flex-1 h-full items-start py-2 gap-2 overflow-x-auto overflow-y-hidden">
         {pages.map((page, index) => {
@@ -71,6 +95,21 @@ const BottomBar = ({
               onDragStart={(e) => handleDragStart(e, page.id)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, page.id)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onSelectPage(page.id);
+                const rect = containerRef.current?.getBoundingClientRect();
+                const rawX = event.clientX - (rect?.left ?? 0);
+                const rawY = event.clientY - (rect?.top ?? 0);
+                const menuWidth = 160;
+                const menuHeight = 3 * 36 + 8;
+                const maxX = (rect?.width ?? 0) - menuWidth - 8;
+                const maxY = (rect?.height ?? 0) - menuHeight - 8;
+                const clampedX = Math.min(Math.max(rawX, 8), Math.max(8, maxX));
+                const clampedY = Math.min(Math.max(rawY, 8), Math.max(8, maxY));
+                setContextMenu({ pageId: page.id, x: clampedX, y: clampedY });
+              }}
               className="flex shrink-0 flex-col items-center gap-2 cursor-move"
             >
               <button
@@ -158,6 +197,60 @@ const BottomBar = ({
           </button>
         </div>
       </div>
+      {contextMenu && (
+        <div
+          className="absolute z-50"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div className="w-40 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
+            <button
+              type="button"
+              onClick={() => {
+                onCopyPage(contextMenu.pageId);
+                setContextMenu(null);
+              }}
+              className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            >
+              <span className="flex items-center gap-2">
+                <Copy className="h-4 w-4" />
+                복사
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onPastePage(contextMenu.pageId);
+                setContextMenu(null);
+              }}
+              disabled={!getCopiedPageId()}
+              className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
+                getCopiedPageId()
+                  ? "text-black-90 hover:bg-black-5"
+                  : "text-black-40"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Clipboard className="h-4 w-4" />
+                붙여넣기
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onDeletePage(contextMenu.pageId);
+                setContextMenu(null);
+              }}
+              className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+            >
+              <span className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                삭제
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

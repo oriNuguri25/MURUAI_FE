@@ -14,14 +14,17 @@ import {
   ChevronRight,
   Clipboard,
   Copy,
+  Group,
   Layers,
   Trash2,
+  Ungroup,
 } from "lucide-react";
 import type {
   CanvasElement,
   LineElement,
   ShapeElement,
   TextElement,
+  ResizeHandle,
 } from "../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
 import { useSmartGuides } from "../model/useSmartGuides";
@@ -31,6 +34,7 @@ import Line from "./template_component/line/Line";
 import RoundBox from "./template_component/round_box/RoundBox";
 import TextBox from "./template_component/text/TextBox";
 import { useSideBarStore } from "../store/sideBarStore";
+import { measureTextBoxSize } from "../utils/textMeasure";
 
 interface DesignPaperProps {
   pageId: string;
@@ -84,6 +88,9 @@ const PAGE_HEIGHT_PX = mmToPx(297);
 const GUIDE_THRESHOLD_PX = 6;
 const SNAP_THRESHOLD_PX = 3;
 const RECT_TOLERANCE = 1;
+const DEFAULT_TEXT_FONT_SIZE = 24;
+const DEFAULT_TEXT_LINE_HEIGHT = 1.2;
+const PASTE_TEXT_WIDTH = 400;
 const DEFAULT_STROKE: LineElement["stroke"] = {
   color: "#000000",
   width: 2,
@@ -97,6 +104,28 @@ const isEmotionSlotShape = (
     element.type === "ellipse") &&
   element.border?.enabled === true &&
   element.border?.color === "#A5B4FC";
+
+const isEmotionPlaceholderText = (
+  element: CanvasElement
+): element is TextElement =>
+  element.type === "text" &&
+  element.style.fontSize === 10 &&
+  element.style.fontWeight === "normal" &&
+  element.style.color === "#A5B4FC" &&
+  element.style.alignX === "center" &&
+  element.style.alignY === "middle";
+
+const isEmotionLabelText = (
+  element: CanvasElement
+): element is TextElement =>
+  element.type === "text" &&
+  element.style.fontWeight === "normal" &&
+  element.style.color === "#111827" &&
+  element.style.alignX === "center" &&
+  element.style.alignY === "middle";
+
+const EMOTION_LABEL_TOLERANCE = 8;
+const EMOTION_PLACEHOLDER_TOLERANCE = 8;
 
 const getRectFromElement = (element: CanvasElement): Rect | null => {
   if ("x" in element && "w" in element && "h" in element) {
@@ -145,12 +174,16 @@ const DesignPaper = ({
   const activeInteractionRef = useRef<{
     id: string;
     type: "drag" | "resize";
+    startRect?: Rect;
+    startFontSize?: number;
+    handle?: ResizeHandle;
   } | null>(null);
   const groupDragRef = useRef<GroupDragState | null>(null);
   const selectedIdsRef = useRef<string[]>(selectedIds);
   const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
   const selectionAdditiveRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
   const isHorizontal = orientation === "horizontal";
   const pageWidth = isHorizontal ? PAGE_HEIGHT_PX : PAGE_WIDTH_PX;
   const pageHeight = isHorizontal ? PAGE_WIDTH_PX : PAGE_HEIGHT_PX;
@@ -175,14 +208,153 @@ const DesignPaper = ({
     },
     [elements]
   );
+
+  const findEmotionPlaceholderId = useCallback(
+    (shape: ShapeElement) => {
+      const exactId = findEmotionSlotTextId(shape);
+      if (exactId) return exactId;
+      const shapeRect = getRectFromElement(shape);
+      if (!shapeRect) return null;
+      const targetCenterX = shapeRect.x + shapeRect.width / 2;
+      const targetCenterY = shapeRect.y + shapeRect.height / 2;
+      let bestId: string | null = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      elements.forEach((element) => {
+        if (!isEmotionPlaceholderText(element)) return;
+        const centerX = element.x + element.w / 2;
+        const centerY = element.y + element.h / 2;
+        if (
+          centerX < shapeRect.x - EMOTION_PLACEHOLDER_TOLERANCE ||
+          centerX >
+            shapeRect.x + shapeRect.width + EMOTION_PLACEHOLDER_TOLERANCE
+        ) {
+          return;
+        }
+        if (
+          centerY < shapeRect.y - EMOTION_PLACEHOLDER_TOLERANCE ||
+          centerY >
+            shapeRect.y + shapeRect.height + EMOTION_PLACEHOLDER_TOLERANCE
+        ) {
+          return;
+        }
+        const distance = Math.hypot(
+          centerX - targetCenterX,
+          centerY - targetCenterY
+        );
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestId = element.id;
+        }
+      });
+      return bestId;
+    },
+    [elements, findEmotionSlotTextId]
+  );
+
+  const findEmotionLabelId = useCallback(
+    (shape: ShapeElement) => {
+      const shapeRect = getRectFromElement(shape);
+      if (!shapeRect) return null;
+      const targetCenterX = shapeRect.x + shapeRect.width / 2;
+      let bestId: string | null = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      elements.forEach((element) => {
+        if (!isEmotionLabelText(element)) return;
+        const centerX = element.x + element.w / 2;
+        const matchesCenter =
+          Math.abs(centerX - targetCenterX) <= EMOTION_LABEL_TOLERANCE;
+        const matchesLeft =
+          Math.abs(element.x - shapeRect.x) <= EMOTION_LABEL_TOLERANCE;
+        if (!matchesCenter && !matchesLeft) {
+          return;
+        }
+        const centerY = element.y + element.h / 2;
+        const distance = centerY - (shapeRect.y + shapeRect.height);
+        if (distance < -EMOTION_LABEL_TOLERANCE) return;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestId = element.id;
+        }
+      });
+      return bestId;
+    },
+    [elements]
+  );
+
   const emotionSlotTextIds = new Set<string>();
   elements.forEach((element) => {
     if (!isEmotionSlotShape(element)) return;
-    const slotTextId = findEmotionSlotTextId(element);
+    const slotTextId = findEmotionPlaceholderId(element);
     if (slotTextId) {
       emotionSlotTextIds.add(slotTextId);
     }
   });
+
+  const applyEmotionSlotRectUpdate = useCallback(
+    (shapeId: string, nextRect: Rect) => {
+      if (readOnly || !onElementsChange) return;
+      const shape = elements.find(
+        (element) => element.id === shapeId
+      );
+      if (!shape || !isEmotionSlotShape(shape)) return;
+      const shapeRect = getRectFromElement(shape) ?? {
+        x: shape.x,
+        y: shape.y,
+        width: shape.w,
+        height: shape.h,
+      };
+      const placeholderId = findEmotionPlaceholderId(shape);
+      const labelId = findEmotionLabelId(shape);
+      const label = labelId
+        ? elements.find(
+            (element) => element.id === labelId && element.type === "text"
+          )
+        : null;
+      const labelOffset =
+        label && label.type === "text"
+          ? label.y - (shapeRect.y + shapeRect.height)
+          : 0;
+      const nextElements = elements.map((element) => {
+        if (element.id === shapeId && "x" in element) {
+          return {
+            ...element,
+            x: nextRect.x,
+            y: nextRect.y,
+            w: nextRect.width,
+            h: nextRect.height,
+          } as ShapeElement;
+        }
+        if (placeholderId && element.id === placeholderId) {
+          return {
+            ...element,
+            x: nextRect.x,
+            y: nextRect.y,
+            w: nextRect.width,
+            h: nextRect.height,
+            widthMode: "fixed",
+          } as TextElement;
+        }
+        if (labelId && element.id === labelId) {
+          return {
+            ...element,
+            x: nextRect.x,
+            y: nextRect.y + nextRect.height + labelOffset,
+            w: nextRect.width,
+            widthMode: "fixed",
+          } as TextElement;
+        }
+        return element;
+      });
+      onElementsChange(nextElements);
+    },
+    [
+      elements,
+      findEmotionLabelId,
+      findEmotionPlaceholderId,
+      onElementsChange,
+      readOnly,
+    ]
+  );
 
   const getContainerScale = useCallback(() => {
     const node = containerRef.current;
@@ -306,7 +478,7 @@ const DesignPaper = ({
       const isImageFill =
         target.fill.startsWith("url(") || target.fill.startsWith("data:");
       if (!isImageFill) return;
-      const placeholderId = findEmotionSlotTextId(target);
+      const placeholderId = findEmotionPlaceholderId(target);
       const nextElements = elements.map((element) => {
         if (element.id === target.id) {
           return {
@@ -326,7 +498,7 @@ const DesignPaper = ({
       });
       onElementsChange(nextElements);
     },
-    [elements, findEmotionSlotTextId, onElementsChange, readOnly]
+    [elements, findEmotionPlaceholderId, onElementsChange, readOnly]
   );
 
   const buildGroupDragState = useCallback(
@@ -392,6 +564,20 @@ const DesignPaper = ({
       if (readOnly || !onElementsChange) return;
       const snapshot = groupDragRef.current;
       if (!snapshot) return;
+      const selectedIds = new Set(snapshot.items.keys());
+      const linkedIds = new Set<string>();
+      elements.forEach((element) => {
+        if (!selectedIds.has(element.id)) return;
+        if (!isEmotionSlotShape(element)) return;
+        const placeholderId = findEmotionPlaceholderId(element);
+        const labelId = findEmotionLabelId(element);
+        if (placeholderId && !selectedIds.has(placeholderId)) {
+          linkedIds.add(placeholderId);
+        }
+        if (labelId && !selectedIds.has(labelId)) {
+          linkedIds.add(labelId);
+        }
+      });
       const nextElements = elements.map((element) => {
         const item = snapshot.items.get(element.id);
         if (!item) return element;
@@ -417,14 +603,37 @@ const DesignPaper = ({
         }
         return element;
       });
-      onElementsChange(nextElements);
+      const nextElementsWithLinked = linkedIds.size
+        ? nextElements.map((element) => {
+            if (!linkedIds.has(element.id)) return element;
+            if (!("x" in element && "y" in element)) return element;
+            return {
+              ...element,
+              x: element.x + delta.x,
+              y: element.y + delta.y,
+            } as CanvasElement;
+          })
+        : nextElements;
+      onElementsChange(nextElementsWithLinked);
     },
-    [elements, onElementsChange, readOnly]
+    [
+      elements,
+      findEmotionLabelId,
+      findEmotionPlaceholderId,
+      onElementsChange,
+      readOnly,
+    ]
   );
 
   const handleRectChange = (elementId: string, nextRect: Rect) => {
     const activeInteraction = activeInteractionRef.current;
-    if (!activeInteraction || activeInteraction.id !== elementId) return;
+    if (!activeInteraction || activeInteraction.id !== elementId) {
+      updateElement(elementId, {
+        w: nextRect.width,
+        h: nextRect.height,
+      });
+      return;
+    }
     const groupDrag = groupDragRef.current;
     if (
       groupDrag &&
@@ -440,6 +649,61 @@ const DesignPaper = ({
       setActivePreview(null);
       return;
     }
+    const targetElement = elements.find((element) => element.id === elementId);
+    if (
+      activeInteraction.type === "resize" ||
+      activeInteraction.type === "drag"
+    ) {
+      if (targetElement && isEmotionSlotShape(targetElement)) {
+        applyEmotionSlotRectUpdate(elementId, nextRect);
+        setActivePreview(null);
+        return;
+      }
+    }
+    if (
+      activeInteraction.type === "resize" &&
+      targetElement &&
+      targetElement.type === "text"
+    ) {
+      const startRect =
+        activeInteraction.startRect ??
+        ("x" in targetElement && "w" in targetElement
+          ? {
+              x: targetElement.x,
+              y: targetElement.y,
+              width: targetElement.w,
+              height: targetElement.h,
+            }
+          : nextRect);
+      const handle = activeInteraction.handle;
+      const hasWidthHandle =
+        handle != null && (handle.includes("e") || handle.includes("w"));
+      const shouldScaleFont =
+        handle != null && ["nw", "ne", "sw", "se"].includes(handle);
+      const baseFontSize =
+        activeInteraction.startFontSize ?? targetElement.style.fontSize;
+      const heightRatio = startRect.height
+        ? nextRect.height / startRect.height
+        : 1;
+      const nextFontSize = shouldScaleFont
+        ? Math.max(6, Math.round(baseFontSize * heightRatio))
+        : baseFontSize;
+      const patch: TextElementPatch = {
+        x: nextRect.x,
+        y: nextRect.y,
+        w: nextRect.width,
+        h: nextRect.height,
+      };
+      if (hasWidthHandle) {
+        patch.widthMode = "fixed";
+      }
+      if (shouldScaleFont) {
+        patch.style = { fontSize: nextFontSize };
+      }
+      updateElement(elementId, patch);
+      setActivePreview({ id: elementId, rect: nextRect });
+      return;
+    }
     setActivePreview({ id: elementId, rect: nextRect });
   };
 
@@ -447,12 +711,41 @@ const DesignPaper = ({
     elementId: string,
     isDragging: boolean,
     finalRect?: Rect,
-    context?: { type: "drag" | "resize" }
+    context?: { type: "drag" | "resize"; handle?: ResizeHandle }
   ) => {
     if (isDragging) {
+      const targetElement = elements.find((element) => element.id === elementId);
+      const startRect =
+        finalRect ??
+        (targetElement && "x" in targetElement && "w" in targetElement
+          ? {
+              x: targetElement.x,
+              y: targetElement.y,
+              width: targetElement.w,
+              height: targetElement.h,
+            }
+          : undefined);
+      const handle = context?.handle;
+      const hasWidthHandle =
+        handle != null && (handle.includes("e") || handle.includes("w"));
+      if (
+        targetElement &&
+        targetElement.type === "text" &&
+        context?.type === "resize" &&
+        hasWidthHandle &&
+        targetElement.widthMode !== "fixed"
+      ) {
+        updateElement(elementId, { widthMode: "fixed" });
+      }
       activeInteractionRef.current = {
         id: elementId,
         type: context?.type ?? "drag",
+        startRect,
+        startFontSize:
+          targetElement && targetElement.type === "text"
+            ? targetElement.style.fontSize
+            : undefined,
+        handle,
       };
       if (context?.type === "drag") {
         groupDragRef.current = buildGroupDragState(elementId);
@@ -469,12 +762,60 @@ const DesignPaper = ({
       groupDragRef.current = null;
     }
     if (finalRect && !hadGroupDrag) {
-      updateElement(elementId, {
-        x: finalRect.x,
-        y: finalRect.y,
-        w: finalRect.width,
-        h: finalRect.height,
-      });
+      const targetElement = elements.find((element) => element.id === elementId);
+      const activeInteraction = activeInteractionRef.current;
+      if (
+        targetElement &&
+        isEmotionSlotShape(targetElement) &&
+        (context?.type === "drag" || context?.type === "resize")
+      ) {
+        applyEmotionSlotRectUpdate(elementId, finalRect);
+        activeInteractionRef.current = null;
+        setActivePreview(null);
+        smartGuides.clear();
+        return;
+      }
+      if (
+        targetElement &&
+        targetElement.type === "text" &&
+        context?.type === "resize" &&
+        activeInteraction?.startRect
+      ) {
+        const handle = activeInteraction.handle;
+        const hasWidthHandle =
+          handle != null && (handle.includes("e") || handle.includes("w"));
+        const shouldScaleFont =
+          handle != null && ["nw", "ne", "sw", "se"].includes(handle);
+        const heightRatio =
+          activeInteraction.startRect.height
+            ? finalRect.height / activeInteraction.startRect.height
+            : 1;
+        const baseFontSize =
+          activeInteraction.startFontSize ?? targetElement.style.fontSize;
+        const nextFontSize = shouldScaleFont
+          ? Math.max(6, Math.round(baseFontSize * heightRatio))
+          : baseFontSize;
+        const patch: TextElementPatch = {
+          x: finalRect.x,
+          y: finalRect.y,
+          w: finalRect.width,
+          h: finalRect.height,
+        };
+        if (hasWidthHandle) {
+          patch.widthMode = "fixed";
+        }
+        if (shouldScaleFont) {
+          patch.style = { fontSize: nextFontSize };
+        }
+        updateElement(elementId, patch);
+      } else {
+        updateElement(elementId, {
+          x: finalRect.x,
+          y: finalRect.y,
+          w: finalRect.width,
+          h: finalRect.height,
+        });
+      }
     }
     activeInteractionRef.current = null;
     setActivePreview(null);
@@ -540,9 +881,18 @@ const DesignPaper = ({
             .filter((element) => element.groupId === selectedElement.groupId)
             .map((element) => element.id)
         : [elementId];
-    const nextSelectedIds = options?.additive
-      ? [...new Set([...currentSelectedIds, ...groupedIds])]
-      : groupedIds;
+    const orderedGroupedIds =
+      selectedElement?.groupId != null
+        ? [
+            elementId,
+            ...groupedIds.filter((id) => id !== elementId),
+          ]
+        : [elementId];
+    const baseIds = options?.additive ? currentSelectedIds : [];
+    const nextSelectedIds = [
+      ...orderedGroupedIds,
+      ...baseIds.filter((id) => !orderedGroupedIds.includes(id)),
+    ];
     selectedIdsRef.current = nextSelectedIds;
     onSelectedIdsChange?.(nextSelectedIds);
     if (selectedElement && isEmotionSlotShape(selectedElement)) {
@@ -646,7 +996,7 @@ const DesignPaper = ({
       if (!selectedElement || !isEmotionSlotShape(selectedElement)) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key.length !== 1) return;
-      const slotTextId = findEmotionSlotTextId(selectedElement);
+      const slotTextId = findEmotionPlaceholderId(selectedElement);
       if (!slotTextId) return;
       const slotText = elements.find((element) => element.id === slotTextId);
       if (!slotText || slotText.type !== "text") return;
@@ -668,7 +1018,7 @@ const DesignPaper = ({
   }, [
     editingTextId,
     elements,
-    findEmotionSlotTextId,
+    findEmotionPlaceholderId,
     onElementsChange,
     onEditingTextIdChange,
     readOnly,
@@ -792,6 +1142,31 @@ const DesignPaper = ({
         };
       }
       if ("x" in element && "y" in element) {
+        if (element.type === "text") {
+          const lineHeight = element.style.lineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
+          const letterSpacing = element.style.letterSpacing ?? 0;
+          const widthMode = element.widthMode ?? "auto";
+          const { width, height } = measureTextBoxSize(
+            element.text ?? "",
+            element.style.fontSize,
+            element.style.fontWeight,
+            {
+              lineHeight,
+              letterSpacing,
+              maxWidth: widthMode === "fixed" ? element.w : undefined,
+            }
+          );
+          return {
+            ...element,
+            id,
+            groupId: nextGroupId,
+            x: element.x + offset,
+            y: element.y + offset,
+            w: widthMode === "fixed" ? element.w : Math.max(width, 1),
+            h: Math.max(height, 1),
+            widthMode,
+          };
+        }
         return {
           ...element,
           id,
@@ -932,6 +1307,8 @@ const DesignPaper = ({
 
       // Ctrl+V 또는 Cmd+V (요소 붙여넣기)
       if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+        const clipboard = getClipboard();
+        if (!clipboard || clipboard.length === 0) return;
         event.preventDefault();
         pasteElements();
       }
@@ -951,8 +1328,39 @@ const DesignPaper = ({
     selectedIds,
     copySelectedElements,
     pasteElements,
+    getClipboard,
     elements,
   ]);
+
+  const deleteElementById = useCallback(
+    (id: string) => {
+      if (readOnly || !onElementsChange) return;
+      onElementsChange(
+        elements.filter((element) => element.id !== id)
+      );
+      const nextSelected = selectedIdsRef.current.filter(
+        (selectedId) => selectedId !== id
+      );
+      selectedIdsRef.current = nextSelected;
+      onSelectedIdsChange?.(nextSelected);
+      if (editingTextId === id) {
+        onEditingTextIdChange?.(null);
+      }
+      if (editingImageId === id) {
+        setEditingImageId(null);
+      }
+      setContextMenu((prev) => (prev?.id === id ? null : prev));
+    },
+    [
+      readOnly,
+      onElementsChange,
+      elements,
+      onSelectedIdsChange,
+      onEditingTextIdChange,
+      editingTextId,
+      editingImageId,
+    ]
+  );
 
   const deleteSelectedElements = () => {
     if (readOnly || !onElementsChange) return;
@@ -966,10 +1374,112 @@ const DesignPaper = ({
     setContextMenu(null);
   };
 
+  const selectedGroupId =
+    selectedIds.length > 1
+      ? elements.find((element) => element.id === selectedIds[0])?.groupId ??
+        null
+      : null;
+  const isGroupedSelection =
+    selectedGroupId != null &&
+    selectedIds.length > 1 &&
+    selectedIds.every(
+      (id) =>
+        elements.find((element) => element.id === id)?.groupId ===
+        selectedGroupId
+    );
   const canGroupSelection = selectedIds.length > 1;
   const canUngroupSelection = elements.some(
     (element) => selectedIds.includes(element.id) && element.groupId
   );
+
+  // Handle global paste events
+  useEffect(() => {
+    if (readOnly || !onElementsChange) return;
+
+    const handlePaste = (event: ClipboardEvent) => {
+      // Check if we're pasting into a text box or input field (don't create new one)
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.closest('[contenteditable="true"]') ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+
+      const rawText = event.clipboardData?.getData("text/plain") ?? "";
+      if (!rawText.trim()) return;
+
+      event.preventDefault();
+
+      // Create a new text element at the last pointer position or canvas center
+      const container = containerRef.current;
+      if (!container) return;
+
+      const basePoint = lastPointerRef.current;
+      const centerX =
+        basePoint?.x ??
+        container.offsetWidth / 2;
+      const centerY =
+        basePoint?.y ??
+        container.offsetHeight / 2;
+
+      const { height } = measureTextBoxSize(
+        rawText,
+        DEFAULT_TEXT_FONT_SIZE,
+        "normal",
+        {
+          lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+          maxWidth: PASTE_TEXT_WIDTH,
+        }
+      );
+      const x = centerX - PASTE_TEXT_WIDTH / 2;
+      const y = centerY - Math.max(height, 1) / 2;
+
+      const newTextElement: Omit<TextElement, "id"> = {
+        type: "text",
+        text: rawText,
+        richText: undefined,
+        x,
+        y,
+        w: PASTE_TEXT_WIDTH,
+        h: Math.max(height, 1),
+        widthMode: "fixed",
+        style: {
+          fontSize: DEFAULT_TEXT_FONT_SIZE,
+          fontWeight: "normal",
+          color: "#000000",
+          underline: false,
+          alignX: "left",
+          alignY: "top",
+          lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+          letterSpacing: 0,
+        },
+        locked: false,
+        visible: true,
+      };
+
+      const newId = crypto.randomUUID();
+      const newElement: TextElement = { ...newTextElement, id: newId };
+
+      onElementsChange([...elements, newElement]);
+      selectedIdsRef.current = [newId];
+      onSelectedIdsChange?.([newId]);
+      onEditingTextIdChange?.(null);
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  }, [
+    readOnly,
+    onElementsChange,
+    elements,
+    onSelectedIdsChange,
+    onEditingTextIdChange,
+  ]);
 
   return (
     <div
@@ -980,11 +1490,18 @@ const DesignPaper = ({
         className ?? ""
       }`}
       data-page-id={pageId}
+      onPointerDownCapture={(event) => {
+        lastPointerRef.current = getPointerPosition(event);
+      }}
+      onPointerMoveCapture={(event) => {
+        lastPointerRef.current = getPointerPosition(event);
+      }}
       onPointerDown={readOnly ? undefined : handleBackgroundPointerDown}
     >
       {elements.map((element) => {
         if (element.type === "text") {
           const isSelected = selectedIds.includes(element.id);
+          const showToolbar = selectedIds[0] === element.id;
           const isEditing = editingTextId === element.id;
           const isEmotionSlotText = emotionSlotTextIds.has(element.id);
           const forceEditable = isEmotionSlotText && isEditing;
@@ -1002,6 +1519,7 @@ const DesignPaper = ({
           const letterSpacing = element.style.letterSpacing ?? 0;
           const fontWeight =
             element.style.fontWeight === "bold" ? 700 : 400;
+          const minTextHeight = element.lockHeight ? rect.height : 1;
           return (
             <TextBox
               key={element.id}
@@ -1009,6 +1527,8 @@ const DesignPaper = ({
               richText={element.richText}
               editable={!readOnly && (!element.locked || forceEditable)}
               rect={rect}
+              minWidth={1}
+              minHeight={minTextHeight}
               showChrome={!isEmotionSlotText}
               textClassName="text-headline-42-semibold"
               textStyle={{
@@ -1024,6 +1544,8 @@ const DesignPaper = ({
               isSelected={isSelected}
               isEditing={isEditing}
               locked={locked}
+              showToolbar={showToolbar}
+              widthMode={element.widthMode ?? "auto"}
               toolbar={{
                 offset: mmToPx(4),
                 minFontSize,
@@ -1077,8 +1599,13 @@ const DesignPaper = ({
               onTextChange={(nextText, nextRichText) =>
                 updateElement(element.id, { text: nextText, richText: nextRichText })
               }
-              onRectChange={(nextRect) =>
-                handleRectChange(element.id, nextRect)
+              onRectChange={
+                isEmotionSlotText
+                  ? undefined
+                  : (nextRect) => handleRectChange(element.id, nextRect)
+              }
+              onWidthModeChange={(mode) =>
+                updateElement(element.id, { widthMode: mode })
               }
               onDragStateChange={(isDragging, finalRect, context) =>
                 handleDragStateChange(element.id, isDragging, finalRect, context)
@@ -1093,6 +1620,7 @@ const DesignPaper = ({
                 onEditingTextIdChange?.(element.id)
               }
               onFinishEditing={() => onEditingTextIdChange?.(null)}
+              onRequestDelete={() => deleteElementById(element.id)}
               transformRect={(nextRect, context) => {
                 const activeInteraction = activeInteractionRef.current;
                 if (!activeInteraction || activeInteraction.id !== element.id) {
@@ -1386,9 +1914,17 @@ const DesignPaper = ({
               <button
                 type="button"
                 onClick={groupSelectedElements}
-                className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+                disabled={isGroupedSelection}
+                className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
+                  isGroupedSelection
+                    ? "cursor-not-allowed text-black-40"
+                    : "text-black-90 hover:bg-black-5"
+                }`}
               >
-                <span className="flex items-center gap-2">그룹화</span>
+                <span className="flex items-center gap-2">
+                  <Group className="h-4 w-4" />
+                  그룹화
+                </span>
               </button>
             )}
             {canUngroupSelection && (
@@ -1397,7 +1933,10 @@ const DesignPaper = ({
                 onClick={ungroupSelectedElements}
                 className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
               >
-                <span className="flex items-center gap-2">그룹 해제</span>
+                <span className="flex items-center gap-2">
+                  <Ungroup className="h-4 w-4" />
+                  그룹 해제
+                </span>
               </button>
             )}
             <button
