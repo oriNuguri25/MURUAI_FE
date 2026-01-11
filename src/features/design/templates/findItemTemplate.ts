@@ -5,18 +5,16 @@ const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
 const pageWidthMm = 210;
-const horizontalPaddingMm = 20;
-const contentWidthMm = pageWidthMm - horizontalPaddingMm * 2;
 
-const titleWidthMm = 140;
-const titleHeightMm = 18;
-const titleXmm = horizontalPaddingMm + (contentWidthMm - titleWidthMm) / 2;
+const titleWidthMm = 170;
+const titleHeightMm = 20;
+const titleXmm = (pageWidthMm - titleWidthMm) / 2;
 const titleYmm = 40;
 
 const boxSizeMm = 78;
 const boxGapMm = 12;
 const gridWidthMm = boxSizeMm * 2 + boxGapMm;
-const gridStartXm = horizontalPaddingMm + (contentWidthMm - gridWidthMm) / 2;
+const gridStartXm = (pageWidthMm - gridWidthMm) / 2;
 const gridStartYm = titleYmm + titleHeightMm + 22;
 
 const logoWidthMm = 40;
@@ -44,6 +42,7 @@ export const findItemTemplate: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: '"○○"을 찾아봐!',
+      widthMode: "fixed",
       style: {
         fontSize: 42,
         fontWeight: "bold",

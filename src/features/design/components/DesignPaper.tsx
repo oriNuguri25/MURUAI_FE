@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useCallback,
@@ -140,6 +141,20 @@ const getRectFromElement = (element: CanvasElement): Rect | null => {
       height: element.h,
     };
   }
+  if (element.type === "line" || element.type === "arrow") {
+    const strokeWidth = element.stroke?.width ?? DEFAULT_STROKE.width;
+    const halfStroke = Math.max(strokeWidth, 1) / 2;
+    const minX = Math.min(element.start.x, element.end.x);
+    const minY = Math.min(element.start.y, element.end.y);
+    const width = Math.max(Math.abs(element.end.x - element.start.x), 1);
+    const height = Math.max(Math.abs(element.end.y - element.start.y), 1);
+    return {
+      x: minX - halfStroke,
+      y: minY - halfStroke,
+      width: width + halfStroke * 2,
+      height: height + halfStroke * 2,
+    };
+  }
   return null;
 };
 
@@ -177,6 +192,7 @@ const DesignPaper = ({
   const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const activeInteractionRef = useRef<{
     id: string;
     type: "drag" | "resize";
@@ -200,9 +216,19 @@ const DesignPaper = ({
     snapThreshold: SNAP_THRESHOLD_PX,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     selectedIdsRef.current = selectedIds;
   }, [selectedIds]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    if (editingTextId) return;
+    if (selectedIds.length === 0) return;
+    const frame = requestAnimationFrame(() => {
+      containerRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editingTextId, readOnly, selectedIds]);
   const findEmotionSlotTextId = useCallback(
     (shape: ShapeElement) => {
       const shapeRect = getRectFromElement(shape);
@@ -564,6 +590,59 @@ const DesignPaper = ({
       )
       .map((element) => getRectFromElement(element))
       .filter((rect): rect is Rect => Boolean(rect));
+
+  const getGroupBoundingBox = (elementId: string, currentElementRect: Rect): Rect | null => {
+    const element = elements.find((el) => el.id === elementId);
+    if (!element) return null;
+
+    // Check if this element is part of a selected group
+    const elementGroupId = element.groupId;
+    if (!elementGroupId) return null;
+
+    // Check if all elements with the same groupId are selected
+    const groupElements = elements.filter((el) => el.groupId === elementGroupId);
+    const allGroupSelected = groupElements.every((el) =>
+      selectedIds.includes(el.id)
+    );
+
+    if (!allGroupSelected) return null;
+
+    // Calculate the offset between current element's original and new position
+    const originalRect = getRectFromElement(element);
+    if (!originalRect) return null;
+
+    const deltaX = currentElementRect.x - originalRect.x;
+    const deltaY = currentElementRect.y - originalRect.y;
+
+    // Calculate bounding box of the entire group with the offset applied
+    const groupRects = groupElements
+      .map((el) => {
+        const rect = getRectFromElement(el);
+        if (!rect) return null;
+        // Apply the same offset to all group elements
+        return {
+          x: rect.x + deltaX,
+          y: rect.y + deltaY,
+          width: rect.width,
+          height: rect.height,
+        };
+      })
+      .filter((rect): rect is Rect => Boolean(rect));
+
+    if (groupRects.length === 0) return null;
+
+    const minX = Math.min(...groupRects.map((r) => r.x));
+    const minY = Math.min(...groupRects.map((r) => r.y));
+    const maxX = Math.max(...groupRects.map((r) => r.x + r.width));
+    const maxY = Math.max(...groupRects.map((r) => r.y + r.height));
+
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  };
 
   const applyGroupDelta = useCallback(
     (delta: { x: number; y: number }) => {
@@ -980,6 +1059,8 @@ const DesignPaper = ({
     if (!options?.keepContextMenu) {
       setContextMenu(null);
     }
+    // Focus the canvas to enable keyboard navigation
+    containerRef.current?.focus();
   };
 
   const handleBackgroundPointerDown = (
@@ -1085,9 +1166,9 @@ const DesignPaper = ({
       });
       onEditingTextIdChange?.(slotTextId);
     };
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [
     editingTextId,
@@ -1292,6 +1373,7 @@ const DesignPaper = ({
     if (readOnly || !onElementsChange) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
+
       if (editingTextId) return;
       const target = event.target as HTMLElement | null;
       if (
@@ -1324,6 +1406,19 @@ const DesignPaper = ({
             return;
           }
         }
+
+        // Delete selected elements
+        const currentSelectedIds = selectedIdsRef.current;
+        if (currentSelectedIds.length > 0) {
+          event.preventDefault();
+          onElementsChange(
+            elements.filter((element) => !currentSelectedIds.includes(element.id))
+          );
+          selectedIdsRef.current = [];
+          onSelectedIdsChange?.([]);
+          onEditingTextIdChange?.(null);
+          return;
+        }
       }
 
       if (
@@ -1332,9 +1427,12 @@ const DesignPaper = ({
         event.key === "ArrowUp" ||
         event.key === "ArrowDown"
       ) {
-        if (selectedIds.length === 0) return;
+        const currentSelectedIds = selectedIdsRef.current;
+        if (currentSelectedIds.length === 0) return;
+
         event.preventDefault();
-        const delta =
+
+        const baseDelta =
           event.key === "ArrowLeft"
             ? { x: -1, y: 0 }
             : event.key === "ArrowRight"
@@ -1342,54 +1440,142 @@ const DesignPaper = ({
             : event.key === "ArrowUp"
             ? { x: 0, y: -1 }
             : { x: 0, y: 1 };
-        onElementsChange(
-          elements.map((element) => {
-            if (!selectedIds.includes(element.id) || element.locked) {
-              return element;
-            }
-            if (element.type === "line" || element.type === "arrow") {
-              return {
-                ...element,
-                start: {
-                  x: element.start.x + delta.x,
-                  y: element.start.y + delta.y,
-                },
-                end: {
-                  x: element.end.x + delta.x,
-                  y: element.end.y + delta.y,
-                },
-              };
-            }
-            if ("x" in element && "y" in element) {
-              return {
-                ...element,
-                x: element.x + delta.x,
-                y: element.y + delta.y,
-              };
-            }
+
+        // Calculate the bounding box of selected elements
+        const selectedElements = elements.filter((el) => currentSelectedIds.includes(el.id));
+        const rects = selectedElements
+          .map((el) => getRectFromElement(el))
+          .filter((rect): rect is Rect => Boolean(rect));
+
+        if (rects.length === 0) {
+          console.log('No rects found for selected elements');
+          return;
+        }
+
+        const minX = Math.min(...rects.map((r) => r.x));
+        const minY = Math.min(...rects.map((r) => r.y));
+        const maxX = Math.max(...rects.map((r) => r.x + r.width));
+        const maxY = Math.max(...rects.map((r) => r.y + r.height));
+
+        const activeRect = {
+          x: minX + baseDelta.x,
+          y: minY + baseDelta.y,
+          width: maxX - minX,
+          height: maxY - minY,
+        };
+
+        // Get target rects (exclude selected elements)
+        const otherRects = elements
+          .filter((el) => !currentSelectedIds.includes(el.id) && el.visible !== false && !el.locked)
+          .map((el) => getRectFromElement(el))
+          .filter((rect): rect is Rect => Boolean(rect));
+
+        // Compute smart guides for feedback without snapping on keyboard moves
+        smartGuides.compute({
+          activeRect,
+          otherRects,
+        });
+
+        const delta = baseDelta;
+
+        const newElements = elements.map((element) => {
+          if (!currentSelectedIds.includes(element.id) || element.locked) {
             return element;
-          })
-        );
+          }
+          if (element.type === "line" || element.type === "arrow") {
+            return {
+              ...element,
+              start: {
+                x: element.start.x + delta.x,
+                y: element.start.y + delta.y,
+              },
+              end: {
+                x: element.end.x + delta.x,
+                y: element.end.y + delta.y,
+              },
+            };
+          }
+          if ("x" in element && "y" in element) {
+            return {
+              ...element,
+              x: element.x + delta.x,
+              y: element.y + delta.y,
+            };
+          }
+          return element;
+        });
+
+        onElementsChange(newElements);
+
+        // Clear guides after a short delay
+        setTimeout(() => {
+          smartGuides.clear();
+        }, 100);
         return;
       }
 
       // Ctrl+C 또는 Cmd+C (요소 복사)
       if ((event.ctrlKey || event.metaKey) && event.key === "c") {
-        if (selectedIds.length === 0) return;
+        if (selectedIdsRef.current.length === 0) return;
         copySelectedElements();
       }
 
       // Ctrl+V 또는 Cmd+V (요소 붙여넣기)
       if ((event.ctrlKey || event.metaKey) && event.key === "v") {
         const clipboard = getClipboard();
-        if (!clipboard || clipboard.length === 0) return;
+        if (clipboard && clipboard.length > 0) {
+          event.preventDefault();
+          pasteElements();
+        }
+        // If clipboard is empty, let the paste event handler handle text paste
+      }
+
+      // Tab 키 (다음 요소로 이동)
+      if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
         event.preventDefault();
-        pasteElements();
+
+        // 편집 가능한 요소들만 필터링 (locked 제외)
+        const selectableElements = elements.filter((element) => !element.locked);
+
+        if (selectableElements.length === 0) return;
+
+        // 요소들을 위에서 아래, 왼쪽에서 오른쪽 순서로 정렬
+        const sortedElements = [...selectableElements].sort((a, b) => {
+          const aY = "y" in a ? a.y : 0;
+          const bY = "y" in b ? b.y : 0;
+          const aX = "x" in a ? a.x : 0;
+          const bX = "x" in b ? b.x : 0;
+
+          // 먼저 Y 좌표로 정렬 (위에서 아래)
+          if (Math.abs(aY - bY) > 10) { // 10px 이상 차이나면 다른 줄로 간주
+            return aY - bY;
+          }
+          // Y가 비슷하면 X 좌표로 정렬 (왼쪽에서 오른쪽)
+          return aX - bX;
+        });
+
+        // 현재 선택된 요소의 인덱스 찾기
+        const currentIndex = selectedIdsRef.current.length > 0
+          ? sortedElements.findIndex((el) => el.id === selectedIdsRef.current[0])
+          : -1;
+
+        // 다음 요소 선택 (Shift+Tab이면 이전, Tab이면 다음)
+        let nextIndex;
+        if (event.shiftKey) {
+          nextIndex = currentIndex <= 0 ? sortedElements.length - 1 : currentIndex - 1;
+        } else {
+          nextIndex = currentIndex >= sortedElements.length - 1 ? 0 : currentIndex + 1;
+        }
+
+        const nextElement = sortedElements[nextIndex];
+        if (nextElement) {
+          onSelectedIdsChange?.([nextElement.id]);
+        }
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [
     readOnly,
@@ -1399,11 +1585,11 @@ const DesignPaper = ({
     clearEmotionSlotImage,
     onEditingTextIdChange,
     onSelectedIdsChange,
-    selectedIds,
     copySelectedElements,
     pasteElements,
     getClipboard,
     elements,
+    smartGuides,
   ]);
 
   const deleteElementById = useCallback(
@@ -1482,65 +1668,68 @@ const DesignPaper = ({
         return;
       }
 
+      // Check if there's text in the clipboard
       const rawText = event.clipboardData?.getData("text/plain") ?? "";
-      if (!rawText.trim()) return;
 
-      event.preventDefault();
+      // If there's text in the clipboard, create a text box
+      if (rawText.trim()) {
+        event.preventDefault();
 
-      // Create a new text element at the last pointer position or canvas center
-      const container = containerRef.current;
-      if (!container) return;
+        // Create a new text element at the last pointer position or canvas center
+        const container = containerRef.current;
+        if (!container) return;
 
-      const basePoint = lastPointerRef.current;
-      const centerX =
-        basePoint?.x ??
-        container.offsetWidth / 2;
-      const centerY =
-        basePoint?.y ??
-        container.offsetHeight / 2;
+        const basePoint = lastPointerRef.current;
+        const centerX =
+          basePoint?.x ??
+          container.offsetWidth / 2;
+        const centerY =
+          basePoint?.y ??
+          container.offsetHeight / 2;
 
-      const { height } = measureTextBoxSize(
-        rawText,
-        DEFAULT_TEXT_FONT_SIZE,
-        "normal",
-        {
-          lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
-          maxWidth: PASTE_TEXT_WIDTH,
-        }
-      );
-      const x = centerX - PASTE_TEXT_WIDTH / 2;
-      const y = centerY - Math.max(height, 1) / 2;
+        const { height } = measureTextBoxSize(
+          rawText,
+          DEFAULT_TEXT_FONT_SIZE,
+          "normal",
+          {
+            lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+            maxWidth: PASTE_TEXT_WIDTH,
+          }
+        );
+        const x = centerX - PASTE_TEXT_WIDTH / 2;
+        const y = centerY - Math.max(height, 1) / 2;
 
-      const newTextElement: Omit<TextElement, "id"> = {
-        type: "text",
-        text: rawText,
-        richText: undefined,
-        x,
-        y,
-        w: PASTE_TEXT_WIDTH,
-        h: Math.max(height, 1),
-        widthMode: "fixed",
-        style: {
-          fontSize: DEFAULT_TEXT_FONT_SIZE,
-          fontWeight: "normal",
-          color: "#000000",
-          underline: false,
-          alignX: "left",
-          alignY: "top",
-          lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
-          letterSpacing: 0,
-        },
-        locked: false,
-        visible: true,
-      };
+        const newTextElement: Omit<TextElement, "id"> = {
+          type: "text",
+          text: rawText,
+          richText: undefined,
+          x,
+          y,
+          w: PASTE_TEXT_WIDTH,
+          h: Math.max(height, 1),
+          widthMode: "fixed",
+          style: {
+            fontSize: DEFAULT_TEXT_FONT_SIZE,
+            fontWeight: "normal",
+            color: "#000000",
+            underline: false,
+            alignX: "left",
+            alignY: "top",
+            lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
+            letterSpacing: 0,
+          },
+          locked: false,
+          visible: true,
+        };
 
-      const newId = crypto.randomUUID();
-      const newElement: TextElement = { ...newTextElement, id: newId };
+        const newId = crypto.randomUUID();
+        const newElement: TextElement = { ...newTextElement, id: newId };
 
-      onElementsChange([...elements, newElement]);
-      selectedIdsRef.current = [newId];
-      onSelectedIdsChange?.([newId]);
-      onEditingTextIdChange?.(null);
+        onElementsChange([...elements, newElement]);
+        selectedIdsRef.current = [newId];
+        onSelectedIdsChange?.([newId]);
+        onEditingTextIdChange?.(null);
+      }
     };
 
     window.addEventListener("paste", handlePaste);
@@ -1558,24 +1747,71 @@ const DesignPaper = ({
   return (
     <div
       ref={containerRef}
-      className={`relative bg-white shrink-0 ${
+      tabIndex={readOnly ? undefined : 0}
+      className={`relative bg-white shrink-0 outline-none transition-all ${
         showShadow ? "shadow-lg" : ""
       } ${isHorizontal ? "w-[297mm] h-[210mm]" : "w-[210mm] h-[297mm]"} ${
         className ?? ""
-      }`}
+      } ${isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""}`}
       data-page-id={pageId}
+      onFocus={() => !readOnly && setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      onKeyDown={(event) => {
+        // Stop propagation to prevent BottomBar from handling canvas keyboard events
+        if (!readOnly) {
+          event.stopPropagation();
+
+          // Handle Delete/Backspace for selected elements
+          if ((event.key === "Delete" || event.key === "Backspace") && !editingTextId) {
+            const target = event.target as HTMLElement | null;
+            // Don't delete if we're typing in a text field
+            if (
+              target &&
+              (target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.isContentEditable)
+            ) {
+              return;
+            }
+
+            const currentSelectedIds = selectedIdsRef.current;
+            if (currentSelectedIds.length > 0 && onElementsChange) {
+              event.preventDefault();
+              onElementsChange(
+                elements.filter((element) => !currentSelectedIds.includes(element.id))
+              );
+              selectedIdsRef.current = [];
+              onSelectedIdsChange?.([]);
+              onEditingTextIdChange?.(null);
+            }
+          }
+        }
+      }}
+      onPointerDown={(event) => {
+        if (!readOnly) {
+          const container = containerRef.current;
+          if (container) {
+            container.focus();
+          }
+        }
+        if (!readOnly && handleBackgroundPointerDown) {
+          handleBackgroundPointerDown(event);
+        }
+      }}
       onPointerDownCapture={(event) => {
+        if (!readOnly) {
+          containerRef.current?.focus();
+        }
         lastPointerRef.current = getPointerPosition(event);
       }}
       onPointerMoveCapture={(event) => {
         lastPointerRef.current = getPointerPosition(event);
       }}
-      onPointerDown={readOnly ? undefined : handleBackgroundPointerDown}
     >
       {elements.map((element) => {
         if (element.type === "text") {
           const isSelected = selectedIds.includes(element.id);
-          const showToolbar = selectedIds[0] === element.id;
+          const showToolbar = selectedIds[0] === element.id && selectedIds.length === 1;
           const isEditing = editingTextId === element.id;
           const isEmotionSlotText = emotionSlotTextIds.has(element.id);
           const forceEditable = isEmotionSlotText && isEditing;
@@ -1594,6 +1830,8 @@ const DesignPaper = ({
           const fontWeight =
             element.style.fontWeight === "bold" ? 700 : 400;
           const minTextHeight = element.lockHeight ? rect.height : 1;
+          // Hide individual border if part of grouped selection
+          const showIndividualBorder = isSelected && (!isGroupedSelection || selectedIds.length === 1);
           return (
             <TextBox
               key={element.id}
@@ -1615,7 +1853,7 @@ const DesignPaper = ({
               }}
               textAlign={element.style.alignX}
               textAlignY={element.style.alignY}
-              isSelected={isSelected}
+              isSelected={showIndividualBorder}
               isEditing={isEditing}
               locked={locked}
               showToolbar={showToolbar}
@@ -1733,8 +1971,12 @@ const DesignPaper = ({
                   }
                   return next;
                 }
+                // Check if element is part of a selected group
+                const groupBoundingBox = getGroupBoundingBox(element.id, nextRect);
+                const activeRect = groupBoundingBox || nextRect;
+
                 const { snapOffset } = smartGuides.compute({
-                  activeRect: nextRect,
+                  activeRect,
                   otherRects: getTargetRects(element.id),
                 });
                 return {
@@ -1777,6 +2019,8 @@ const DesignPaper = ({
                   updateElement(element.id, { imageBox: value });
 
           const isShapeTextEditing = editingShapeTextId === element.id;
+          // Hide individual border if part of grouped selection
+          const showIndividualBorder = isSelected && (!isGroupedSelection || selectedIds.length === 1);
 
           return (
             <ShapeComponent
@@ -1790,7 +2034,7 @@ const DesignPaper = ({
               border={element.border}
               text={element.text}
               textStyle={element.textStyle}
-              isSelected={isSelected}
+              isSelected={showIndividualBorder}
               isImageEditing={isImageEditing}
               isTextEditing={isShapeTextEditing}
               locked={readOnly || element.locked}
@@ -1870,8 +2114,12 @@ const DesignPaper = ({
                   }
                   return next;
                 }
+                // Check if element is part of a selected group
+                const groupBoundingBox = getGroupBoundingBox(element.id, nextRect);
+                const activeRect = groupBoundingBox || nextRect;
+
                 const { snapOffset } = smartGuides.compute({
-                  activeRect: nextRect,
+                  activeRect,
                   otherRects: getTargetRects(element.id),
                 });
                 return {
@@ -1887,6 +2135,8 @@ const DesignPaper = ({
         if (element.type === "line" || element.type === "arrow") {
           const stroke = element.stroke ?? DEFAULT_STROKE;
           const isSelected = selectedIds.includes(element.id);
+          // Hide individual border if part of grouped selection
+          const showIndividualBorder = isSelected && (!isGroupedSelection || selectedIds.length === 1);
 
           if (element.type === "line") {
             return (
@@ -1896,7 +2146,7 @@ const DesignPaper = ({
                 start={element.start}
                 end={element.end}
                 stroke={stroke}
-                isSelected={isSelected}
+                isSelected={showIndividualBorder}
                 locked={readOnly || element.locked}
                 onLineChange={(nextLine) => handleLineChange(element.id, nextLine)}
                 onDragStateChange={(isDragging, nextLine, context) =>
@@ -1924,7 +2174,7 @@ const DesignPaper = ({
               start={element.start}
               end={element.end}
               stroke={stroke}
-              isSelected={isSelected}
+              isSelected={showIndividualBorder}
               locked={readOnly || element.locked}
               onLineChange={(nextLine) => handleLineChange(element.id, nextLine)}
               onDragStateChange={(isDragging, nextLine, context) =>
@@ -1957,6 +2207,42 @@ const DesignPaper = ({
           }}
         />
       )}
+      {isGroupedSelection && !readOnly && (() => {
+        // Calculate bounding box for the grouped selection
+        const groupRects = selectedIds
+          .map((id) => {
+            const element = elements.find((el) => el.id === id);
+            if (!element) return null;
+            return getRectFromElement(element);
+          })
+          .filter((rect): rect is Rect => Boolean(rect));
+
+        if (groupRects.length === 0) return null;
+
+        const minX = Math.min(...groupRects.map((r) => r.x));
+        const minY = Math.min(...groupRects.map((r) => r.y));
+        const maxX = Math.max(...groupRects.map((r) => r.x + r.width));
+        const maxY = Math.max(...groupRects.map((r) => r.y + r.height));
+
+        const groupBoundingBox = {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+        };
+
+        return (
+          <div
+            className="absolute z-30 border border-primary/40 pointer-events-none"
+            style={{
+              left: groupBoundingBox.x,
+              top: groupBoundingBox.y,
+              width: groupBoundingBox.width,
+              height: groupBoundingBox.height,
+            }}
+          />
+        );
+      })()}
       {contextMenu && (
         <div
           className="absolute z-50"

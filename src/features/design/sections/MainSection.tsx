@@ -28,6 +28,7 @@ import { useAacBoardStore } from "../store/aacBoardStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";
 import { useHistoryStore } from "../store/historyStore";
+import { usePageHistoryStore } from "../store/pageHistoryStore";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import {
   TEMPLATE_REGISTRY,
@@ -48,6 +49,7 @@ import {
 import { updateUserMadeVersion } from "../utils/userMadeExport";
 import { measureTextBoxSize } from "../utils/textMeasure";
 import { supabase } from "@/shared/supabase/supabase";
+import BaseModal from "@/shared/ui/BaseModal";
 
 export interface OutletContext {
   zoom: number;
@@ -185,6 +187,42 @@ const findOverlayTextElementId = (
     );
   });
   return matched?.id ?? null;
+};
+
+const applyTemplateToCurrentPage = ({
+  templateId,
+  currentPageId,
+  fallbackOrientation,
+  setPages,
+}: {
+  templateId: TemplateId;
+  currentPageId: string;
+  fallbackOrientation: "horizontal" | "vertical";
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => {
+  const templateDefinition = TEMPLATE_REGISTRY[templateId];
+  const nextOrientation =
+    templateDefinition.orientation === "vertical-only"
+      ? "vertical"
+      : templateDefinition.orientation === "horizontal-only"
+      ? "horizontal"
+      : fallbackOrientation;
+
+  setPages((prevPages) =>
+    prevPages.map((page) =>
+      page.id === currentPageId
+        ? {
+            ...page,
+            templateId,
+            orientation: nextOrientation,
+            elements: withLogoCanvasElements(
+              instantiateTemplate(templateDefinition.template)
+            ),
+          }
+        : page
+    )
+  );
+  return { id: currentPageId, orientation: nextOrientation };
 };
 
 const addTemplatePage = ({
@@ -440,6 +478,11 @@ const MainSection = () => {
   const undoRequestId = useHistoryStore((state) => state.undoRequestId);
   const redoRequestId = useHistoryStore((state) => state.redoRequestId);
   const setAvailability = useHistoryStore((state) => state.setAvailability);
+  const pageUndoRequestId = usePageHistoryStore((state) => state.undoRequestId);
+  const pageRedoRequestId = usePageHistoryStore((state) => state.redoRequestId);
+  const setPageAvailability = usePageHistoryStore(
+    (state) => state.setAvailability
+  );
   const historyRef = useRef<Record<string, PageHistory>>({});
   const isApplyingHistoryRef = useRef(false);
   const historyTransactionRef = useRef<{
@@ -447,6 +490,19 @@ const MainSection = () => {
     pageId: string | null;
   }>({ active: false, pageId: null });
   const editingSessionRef = useRef<string | null>(null);
+  const pageHistoryRef = useRef<{
+    past: Page[][];
+    present: Page[];
+    future: Page[][];
+  }>({
+    past: [],
+    present: [...pages],
+    future: [],
+  });
+  const isApplyingPageHistoryRef = useRef(false);
+  const [templateChoiceDialog, setTemplateChoiceDialog] = useState<{
+    templateId: TemplateId;
+  } | null>(null);
   const cloneElementsWithNewIds = (elements: CanvasElement[]) =>
     elements.map((element) => ({
       ...element,
@@ -506,6 +562,100 @@ const MainSection = () => {
   useEffect(() => {
     registerCanvasGetter(getCanvasData);
   }, [getCanvasData, registerCanvasGetter]);
+
+  const clonePagesForHistory = useCallback((pages: Page[]): Page[] => {
+    return JSON.parse(JSON.stringify(pages));
+  }, []);
+
+  const arePagesEqual = useCallback((a: Page[], b: Page[]): boolean => {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }, []);
+
+  const updatePageHistory = useCallback(
+    (newPages: Page[]) => {
+      if (isApplyingPageHistoryRef.current) return;
+
+      const current = pageHistoryRef.current;
+      if (arePagesEqual(current.present, newPages)) return;
+
+      pageHistoryRef.current = {
+        past: [...current.past, clonePagesForHistory(current.present)],
+        present: clonePagesForHistory(newPages),
+        future: [],
+      };
+
+      setPageAvailability(
+        pageHistoryRef.current.past.length > 0,
+        pageHistoryRef.current.future.length > 0
+      );
+    },
+    [clonePagesForHistory, arePagesEqual, setPageAvailability]
+  );
+
+  useEffect(() => {
+    updatePageHistory(pages);
+  }, [pages, updatePageHistory]);
+
+  useEffect(() => {
+    const current = pageHistoryRef.current;
+    if (current.past.length === 0 && current.future.length === 0) return;
+
+    const canUndo = current.past.length > 0;
+    const canRedo = current.future.length > 0;
+    setPageAvailability(canUndo, canRedo);
+  }, [setPageAvailability]);
+
+  useEffect(() => {
+    if (pageUndoRequestId === 0) return;
+
+    const current = pageHistoryRef.current;
+    if (current.past.length === 0) return;
+
+    isApplyingPageHistoryRef.current = true;
+
+    const previous = current.past[current.past.length - 1];
+    pageHistoryRef.current = {
+      past: current.past.slice(0, -1),
+      present: clonePagesForHistory(previous),
+      future: [clonePagesForHistory(current.present), ...current.future],
+    };
+
+    setPages(clonePagesForHistory(previous));
+    setPageAvailability(
+      pageHistoryRef.current.past.length > 0,
+      pageHistoryRef.current.future.length > 0
+    );
+
+    setTimeout(() => {
+      isApplyingPageHistoryRef.current = false;
+    }, 0);
+  }, [pageUndoRequestId, clonePagesForHistory, setPageAvailability]);
+
+  useEffect(() => {
+    if (pageRedoRequestId === 0) return;
+
+    const current = pageHistoryRef.current;
+    if (current.future.length === 0) return;
+
+    isApplyingPageHistoryRef.current = true;
+
+    const next = current.future[0];
+    pageHistoryRef.current = {
+      past: [...current.past, clonePagesForHistory(current.present)],
+      present: clonePagesForHistory(next),
+      future: current.future.slice(1),
+    };
+
+    setPages(clonePagesForHistory(next));
+    setPageAvailability(
+      pageHistoryRef.current.past.length > 0,
+      pageHistoryRef.current.future.length > 0
+    );
+
+    setTimeout(() => {
+      isApplyingPageHistoryRef.current = false;
+    }, 0);
+  }, [pageRedoRequestId, clonePagesForHistory, setPageAvailability]);
 
   const ensureHistory = useCallback(
     (pageId: string, elements: CanvasElement[]) => {
@@ -690,12 +840,32 @@ const MainSection = () => {
     const unsubscribe = useTemplateStore.subscribe((state, prevState) => {
       if (state.templateRequestId === prevState.templateRequestId) return;
       if (!state.selectedTemplate) return;
-      const newPage = addTemplatePage({
-        templateId: state.selectedTemplate,
-        fallbackOrientation: orientationRef.current,
-        setPages,
-      });
-      setActivePage(newPage.id, newPage.orientation);
+
+      const currentPageId = selectedPageIdRef.current;
+      const currentPage = pagesRef.current.find(
+        (page) => page.id === currentPageId
+      );
+
+      if (!currentPage) return;
+
+      // Check if current page has elements other than logo
+      const hasNonLogoElements = currentPage.elements.some(
+        (element) => !element.locked
+      );
+
+      if (!hasNonLogoElements) {
+        // Apply template to current page directly
+        const result = applyTemplateToCurrentPage({
+          templateId: state.selectedTemplate,
+          currentPageId,
+          fallbackOrientation: orientationRef.current,
+          setPages,
+        });
+        setActivePage(result.id, result.orientation);
+      } else {
+        // Show dialog to let user choose
+        setTemplateChoiceDialog({ templateId: state.selectedTemplate });
+      }
     });
     return unsubscribe;
   }, [setActivePage]);
@@ -1688,6 +1858,55 @@ const MainSection = () => {
           );
         })}
       </div>
+
+      {/* Template choice dialog */}
+      <BaseModal
+        isOpen={!!templateChoiceDialog}
+        onClose={() => setTemplateChoiceDialog(null)}
+        title="템플릿 적용"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-14-regular text-black-70">
+            현재 페이지에 다른 요소가 있습니다. 템플릿을 어디에 적용하시겠습니까?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (!templateChoiceDialog) return;
+                const currentPageId = selectedPageIdRef.current;
+                const result = applyTemplateToCurrentPage({
+                  templateId: templateChoiceDialog.templateId,
+                  currentPageId,
+                  fallbackOrientation: orientationRef.current,
+                  setPages,
+                });
+                setActivePage(result.id, result.orientation);
+                setTemplateChoiceDialog(null);
+              }}
+              className="w-full px-4 py-3 text-14-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition"
+            >
+              현재 페이지에 적용하기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!templateChoiceDialog) return;
+                const newPage = addTemplatePage({
+                  templateId: templateChoiceDialog.templateId,
+                  fallbackOrientation: orientationRef.current,
+                  setPages,
+                });
+                setActivePage(newPage.id, newPage.orientation);
+                setTemplateChoiceDialog(null);
+              }}
+              className="w-full px-4 py-3 text-14-medium text-black-90 bg-white border border-black-25 rounded-lg hover:bg-black-5 transition"
+            >
+              새로운 페이지에 적용하기
+            </button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 };

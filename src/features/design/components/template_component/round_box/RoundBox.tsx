@@ -348,19 +348,59 @@ const RoundBox = ({
       let nextWidth = startRect.width;
       let nextHeight = startRect.height;
 
-      if (handle.includes("e")) {
-        nextWidth = startRect.width + dx;
-      }
-      if (handle.includes("s")) {
-        nextHeight = startRect.height + dy;
-      }
-      if (handle.includes("w")) {
-        nextWidth = startRect.width - dx;
-        nextX = startRect.x + dx;
-      }
-      if (handle.includes("n")) {
-        nextHeight = startRect.height - dy;
-        nextY = startRect.y + dy;
+      // Shift 키를 눌렀고 모서리 핸들인 경우 비율 유지
+      const isCornerHandle = handle.length === 2;
+      const isShiftPressed = moveEvent.shiftKey;
+      const aspectRatio = startRect.width / startRect.height;
+
+      if (isShiftPressed && isCornerHandle) {
+        // 비율을 유지하면서 크기 조절
+        if (handle.includes("e")) {
+          nextWidth = startRect.width + dx;
+        }
+        if (handle.includes("s")) {
+          nextHeight = startRect.height + dy;
+        }
+        if (handle.includes("w")) {
+          nextWidth = startRect.width - dx;
+        }
+        if (handle.includes("n")) {
+          nextHeight = startRect.height - dy;
+        }
+
+        // 더 큰 변화량을 기준으로 비율 유지
+        const widthChange = Math.abs(nextWidth - startRect.width);
+        const heightChange = Math.abs(nextHeight - startRect.height);
+
+        if (widthChange > heightChange) {
+          nextHeight = nextWidth / aspectRatio;
+        } else {
+          nextWidth = nextHeight * aspectRatio;
+        }
+
+        // 위치 조정
+        if (handle.includes("w")) {
+          nextX = startRect.x + startRect.width - nextWidth;
+        }
+        if (handle.includes("n")) {
+          nextY = startRect.y + startRect.height - nextHeight;
+        }
+      } else {
+        // 기존 로직: 비율 유지 없이 자유롭게 조절
+        if (handle.includes("e")) {
+          nextWidth = startRect.width + dx;
+        }
+        if (handle.includes("s")) {
+          nextHeight = startRect.height + dy;
+        }
+        if (handle.includes("w")) {
+          nextWidth = startRect.width - dx;
+          nextX = startRect.x + dx;
+        }
+        if (handle.includes("n")) {
+          nextHeight = startRect.height - dy;
+          nextY = startRect.y + dy;
+        }
       }
 
       if (nextWidth < minWidth) {
@@ -368,12 +408,24 @@ const RoundBox = ({
         if (handle.includes("w")) {
           nextX = startRect.x + (startRect.width - minWidth);
         }
+        if (isShiftPressed && isCornerHandle) {
+          nextHeight = nextWidth / aspectRatio;
+          if (handle.includes("n")) {
+            nextY = startRect.y + startRect.height - nextHeight;
+          }
+        }
       }
 
       if (nextHeight < minHeight) {
         nextHeight = minHeight;
         if (handle.includes("n")) {
           nextY = startRect.y + (startRect.height - minHeight);
+        }
+        if (isShiftPressed && isCornerHandle) {
+          nextWidth = nextHeight * aspectRatio;
+          if (handle.includes("w")) {
+            nextX = startRect.x + startRect.width - nextWidth;
+          }
         }
       }
 
@@ -558,7 +610,7 @@ const RoundBox = ({
         }
         startAction(event, "drag");
       }}
-      onClick={(event) => {
+      onDoubleClick={(event) => {
         if (locked || !isSelected) return;
         if (isImageFill) return;
         const target = event.target as HTMLElement;

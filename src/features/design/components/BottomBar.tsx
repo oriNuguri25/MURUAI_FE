@@ -1,8 +1,9 @@
 import { Clipboard, Copy, Plus, Trash2 } from "lucide-react";
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useDragAndDrop } from "../model/useDragAndDrop";
 import type { Page } from "../model/pageTypes";
 import DesignPaper from "./DesignPaper";
+import { usePageHistoryStore } from "../store/pageHistoryStore";
 
 interface BottomBarProps {
   pages: Page[];
@@ -32,6 +33,8 @@ const BottomBar = ({
     pages,
     onReorderPages,
   });
+  const requestPageUndo = usePageHistoryStore((state) => state.requestUndo);
+  const requestPageRedo = usePageHistoryStore((state) => state.requestRedo);
   const MM_TO_PX = 3.7795;
   const mmToPx = (mm: number) => mm * MM_TO_PX;
   const pageWidthPx = mmToPx(210);
@@ -64,10 +67,53 @@ const BottomBar = ({
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const modifierKey = isMac ? event.metaKey : event.ctrlKey;
+
+      if (!modifierKey) return;
+
+      if (event.key === "z" || event.key === "Z") {
+        if (event.shiftKey) {
+          event.preventDefault();
+          requestPageRedo();
+        } else {
+          event.preventDefault();
+          requestPageUndo();
+        }
+      } else if (event.key === "y" || event.key === "Y") {
+        event.preventDefault();
+        requestPageRedo();
+      } else if (event.key === "x" || event.key === "X") {
+        if (!event.shiftKey && !event.altKey) {
+          event.preventDefault();
+          onCopyPage(selectedPageId);
+          onDeletePage(selectedPageId);
+        }
+      }
+    };
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener("keydown", handleKeyDown);
+    return () => {
+      container.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    requestPageUndo,
+    requestPageRedo,
+    selectedPageId,
+    onCopyPage,
+    onDeletePage,
+  ]);
+
   return (
     <div
       ref={containerRef}
-      className="relative flex shrink-0 w-full h-32 bg-white border-t border-black-25 items-center px-4"
+      tabIndex={0}
+      className="relative flex shrink-0 w-full h-32 bg-white border-t border-black-25 items-center px-4 outline-none"
       onPointerDown={() => setContextMenu(null)}
       onContextMenu={(event) => event.preventDefault()}
     >

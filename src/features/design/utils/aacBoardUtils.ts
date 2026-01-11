@@ -27,8 +27,10 @@ export const buildAacBoardElements = ({
   const cellWidthMm = (contentWidthMm - gapMm * (columns - 1)) / columns;
   const cellHeightMm = (contentHeightMm - gapMm * (rows - 1)) / rows;
   const maxLabelHeightMm = 10;
+  const labelDefaults = ["음식", "동물", "옷", "동사"];
   const elements: TemplateElement[] = [];
 
+  let labelIndex = 0;
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < columns; col += 1) {
       const cellX = mmToPx(paddingMm + col * (cellWidthMm + gapMm));
@@ -66,13 +68,15 @@ export const buildAacBoardElements = ({
       });
 
       if (labelPosition !== "none" && labelHeight > 0) {
+        const labelText = labelDefaults[labelIndex] ?? "라벨";
+        labelIndex += 1;
         elements.push({
           type: "text",
           x: cellX,
           y: labelY,
           w: cellWidth,
           h: labelHeight,
-          text: "라벨",
+          text: labelText,
           style: {
             fontSize: 14,
             fontWeight: "normal",
