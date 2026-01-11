@@ -799,12 +799,46 @@ const MainSection = () => {
       if (!state.imageUrl) return;
       const activePageId = selectedPageIdRef.current;
       const activeSelectedIds = selectedIdsRef.current;
-      if (activeSelectedIds.length === 0) return;
       const normalizedUrl =
         state.imageUrl.startsWith("url(") || state.imageUrl.startsWith("data:")
           ? state.imageUrl
           : `url(${state.imageUrl})`;
       const labelText = state.label?.trim();
+
+      // 선택된 요소가 없으면 독립적인 이미지 요소 생성
+      if (activeSelectedIds.length === 0) {
+        const newElementId = `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const defaultSize = 200;
+        const newImageElement: ShapeElement = {
+          id: newElementId,
+          type: "rect",
+          x: 100,
+          y: 100,
+          w: defaultSize,
+          h: defaultSize,
+          fill: normalizedUrl,
+          imageBox: {
+            x: 0,
+            y: 0,
+            w: defaultSize,
+            h: defaultSize,
+          },
+        };
+
+        setPages((prevPages) =>
+          prevPages.map((page) => {
+            if (page.id !== activePageId) return page;
+            return {
+              ...page,
+              elements: [...page.elements, newImageElement],
+            };
+          })
+        );
+
+        // 새로 생성된 요소를 선택
+        setSelectedIds([newElementId]);
+        return;
+      }
       setPages((prevPages) =>
         prevPages.map((page) => {
           if (page.id !== activePageId) return page;

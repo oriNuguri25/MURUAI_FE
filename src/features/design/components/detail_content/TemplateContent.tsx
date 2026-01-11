@@ -1,7 +1,5 @@
 import {
   BadgeCheck,
-  ChevronLeft,
-  ChevronRight,
   GalleryVerticalEnd,
   Grid,
   Grid3x3,
@@ -111,79 +109,8 @@ const TemplateCard = ({
   </div>
 );
 
-const CarouselButton = ({
-  onClick,
-  direction,
-  label,
-}: {
-  onClick: () => void;
-  direction: "left" | "right";
-  label: string;
-}) => (
-  <button
-    onClick={onClick}
-    className={`absolute ${
-      direction === "left" ? "left-2" : "right-2"
-    } top-[calc(50%-1rem)] -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-white-100/90 hover:bg-white-100 shadow-md transition-all`}
-    aria-label={label}
-  >
-    {direction === "left" ? (
-      <ChevronLeft className="icon-xs text-black-90" />
-    ) : (
-      <ChevronRight className="icon-xs text-black-90" />
-    )}
-  </button>
-);
-
-const PageIndicator = ({
-  totalPages,
-  currentPage,
-  onPageChange,
-}: {
-  totalPages: number;
-  currentPage: number;
-  onPageChange: (page: number) => void;
-}) => (
-  <div className="flex items-center justify-center gap-2 mt-2">
-    {Array.from({ length: totalPages }).map((_, index) => (
-      <button
-        key={index}
-        onClick={() => onPageChange(index)}
-        className={`w-2 h-2 rounded-full transition-all ${
-          index === currentPage
-            ? "bg-primary w-6"
-            : "bg-black-30 hover:bg-black-40"
-        }`}
-        aria-label={`${index + 1}페이지로 이동`}
-      />
-    ))}
-  </div>
-);
-
 const PopularTemplates = () => {
-  const [currentPage, setCurrentPage] = useState(0);
   const requestTemplate = useTemplateStore((state) => state.requestTemplate);
-
-  const itemsPerPage = 2;
-  const totalPages = Math.ceil(TEMPLATES.length / itemsPerPage);
-  const currentTemplates = TEMPLATES.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
-  );
-  const displayTemplates: Array<(typeof TEMPLATES)[number] | null> = [
-    ...currentTemplates,
-  ];
-  while (displayTemplates.length < itemsPerPage) {
-    displayTemplates.push(null);
-  }
-
-  const handlePrev = () => {
-    setCurrentPage((prev) => (prev > 0 ? prev - 1 : totalPages - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentPage((prev) => (prev < totalPages - 1 ? prev + 1 : 0));
-  };
 
   const handleTemplateClick = (templateId: string | number) => {
     if (typeof templateId === "string" && templateId in TEMPLATE_REGISTRY) {
@@ -199,20 +126,9 @@ const PopularTemplates = () => {
         title="인기 템플릿"
       />
 
-      <div className="relative w-full group">
+      <div className="w-full">
         <div className="grid w-full grid-cols-2 gap-4">
-          {displayTemplates.map((template, index) => {
-            if (!template) {
-              return (
-                <div
-                  key={`empty-${index}`}
-                  className="flex flex-col w-full gap-2 opacity-0 pointer-events-none"
-                >
-                  <div className="w-full aspect-[1/1.414] border border-transparent" />
-                  <span className="text-14-semibold">placeholder</span>
-                </div>
-              );
-            }
+          {TEMPLATES.map((template) => {
             const templateData =
               typeof template.id === "string"
                 ? TEMPLATE_REGISTRY[template.id as TemplateId]
@@ -273,24 +189,7 @@ const PopularTemplates = () => {
             );
           })}
         </div>
-
-        <CarouselButton
-          onClick={handlePrev}
-          direction="left"
-          label="이전 템플릿"
-        />
-        <CarouselButton
-          onClick={handleNext}
-          direction="right"
-          label="다음 템플릿"
-        />
       </div>
-
-      <PageIndicator
-        totalPages={totalPages}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-      />
     </div>
   );
 };

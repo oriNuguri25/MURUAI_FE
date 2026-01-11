@@ -634,10 +634,26 @@ const DesignPaper = ({
   const handleRectChange = (elementId: string, nextRect: Rect) => {
     const activeInteraction = activeInteractionRef.current;
     if (!activeInteraction || activeInteraction.id !== elementId) {
-      updateElement(elementId, {
+      const targetElement = elements.find((element) => element.id === elementId);
+      const updates: Partial<ShapeElement> = {
         w: nextRect.width,
         h: nextRect.height,
-      });
+      };
+
+      // 이미지가 있는 요소의 경우 imageBox도 함께 업데이트
+      if (targetElement &&
+          (targetElement.type === "rect" || targetElement.type === "roundRect" || targetElement.type === "ellipse") &&
+          targetElement.fill &&
+          (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:"))) {
+        updates.imageBox = {
+          x: 0,
+          y: 0,
+          w: nextRect.width,
+          h: nextRect.height,
+        };
+      }
+
+      updateElement(elementId, updates);
       return;
     }
     const groupDrag = groupDragRef.current;
@@ -710,6 +726,31 @@ const DesignPaper = ({
       setActivePreview({ id: elementId, rect: nextRect });
       return;
     }
+
+    // Shape 요소의 resize 중 이미지가 있으면 실시간으로 imageBox 업데이트
+    if (
+      activeInteraction.type === "resize" &&
+      targetElement &&
+      (targetElement.type === "rect" || targetElement.type === "roundRect" || targetElement.type === "ellipse") &&
+      targetElement.fill &&
+      (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:"))
+    ) {
+      updateElement(elementId, {
+        x: nextRect.x,
+        y: nextRect.y,
+        w: nextRect.width,
+        h: nextRect.height,
+        imageBox: {
+          x: 0,
+          y: 0,
+          w: nextRect.width,
+          h: nextRect.height,
+        },
+      });
+      setActivePreview({ id: elementId, rect: nextRect });
+      return;
+    }
+
     setActivePreview({ id: elementId, rect: nextRect });
   };
 
@@ -816,12 +857,27 @@ const DesignPaper = ({
         }
         updateElement(elementId, patch);
       } else {
-        updateElement(elementId, {
+        const updates: Partial<ShapeElement> = {
           x: finalRect.x,
           y: finalRect.y,
           w: finalRect.width,
           h: finalRect.height,
-        });
+        };
+
+        // 이미지가 있는 요소의 경우 imageBox도 함께 업데이트
+        if (targetElement &&
+            (targetElement.type === "rect" || targetElement.type === "roundRect" || targetElement.type === "ellipse") &&
+            targetElement.fill &&
+            (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:"))) {
+          updates.imageBox = {
+            x: 0,
+            y: 0,
+            w: finalRect.width,
+            h: finalRect.height,
+          };
+        }
+
+        updateElement(elementId, updates);
       }
     }
     if (context?.type) {

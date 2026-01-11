@@ -434,4 +434,13 @@ input[type="color"].color-input::-moz-color-swatch {
     width: var(--icon-xl);
     height: var(--icon-xl);
   }
+
+  /* Scrollbar Hide */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
