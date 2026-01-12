@@ -409,7 +409,7 @@ const DesignPaper = ({
   );
 
   const getElementBoundsForSelection = (element: CanvasElement): Rect | null => {
-    if (element.visible === false) return null;
+    if (element.visible === false || element.selectable === false) return null;
     if (element.type === "line" || element.type === "arrow") {
       const stroke = element.stroke ?? DEFAULT_STROKE;
       const markerPadding = element.type === "arrow" ? 12 : 0;
@@ -1024,10 +1024,15 @@ const DesignPaper = ({
     if (readOnly) return;
     const currentSelectedIds = selectedIdsRef.current;
     const selectedElement = elements.find((element) => element.id === elementId);
+    if (!selectedElement || selectedElement.selectable === false) return;
     const groupedIds =
-      selectedElement?.groupId != null
+      selectedElement.groupId != null
         ? elements
-            .filter((element) => element.groupId === selectedElement.groupId)
+            .filter(
+              (element) =>
+                element.groupId === selectedElement.groupId &&
+                element.selectable !== false
+            )
             .map((element) => element.id)
         : [elementId];
     const orderedGroupedIds =
@@ -1188,6 +1193,8 @@ const DesignPaper = ({
     if (readOnly) return;
     event.preventDefault();
     event.stopPropagation();
+    const targetElement = elements.find((element) => element.id === elementId);
+    if (!targetElement || targetElement.selectable === false) return;
     if (!selectedIdsRef.current.includes(elementId)) {
       handleSelect(elementId, { keepContextMenu: true });
     }
@@ -1535,7 +1542,9 @@ const DesignPaper = ({
         event.preventDefault();
 
         // 편집 가능한 요소들만 필터링 (locked 제외)
-        const selectableElements = elements.filter((element) => !element.locked);
+        const selectableElements = elements.filter(
+          (element) => !element.locked && element.selectable !== false
+        );
 
         if (selectableElements.length === 0) return;
 
@@ -2038,6 +2047,7 @@ const DesignPaper = ({
               isImageEditing={isImageEditing}
               isTextEditing={isShapeTextEditing}
               locked={readOnly || element.locked}
+              selectable={element.selectable}
               onImageEditingChange={(isEditing: boolean) =>
                 setEditingImageId(isEditing ? element.id : null)
               }

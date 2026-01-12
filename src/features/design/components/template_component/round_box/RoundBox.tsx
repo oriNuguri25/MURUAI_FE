@@ -47,6 +47,7 @@ interface RoundBoxProps {
   isImageEditing?: boolean;
   isTextEditing?: boolean;
   locked?: boolean;
+  selectable?: boolean;
   transformRect?: (
     rect: Rect,
     context: { type: "drag" | "resize"; handle?: ResizeHandle }
@@ -91,6 +92,7 @@ const RoundBox = ({
   isImageEditing: isImageEditingProp,
   isTextEditing: isTextEditingProp,
   locked = false,
+  selectable = true,
   transformRect,
   onRectChange,
   onDragStateChange,
@@ -646,6 +648,7 @@ const RoundBox = ({
         height: rect.height,
         borderRadius,
         touchAction: "none",
+        pointerEvents: selectable ? "auto" : "none",
         outlineColor: showOutline ? selectionColor : "transparent",
         border: border?.enabled
           ? `${border.width}px ${borderStyle} ${border.color}`

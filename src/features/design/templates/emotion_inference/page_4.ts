@@ -1,4 +1,4 @@
-import type { Template } from "../model/canvasTypes";
+import type { Template } from "../../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
@@ -41,9 +41,9 @@ const pillXmm = (pageWidthMm - pillWidthMm) / 2;
 const pillTextYmm = labelYmm + labelHeightMm + 6;
 const pillYmm = pillTextYmm + pillHeightMm + 4;
 
-export const emotionInferenceTemplate: Template = {
-  id: "emotionInference",
-  name: "감정 추론 활동",
+export const emotionInferencePage4: Template = {
+  id: "emotionInference_4",
+  name: "감정 추론 활동 4",
   elements: [
     {
       type: "text",

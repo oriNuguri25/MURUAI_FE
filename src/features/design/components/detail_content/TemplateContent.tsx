@@ -1,5 +1,7 @@
 import {
   BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
   GalleryVerticalEnd,
   Grid,
   Grid3x3,
@@ -31,10 +33,35 @@ import {
   type StoryCardRatio,
 } from "../../utils/storySequenceUtils";
 
-const TEMPLATES = Object.values(TEMPLATE_REGISTRY).map((template) => ({
+const ALL_TEMPLATES = Object.values(TEMPLATE_REGISTRY).map((template) => ({
   id: template.id,
   title: template.label,
 }));
+
+const isNormalTemplate = (templateId: string) =>
+  templateId.startsWith("normal_");
+
+const sortNormalTemplates = (a: string, b: string) => {
+  const aIndex = Number.parseInt(a.replace("normal_", ""), 10);
+  const bIndex = Number.parseInt(b.replace("normal_", ""), 10);
+  if (Number.isFinite(aIndex) && Number.isFinite(bIndex)) {
+    return aIndex - bIndex;
+  }
+  return a.localeCompare(b);
+};
+
+const POPULAR_TEMPLATES = ALL_TEMPLATES.filter(
+  (template) => !isNormalTemplate(template.id)
+);
+
+const BASIC_TEMPLATES = ALL_TEMPLATES.filter((template) =>
+  isNormalTemplate(template.id)
+)
+  .sort((a, b) => sortNormalTemplates(a.id, b.id))
+  .map((template, index) => ({
+    ...template,
+    title: `템플릿${index + 1}`,
+  }));
 
 const addElementId = (element: TemplateElement, id: string): CanvasElement => ({
   ...(element as CanvasElement),
@@ -109,8 +136,32 @@ const TemplateCard = ({
   </div>
 );
 
-const PopularTemplates = () => {
+const TemplateCarousel = ({
+  title,
+  icon,
+  iconColor,
+  templates,
+}: {
+  title: string;
+  icon: LucideIcon;
+  iconColor?: string;
+  templates: { id: string; title: string }[];
+}) => {
   const requestTemplate = useTemplateStore((state) => state.requestTemplate);
+  const [pageIndex, setPageIndex] = useState(0);
+  const itemsPerPage = 4;
+  const totalPages = Math.max(1, Math.ceil(templates.length / itemsPerPage));
+  const currentPage = Math.min(pageIndex, totalPages - 1);
+  const startIndex = currentPage * itemsPerPage;
+  const visibleTemplates = templates.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
+  const placeholders = Array.from({
+    length: Math.max(0, itemsPerPage - visibleTemplates.length),
+  });
+  const canPrev = currentPage > 0;
+  const canNext = currentPage < totalPages - 1;
 
   const handleTemplateClick = (templateId: string | number) => {
     if (typeof templateId === "string" && templateId in TEMPLATE_REGISTRY) {
@@ -120,15 +171,45 @@ const PopularTemplates = () => {
 
   return (
     <div className="flex flex-col w-full gap-3">
-      <SectionHeader
-        icon={BadgeCheck}
-        iconColor="text-blue-500"
-        title="인기 템플릿"
-      />
+      <div className="flex items-center justify-between">
+        <SectionHeader
+          icon={icon}
+          iconColor={iconColor}
+          title={title}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => canPrev && setPageIndex((prev) => prev - 1)}
+            disabled={!canPrev}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+              canPrev
+                ? "border-black-25 text-black-70 hover:border-black-40 hover:bg-black-5"
+                : "border-black-10 text-black-30 cursor-not-allowed"
+            }`}
+            aria-label="이전 템플릿"
+          >
+            <ChevronLeft className="icon-s" />
+          </button>
+          <button
+            type="button"
+            onClick={() => canNext && setPageIndex((prev) => prev + 1)}
+            disabled={!canNext}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+              canNext
+                ? "border-black-25 text-black-70 hover:border-black-40 hover:bg-black-5"
+                : "border-black-10 text-black-30 cursor-not-allowed"
+            }`}
+            aria-label="다음 템플릿"
+          >
+            <ChevronRight className="icon-s" />
+          </button>
+        </div>
+      </div>
 
       <div className="w-full">
         <div className="grid w-full grid-cols-2 gap-4">
-          {TEMPLATES.map((template) => {
+          {visibleTemplates.map((template) => {
             const templateData =
               typeof template.id === "string"
                 ? TEMPLATE_REGISTRY[template.id as TemplateId]
@@ -188,6 +269,16 @@ const PopularTemplates = () => {
               </div>
             );
           })}
+          {placeholders.map((_, index) => (
+            <div
+              key={`placeholder-${index}`}
+              className="flex flex-col w-full gap-2 opacity-0 pointer-events-none"
+              aria-hidden="true"
+            >
+              <div className="w-full aspect-[1/1.414] rounded-lg border border-black-10" />
+              <span className="text-14-semibold text-center">placeholder</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -327,7 +418,18 @@ const TemplateContent = () => {
         />
       </div>
 
-      <PopularTemplates />
+      <TemplateCarousel
+        title="인기 템플릿"
+        icon={BadgeCheck}
+        iconColor="text-blue-500"
+        templates={POPULAR_TEMPLATES}
+      />
+      <TemplateCarousel
+        title="기본 템플릿"
+        icon={Grid}
+        iconColor="text-emerald-500"
+        templates={BASIC_TEMPLATES}
+      />
       {isAacModalOpen && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center">
           <div

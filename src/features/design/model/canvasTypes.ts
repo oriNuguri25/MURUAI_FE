@@ -26,6 +26,7 @@ export type ElementBase = {
   type: ElementType;
   visible?: boolean;
   locked?: boolean;
+  selectable?: boolean;
   groupId?: string;
 };
 

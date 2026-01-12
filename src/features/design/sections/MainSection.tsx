@@ -201,6 +201,10 @@ const applyTemplateToCurrentPage = ({
   setPages: Dispatch<SetStateAction<Page[]>>;
 }) => {
   const templateDefinition = TEMPLATE_REGISTRY[templateId];
+  const templates =
+    "pages" in templateDefinition && templateDefinition.pages?.length
+      ? templateDefinition.pages
+      : [templateDefinition.template];
   const nextOrientation =
     templateDefinition.orientation === "vertical-only"
       ? "vertical"
@@ -208,20 +212,41 @@ const applyTemplateToCurrentPage = ({
       ? "horizontal"
       : fallbackOrientation;
 
-  setPages((prevPages) =>
-    prevPages.map((page) =>
-      page.id === currentPageId
-        ? {
-            ...page,
-            templateId,
-            orientation: nextOrientation,
-            elements: withLogoCanvasElements(
-              instantiateTemplate(templateDefinition.template)
-            ),
-          }
-        : page
-    )
-  );
+  setPages((prevPages) => {
+    const currentIndex = prevPages.findIndex(
+      (page) => page.id === currentPageId
+    );
+    if (currentIndex < 0) return prevPages;
+
+    const nextPages = [...prevPages];
+    const basePage = nextPages[currentIndex];
+    nextPages[currentIndex] = {
+      ...basePage,
+      templateId,
+      orientation: nextOrientation,
+      elements: withLogoCanvasElements(
+        instantiateTemplate(templates[0])
+      ),
+    };
+
+    if (templates.length > 1) {
+      const insertedPages = templates.slice(1).map((template) => ({
+        id: crypto.randomUUID(),
+        pageNumber: 0,
+        templateId,
+        orientation: nextOrientation,
+        elements: withLogoCanvasElements(
+          instantiateTemplate(template)
+        ),
+      }));
+      nextPages.splice(currentIndex + 1, 0, ...insertedPages);
+    }
+
+    return nextPages.map((page, index) => ({
+      ...page,
+      pageNumber: index + 1,
+    }));
+  });
   return { id: currentPageId, orientation: nextOrientation };
 };
 
@@ -235,27 +260,34 @@ const addTemplatePage = ({
   setPages: Dispatch<SetStateAction<Page[]>>;
 }) => {
   const templateDefinition = TEMPLATE_REGISTRY[templateId];
+  const templates =
+    "pages" in templateDefinition && templateDefinition.pages?.length
+      ? templateDefinition.pages
+      : [templateDefinition.template];
   const nextOrientation =
     templateDefinition.orientation === "vertical-only"
       ? "vertical"
       : templateDefinition.orientation === "horizontal-only"
       ? "horizontal"
       : fallbackOrientation;
-  const newPageId = Date.now().toString();
+  const firstPageId = crypto.randomUUID();
   setPages((prevPages) => {
-    const newPageNumber = prevPages.length + 1;
-    const newPage: Page = {
-      id: newPageId,
-      pageNumber: newPageNumber,
-      templateId,
-      orientation: nextOrientation,
-      elements: withLogoCanvasElements(
-        instantiateTemplate(templateDefinition.template)
-      ),
-    };
-    return [...prevPages, newPage];
+    const nextPages = [...prevPages];
+    templates.forEach((template, index) => {
+      const pageId = index === 0 ? firstPageId : crypto.randomUUID();
+      nextPages.push({
+        id: pageId,
+        pageNumber: nextPages.length + 1,
+        templateId,
+        orientation: nextOrientation,
+        elements: withLogoCanvasElements(
+          instantiateTemplate(template)
+        ),
+      });
+    });
+    return nextPages;
   });
-  return { id: newPageId, orientation: nextOrientation };
+  return { id: firstPageId, orientation: nextOrientation };
 };
 
 const addAacBoardPage = ({
