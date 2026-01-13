@@ -1,3 +1,4 @@
+import { images } from "@/shared/assets";
 import type { Template } from "../../model/canvasTypes";
 
 const MM_TO_PX = 3.7795;
@@ -5,6 +6,11 @@ const mmToPx = (mm: number) => mm * MM_TO_PX;
 
 const pageWidthMm = 210;
 const horizontalPaddingMm = 20;
+
+const logoXmm = 9;
+const logoYmm = 9;
+const logoWidthMm = 24;
+const logoHeightMm = 10;
 
 const dateWidthMm = 50;
 const dateHeightMm = 6;
@@ -45,6 +51,15 @@ export const emotionInferencePage4: Template = {
   id: "emotionInference_4",
   name: "감정 추론 활동 4",
   elements: [
+    {
+      type: "rect",
+      x: mmToPx(logoXmm),
+      y: mmToPx(logoYmm),
+      w: mmToPx(logoWidthMm),
+      h: mmToPx(logoHeightMm),
+      fill: `url(${images.mainLogo})`,
+      locked: true,
+    },
     {
       type: "text",
       x: mmToPx(dateXmm),

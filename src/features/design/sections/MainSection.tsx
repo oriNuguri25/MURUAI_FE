@@ -27,8 +27,8 @@ import { useImageFillStore } from "../store/imageFillStore";
 import { useAacBoardStore } from "../store/aacBoardStore";
 import { useSideBarStore } from "../store/sideBarStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";
-import { useHistoryStore } from "../store/historyStore";
-import { usePageHistoryStore } from "../store/pageHistoryStore";
+import { useUnifiedHistoryStore } from "../store/unifiedHistoryStore";
+import { useToastStore } from "../store/toastStore";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import {
   TEMPLATE_REGISTRY,
@@ -66,12 +66,6 @@ export interface OutletContext {
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
 
-type PageHistory = {
-  past: CanvasElement[][];
-  present: CanvasElement[];
-  future: CanvasElement[][];
-};
-
 const normalizeOrientationValue = (
   value: unknown,
   fallback: "horizontal" | "vertical"
@@ -104,17 +98,11 @@ const buildInitialPages = (
   }));
 };
 
-const cloneElementsForHistory = (elements: CanvasElement[]) =>
-  JSON.parse(JSON.stringify(elements)) as CanvasElement[];
-
-const areElementsEqual = (a: CanvasElement[], b: CanvasElement[]) =>
-  JSON.stringify(a) === JSON.stringify(b);
-
 const isAacLabelElement = (
   element: CanvasElement
 ): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
-  element.style.fontSize === 14 &&
+  (element.style.fontSize === 14 || element.style.fontSize === 18) &&
   element.style.fontWeight === "normal" &&
   element.style.color === "#6B7280" &&
   element.style.alignX === "center" &&
@@ -304,6 +292,8 @@ const addAacBoardPage = ({
     ...element,
     id: crypto.randomUUID(),
   }));
+  const firstSelectableElementId =
+    elementsWithLogo.find((element) => !element.locked)?.id ?? null;
   setPages((prevPages) => {
     const newPageNumber = prevPages.length + 1;
     const newPage: Page = {
@@ -315,7 +305,11 @@ const addAacBoardPage = ({
     };
     return [...prevPages, newPage];
   });
-  return { id: newPageId, orientation: config.orientation };
+  return {
+    id: newPageId,
+    orientation: config.orientation,
+    firstElementId: firstSelectableElementId,
+  };
 };
 
 const addStoryBoardPage = ({
@@ -495,6 +489,7 @@ const MainSection = () => {
     (state) => state.setSelectedTemplate
   );
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
+  const showToast = useToastStore((state) => state.showToast);
   const initialPages = buildInitialPages(loadedDocument, orientation);
   const [pages, setPages] = useState<Page[]>(initialPages);
   const [selectedPageId, setSelectedPageId] = useState<string>(
@@ -507,31 +502,13 @@ const MainSection = () => {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const orientationRef = useRef(orientation);
   const isSyncingOrientationRef = useRef(false);
-  const undoRequestId = useHistoryStore((state) => state.undoRequestId);
-  const redoRequestId = useHistoryStore((state) => state.redoRequestId);
-  const setAvailability = useHistoryStore((state) => state.setAvailability);
-  const pageUndoRequestId = usePageHistoryStore((state) => state.undoRequestId);
-  const pageRedoRequestId = usePageHistoryStore((state) => state.redoRequestId);
-  const setPageAvailability = usePageHistoryStore(
-    (state) => state.setAvailability
-  );
-  const historyRef = useRef<Record<string, PageHistory>>({});
+  // Unified History Store
+  const historyStore = useUnifiedHistoryStore();
+  const undoRequestId = useUnifiedHistoryStore((state) => state.undoRequestId);
+  const redoRequestId = useUnifiedHistoryStore((state) => state.redoRequestId);
   const isApplyingHistoryRef = useRef(false);
-  const historyTransactionRef = useRef<{
-    active: boolean;
-    pageId: string | null;
-  }>({ active: false, pageId: null });
-  const editingSessionRef = useRef<string | null>(null);
-  const pageHistoryRef = useRef<{
-    past: Page[][];
-    present: Page[];
-    future: Page[][];
-  }>({
-    past: [],
-    present: [...pages],
-    future: [],
-  });
-  const isApplyingPageHistoryRef = useRef(false);
+  const isTransactionActiveRef = useRef(false);
+  const isApplyingTemplateRef = useRef(false);
   const [templateChoiceDialog, setTemplateChoiceDialog] = useState<{
     templateId: TemplateId;
   } | null>(null);
@@ -540,6 +517,10 @@ const MainSection = () => {
       ...element,
       id: crypto.randomUUID(),
     }));
+
+  const showEmotionInferenceToast = useCallback(() => {
+    showToast("자료 제작을 위한 기본세트 페이지 3장이 적용되었습니다.");
+  }, [showToast]);
 
   const normalizeOrientation = useCallback(
     (value: unknown): "horizontal" | "vertical" =>
@@ -595,178 +576,61 @@ const MainSection = () => {
     registerCanvasGetter(getCanvasData);
   }, [getCanvasData, registerCanvasGetter]);
 
-  const clonePagesForHistory = useCallback((pages: Page[]): Page[] => {
-    return JSON.parse(JSON.stringify(pages));
-  }, []);
+  // Initialize history when pages are first loaded
+  const isInitializedRef = useRef(false);
+  useEffect(() => {
+    if (!isInitializedRef.current && pages.length > 0) {
+      historyStore.init(pages, selectedPageId, selectedIds);
+      isInitializedRef.current = true;
+    }
+  }, [pages, selectedPageId, selectedIds, historyStore]);
 
-  const arePagesEqual = useCallback((a: Page[], b: Page[]): boolean => {
-    return JSON.stringify(a) === JSON.stringify(b);
-  }, []);
-
-  const updatePageHistory = useCallback(
-    (newPages: Page[]) => {
-      if (isApplyingPageHistoryRef.current) return;
-
-      const current = pageHistoryRef.current;
-      if (arePagesEqual(current.present, newPages)) return;
-
-      pageHistoryRef.current = {
-        past: [...current.past, clonePagesForHistory(current.present)],
-        present: clonePagesForHistory(newPages),
-        future: [],
-      };
-
-      setPageAvailability(
-        pageHistoryRef.current.past.length > 0,
-        pageHistoryRef.current.future.length > 0
-      );
-    },
-    [clonePagesForHistory, arePagesEqual, setPageAvailability]
-  );
+  // Record history when pages change (but not during transaction or history application)
+  const lastUndoRequestIdRef = useRef(0);
+  const lastRedoRequestIdRef = useRef(0);
+  const blockRecordUntilRef = useRef(0);
 
   useEffect(() => {
-    updatePageHistory(pages);
-  }, [pages, updatePageHistory]);
+    if (!isInitializedRef.current) return;
+    if (isApplyingHistoryRef.current) return;
+    if (isApplyingTemplateRef.current) return;
 
-  useEffect(() => {
-    const current = pageHistoryRef.current;
-    if (current.past.length === 0 && current.future.length === 0) return;
+    // Block recording for 100ms after undo/redo
+    if (undoRequestId !== lastUndoRequestIdRef.current || redoRequestId !== lastRedoRequestIdRef.current) {
+      lastUndoRequestIdRef.current = undoRequestId;
+      lastRedoRequestIdRef.current = redoRequestId;
+      blockRecordUntilRef.current = Date.now() + 100;
+      return;
+    }
 
-    const canUndo = current.past.length > 0;
-    const canRedo = current.future.length > 0;
-    setPageAvailability(canUndo, canRedo);
-  }, [setPageAvailability]);
+    if (Date.now() < blockRecordUntilRef.current) return;
+    if (historyStore.transactionActive) return;
 
-  useEffect(() => {
-    if (pageUndoRequestId === 0) return;
+    historyStore.record(pages, selectedPageId, selectedIds);
+  }, [pages, selectedPageId, selectedIds, historyStore, undoRequestId, redoRequestId]);
 
-    const current = pageHistoryRef.current;
-    if (current.past.length === 0) return;
-
-    isApplyingPageHistoryRef.current = true;
-
-    const previous = current.past[current.past.length - 1];
-    pageHistoryRef.current = {
-      past: current.past.slice(0, -1),
-      present: clonePagesForHistory(previous),
-      future: [clonePagesForHistory(current.present), ...current.future],
-    };
-
-    setPages(clonePagesForHistory(previous));
-    setPageAvailability(
-      pageHistoryRef.current.past.length > 0,
-      pageHistoryRef.current.future.length > 0
+  // Helper to begin transaction
+  const beginTransaction = useCallback(() => {
+    if (isTransactionActiveRef.current) return;
+    isTransactionActiveRef.current = true;
+    historyStore.beginTransaction(
+      pagesRef.current,
+      selectedPageIdRef.current,
+      selectedIdsRef.current
     );
+  }, [historyStore]);
 
-    setTimeout(() => {
-      isApplyingPageHistoryRef.current = false;
-    }, 0);
-  }, [pageUndoRequestId, clonePagesForHistory, setPageAvailability]);
-
-  useEffect(() => {
-    if (pageRedoRequestId === 0) return;
-
-    const current = pageHistoryRef.current;
-    if (current.future.length === 0) return;
-
-    isApplyingPageHistoryRef.current = true;
-
-    const next = current.future[0];
-    pageHistoryRef.current = {
-      past: [...current.past, clonePagesForHistory(current.present)],
-      present: clonePagesForHistory(next),
-      future: current.future.slice(1),
-    };
-
-    setPages(clonePagesForHistory(next));
-    setPageAvailability(
-      pageHistoryRef.current.past.length > 0,
-      pageHistoryRef.current.future.length > 0
+  // Helper to commit transaction
+  const commitTransaction = useCallback((label?: string) => {
+    if (!isTransactionActiveRef.current) return;
+    isTransactionActiveRef.current = false;
+    historyStore.commitTransaction(
+      pagesRef.current,
+      selectedPageIdRef.current,
+      selectedIdsRef.current,
+      label
     );
-
-    setTimeout(() => {
-      isApplyingPageHistoryRef.current = false;
-    }, 0);
-  }, [pageRedoRequestId, clonePagesForHistory, setPageAvailability]);
-
-  const ensureHistory = useCallback(
-    (pageId: string, elements: CanvasElement[]) => {
-      if (historyRef.current[pageId]) return;
-      historyRef.current[pageId] = {
-        past: [],
-        present: cloneElementsForHistory(elements),
-        future: [],
-      };
-    },
-    []
-  );
-
-  const updateAvailabilityForPage = useCallback(
-    (pageId: string) => {
-      const history = historyRef.current[pageId];
-      if (!history) {
-        setAvailability(false, false);
-        return;
-      }
-      setAvailability(history.past.length > 0, history.future.length > 0);
-    },
-    [setAvailability]
-  );
-
-  const recordHistory = useCallback(
-    (pageId: string, nextElements: CanvasElement[]) => {
-      ensureHistory(pageId, nextElements);
-      const history = historyRef.current[pageId];
-      if (!history) return;
-      const transaction = historyTransactionRef.current;
-      if (transaction.active && transaction.pageId === pageId) {
-        return;
-      }
-      if (isApplyingHistoryRef.current) {
-        history.present = cloneElementsForHistory(nextElements);
-        isApplyingHistoryRef.current = false;
-        return;
-      }
-      if (areElementsEqual(history.present, nextElements)) return;
-      history.past.push(history.present);
-      history.present = cloneElementsForHistory(nextElements);
-      history.future = [];
-      if (pageId === selectedPageIdRef.current) {
-        updateAvailabilityForPage(pageId);
-      }
-    },
-    [ensureHistory, updateAvailabilityForPage]
-  );
-
-  const applyHistory = useCallback(
-    (pageId: string, nextElements: CanvasElement[]) => {
-      isApplyingHistoryRef.current = true;
-      setPages((prevPages) =>
-        prevPages.map((page) =>
-          page.id === pageId ? { ...page, elements: nextElements } : page
-        )
-      );
-    },
-    []
-  );
-
-  const beginHistoryTransaction = useCallback((pageId: string) => {
-    const transaction = historyTransactionRef.current;
-    if (transaction.active && transaction.pageId === pageId) return;
-    historyTransactionRef.current = { active: true, pageId };
-  }, []);
-
-  const commitHistoryTransaction = useCallback(
-    (pageId: string) => {
-      const transaction = historyTransactionRef.current;
-      if (!transaction.active || transaction.pageId !== pageId) return;
-      historyTransactionRef.current = { active: false, pageId: null };
-      const page = pagesRef.current.find((item) => item.id === pageId);
-      if (!page) return;
-      recordHistory(pageId, page.elements);
-    },
-    [recordHistory]
-  );
+  }, [historyStore]);
 
   const setActivePage = useCallback(
     (pageId: string, nextOrientation?: "horizontal" | "vertical") => {
@@ -784,72 +648,57 @@ const MainSection = () => {
     [pages, setOrientation]
   );
 
+  // Handle text editing transaction
   useEffect(() => {
-    pages.forEach((page) => ensureHistory(page.id, page.elements));
-    const pageIds = new Set(pages.map((page) => page.id));
-    Object.keys(historyRef.current).forEach((pageId) => {
-      if (!pageIds.has(pageId)) {
-        delete historyRef.current[pageId];
+    if (editingTextId) {
+      // Start transaction when text editing begins
+      if (!isTransactionActiveRef.current) {
+        beginTransaction();
       }
-    });
-    const activePage = pages.find((page) => page.id === selectedPageId);
-    if (activePage) {
-      recordHistory(activePage.id, activePage.elements);
-    }
-    updateAvailabilityForPage(selectedPageId);
-  }, [
-    ensureHistory,
-    pages,
-    recordHistory,
-    selectedPageId,
-    updateAvailabilityForPage,
-  ]);
-
-  useEffect(() => {
-    const pageId = selectedPageIdRef.current;
-    const prevEditingId = editingSessionRef.current;
-    if (editingTextId && editingTextId !== prevEditingId) {
-      if (prevEditingId) {
-        commitHistoryTransaction(pageId);
+    } else {
+      // Commit transaction when text editing ends
+      if (isTransactionActiveRef.current) {
+        commitTransaction("Text edit");
       }
-      beginHistoryTransaction(pageId);
-      editingSessionRef.current = editingTextId;
-      return;
     }
-    if (!editingTextId && prevEditingId) {
-      commitHistoryTransaction(pageId);
-      editingSessionRef.current = null;
-    }
-  }, [beginHistoryTransaction, commitHistoryTransaction, editingTextId]);
+  }, [editingTextId, beginTransaction, commitTransaction]);
+
+  // Handle undo/redo requests
+  useEffect(() => {
+    if (undoRequestId === 0) return;
+    const present = historyStore.present;
+    if (!present) return;
+
+    isApplyingHistoryRef.current = true;
+    setPages(present.pages);
+    setSelectedPageId(present.selectedPageId);
+    setSelectedIds(present.selectedIds);
+
+    setTimeout(() => {
+      isApplyingHistoryRef.current = false;
+    }, 150);
+  }, [undoRequestId, historyStore.present]);
 
   useEffect(() => {
-    if (!undoRequestId) return;
-    const pageId = selectedPageIdRef.current;
-    const history = historyRef.current[pageId];
-    if (!history || history.past.length === 0) return;
-    history.future.unshift(history.present);
-    const nextElements = history.past.pop() ?? history.present;
-    history.present = nextElements;
-    applyHistory(pageId, cloneElementsForHistory(nextElements));
-    updateAvailabilityForPage(pageId);
-  }, [applyHistory, undoRequestId, updateAvailabilityForPage]);
+    if (redoRequestId === 0) return;
+    const present = historyStore.present;
+    if (!present) return;
 
-  useEffect(() => {
-    if (!redoRequestId) return;
-    const pageId = selectedPageIdRef.current;
-    const history = historyRef.current[pageId];
-    if (!history || history.future.length === 0) return;
-    history.past.push(history.present);
-    const nextElements = history.future.shift() ?? history.present;
-    history.present = nextElements;
-    applyHistory(pageId, cloneElementsForHistory(nextElements));
-    updateAvailabilityForPage(pageId);
-  }, [applyHistory, redoRequestId, updateAvailabilityForPage]);
+    isApplyingHistoryRef.current = true;
+    setPages(present.pages);
+    setSelectedPageId(present.selectedPageId);
+    setSelectedIds(present.selectedIds);
 
+    setTimeout(() => {
+      isApplyingHistoryRef.current = false;
+    }, 150);
+  }, [redoRequestId, historyStore.present]);
+
+  // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey)) return;
-      if (event.key.toLowerCase() !== "z") return;
+
       const target = event.target as HTMLElement | null;
       if (
         target &&
@@ -859,14 +708,26 @@ const MainSection = () => {
       ) {
         return;
       }
-      event.preventDefault();
-      useHistoryStore.getState().requestUndo();
+
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.shiftKey) {
+          historyStore.requestRedo();
+        } else {
+          historyStore.requestUndo();
+        }
+      } else if (event.key.toLowerCase() === "y" && !event.shiftKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        historyStore.requestRedo();
+      }
     };
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
     };
-  }, []);
+  }, [historyStore]);
 
   useEffect(() => {
     const unsubscribe = useTemplateStore.subscribe((state, prevState) => {
@@ -886,7 +747,8 @@ const MainSection = () => {
       );
 
       if (!hasNonLogoElements) {
-        // Apply template to current page directly
+        isApplyingTemplateRef.current = true;
+
         const result = applyTemplateToCurrentPage({
           templateId: state.selectedTemplate,
           currentPageId,
@@ -894,13 +756,26 @@ const MainSection = () => {
           setPages,
         });
         setActivePage(result.id, result.orientation);
+        if (state.selectedTemplate === "emotionInference") {
+          showEmotionInferenceToast();
+        }
+
+        setTimeout(() => {
+          historyStore.record(
+            pagesRef.current,
+            selectedPageIdRef.current,
+            selectedIdsRef.current,
+            "Apply template"
+          );
+          isApplyingTemplateRef.current = false;
+        }, 100);
       } else {
         // Show dialog to let user choose
         setTemplateChoiceDialog({ templateId: state.selectedTemplate });
       }
     });
     return unsubscribe;
-  }, [setActivePage]);
+  }, [setActivePage, historyStore, showEmotionInferenceToast]);
   useEffect(() => {
     const unsubscribe = useElementStore.subscribe((state, prevState) => {
       if (state.requestId === prevState.requestId) return;
@@ -980,9 +855,13 @@ const MainSection = () => {
       });
       setActivePage(newPage.id, newPage.orientation);
       setSideBarMenu("aac");
+      if (newPage.firstElementId) {
+        setSelectedIds([newPage.firstElementId]);
+        setEditingTextId(null);
+      }
     });
     return unsubscribe;
-  }, [setActivePage, setSideBarMenu]);
+  }, [setActivePage, setEditingTextId, setSelectedIds, setSideBarMenu]);
   useEffect(() => {
     const unsubscribe = useStoryBoardStore.subscribe((state, prevState) => {
       if (state.requestId === prevState.requestId) return;
@@ -1102,15 +981,16 @@ const MainSection = () => {
             }
             if (element.locked) return element;
             hasChanges = true;
+            const nextImageBox = element.imageBox ?? {
+              x: 0,
+              y: 0,
+              w: element.w,
+              h: element.h,
+            };
             return {
               ...element,
               fill: normalizedUrl,
-              imageBox: {
-                x: 0,
-                y: 0,
-                w: element.w,
-                h: element.h,
-              },
+              imageBox: nextImageBox,
             };
           });
           if (labelUpdates.size === 0 && placeholderUpdates.size === 0) {
@@ -1290,6 +1170,19 @@ const MainSection = () => {
     [selectedPageId]
   );
 
+  const handleClearPage = useCallback((pageId: string) => {
+    setPages((prevPages) =>
+      prevPages.map((page) =>
+        page.id === pageId
+          ? { ...page, elements: page.elements.filter((element) => element.locked) }
+          : page
+      )
+    );
+    setSelectedIds([]);
+    setEditingTextId(null);
+    sessionStorage.removeItem("copiedElements");
+  }, []);
+
   // 복사/붙여넣기/삭제 기능 활성화
   useCopyPaste({
     selectedPageId,
@@ -1298,6 +1191,7 @@ const MainSection = () => {
     onDeleteElements: handleDeleteElements,
     onDuplicatePage: handleDuplicatePage,
     onDeletePage: handleDeletePage,
+    onClearPage: handleClearPage,
   });
 
   const selectedPage = pages.find((page) => page.id === selectedPageId);
@@ -1824,11 +1718,10 @@ const MainSection = () => {
                   selectedIds={selectedIds}
                   editingTextId={editingTextId}
                   onInteractionChange={(isActive) => {
-                    const pageId = selectedPageIdRef.current;
                     if (isActive) {
-                      beginHistoryTransaction(pageId);
+                      beginTransaction();
                     } else {
-                      commitHistoryTransaction(pageId);
+                      commitTransaction("Element interaction");
                     }
                   }}
                   onSelectedIdsChange={setSelectedIds}
@@ -1906,6 +1799,9 @@ const MainSection = () => {
               type="button"
               onClick={() => {
                 if (!templateChoiceDialog) return;
+
+                isApplyingTemplateRef.current = true;
+
                 const currentPageId = selectedPageIdRef.current;
                 const result = applyTemplateToCurrentPage({
                   templateId: templateChoiceDialog.templateId,
@@ -1915,6 +1811,19 @@ const MainSection = () => {
                 });
                 setActivePage(result.id, result.orientation);
                 setTemplateChoiceDialog(null);
+                if (templateChoiceDialog.templateId === "emotionInference") {
+                  showEmotionInferenceToast();
+                }
+
+                setTimeout(() => {
+                  historyStore.record(
+                    pagesRef.current,
+                    selectedPageIdRef.current,
+                    selectedIdsRef.current,
+                    "Apply template to current page"
+                  );
+                  isApplyingTemplateRef.current = false;
+                }, 100);
               }}
               className="w-full px-4 py-3 text-14-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition"
             >
@@ -1924,6 +1833,9 @@ const MainSection = () => {
               type="button"
               onClick={() => {
                 if (!templateChoiceDialog) return;
+
+                isApplyingTemplateRef.current = true;
+
                 const newPage = addTemplatePage({
                   templateId: templateChoiceDialog.templateId,
                   fallbackOrientation: orientationRef.current,
@@ -1931,6 +1843,19 @@ const MainSection = () => {
                 });
                 setActivePage(newPage.id, newPage.orientation);
                 setTemplateChoiceDialog(null);
+                if (templateChoiceDialog.templateId === "emotionInference") {
+                  showEmotionInferenceToast();
+                }
+
+                setTimeout(() => {
+                  historyStore.record(
+                    pagesRef.current,
+                    selectedPageIdRef.current,
+                    selectedIdsRef.current,
+                    "Apply template to new page"
+                  );
+                  isApplyingTemplateRef.current = false;
+                }, 100);
               }}
               className="w-full px-4 py-3 text-14-medium text-black-90 bg-white border border-black-25 rounded-lg hover:bg-black-5 transition"
             >

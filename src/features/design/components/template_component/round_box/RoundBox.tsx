@@ -689,7 +689,7 @@ const RoundBox = ({
               alt=""
               className="h-full w-full select-none"
               style={{
-                objectFit: "cover",
+                objectFit: "fill",
                 pointerEvents: "none",
               }}
               draggable={false}

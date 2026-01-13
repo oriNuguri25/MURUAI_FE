@@ -8,6 +8,7 @@ interface UseCopyPasteProps {
   onDuplicatePage: (pageId: string) => void;
   onDeletePage: (pageId: string) => void;
   onDeleteElements?: (ids: string[]) => void;
+  onClearPage?: (pageId: string) => void;
 }
 
 export const useCopyPaste = ({
@@ -17,6 +18,7 @@ export const useCopyPaste = ({
   onDuplicatePage,
   onDeletePage,
   onDeleteElements,
+  onClearPage,
 }: UseCopyPasteProps) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,6 +84,12 @@ export const useCopyPaste = ({
         if (pages.length > 1) {
           e.preventDefault();
           onDeletePage(selectedPageId);
+          return;
+        }
+
+        if (pages.length === 1 && onClearPage) {
+          e.preventDefault();
+          onClearPage(selectedPageId);
         }
       }
     };
@@ -98,5 +106,6 @@ export const useCopyPaste = ({
     onDuplicatePage,
     onDeletePage,
     onDeleteElements,
+    onClearPage,
   ]);
 };

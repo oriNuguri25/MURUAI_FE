@@ -21,7 +21,7 @@ export const TEMPLATE_REGISTRY = {
   emotionInference: {
     id: "emotionInference",
     label: "감정 추론 활동",
-    template: emotionInferencePage1,
+    template: emotionInferencePage4,
     orientation: "vertical-only" as TemplateOrientation,
     pages: [
       emotionInferencePage1,

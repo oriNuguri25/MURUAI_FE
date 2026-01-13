@@ -18,10 +18,10 @@ const titleXmm = (pageWidthMm - titleWidthMm) / 2;
 const titleYmm = 26;
 
 const goalBoxWidthMm = 170;
-const goalBoxHeightMm = 18;
+const goalBoxHeightMm = 40;
 const goalBoxXmm = (pageWidthMm - goalBoxWidthMm) / 2;
 const goalBoxYmm = 40;
-const goalBoxRadiusMm = goalBoxHeightMm / 2;
+const goalBoxRadiusMm = 8;
 
 const goalTextWidthMm = goalBoxWidthMm;
 const goalTextHeightMm = 10;
@@ -31,12 +31,10 @@ const goalTextYmm = goalBoxYmm + (goalBoxHeightMm - goalTextHeightMm) / 2;
 const subTextWidthMm = 120;
 const subTextHeightMm = 8;
 const subTextXmm = (pageWidthMm - subTextWidthMm) / 2;
-const subTextYmm = goalBoxYmm + goalBoxHeightMm + 18;
 
 const vocabTitleWidthMm = 80;
 const vocabTitleHeightMm = 10;
 const vocabTitleXmm = (pageWidthMm - vocabTitleWidthMm) / 2;
-const vocabTitleYmm = subTextYmm + 20;
 
 const cardColumns = 5;
 const cardRows = 2;
@@ -47,12 +45,23 @@ const cardRowGapMm = 16;
 const cardsRowWidthMm =
   cardColumns * cardWidthMm + (cardColumns - 1) * cardGapMm;
 const cardsStartXmm = (pageWidthMm - cardsRowWidthMm) / 2;
-const cardsStartYmm = vocabTitleYmm + vocabTitleHeightMm + 8;
 const cardRadiusMm = 4;
 
 const labelWidthMm = cardWidthMm;
 const labelHeightMm = 6;
 const labelGapMm = 3;
+const bottomMarginMm = 20;
+const cardBlockHeightMm =
+  (cardRows - 1) * (cardHeightMm + cardRowGapMm) +
+  cardHeightMm +
+  labelGapMm +
+  labelHeightMm;
+const cardsStartYmm = pageHeightMm - bottomMarginMm - cardBlockHeightMm;
+const cardsTitleGapMm = 6;
+const vocabTitleYmm = cardsStartYmm - vocabTitleHeightMm - cardsTitleGapMm;
+const goalBoxBottomMm = goalBoxYmm + goalBoxHeightMm;
+const subTextYmm =
+  goalBoxBottomMm + (vocabTitleYmm - goalBoxBottomMm - subTextHeightMm) / 2;
 
 const footnoteWidthMm = 90;
 const footnoteHeightMm = 5;
@@ -174,7 +183,7 @@ export const emotionInferencePage3: Template = {
         radius: mmToPx(cardRadiusMm),
         border: {
           enabled: true,
-          color: "#C4B5FD",
+          color: "#A5B4FC",
           width: 1.5,
           style: "solid" as const,
         },
@@ -199,7 +208,7 @@ export const emotionInferencePage3: Template = {
         widthMode: "fixed" as const,
         lockHeight: true,
         style: {
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: "normal" as const,
           color: "#111827",
           underline: false as const,

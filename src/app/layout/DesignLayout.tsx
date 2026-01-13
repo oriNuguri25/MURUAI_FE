@@ -16,7 +16,7 @@ import { supabase } from "@/shared/supabase/supabase";
 import { useTemplateStore } from "@/features/design/store/templateStore";
 import { TEMPLATE_REGISTRY } from "@/features/design/templates/templateRegistry";
 import { useOrientationStore } from "@/features/design/store/orientationStore";
-import { useHistoryStore } from "@/features/design/store/historyStore";
+import { useUnifiedHistoryStore } from "@/features/design/store/unifiedHistoryStore";
 import { useToastStore } from "@/features/design/store/toastStore";
 import ExportModal from "@/features/design/components/ExportModal";
 import type { CanvasDocument } from "@/features/design/model/pageTypes";
@@ -57,10 +57,10 @@ const DesignLayout = () => {
   const showToast = useToastStore((state) => state.showToast);
   const clearToast = useToastStore((state) => state.clearToast);
   const toastTimeoutRef = useRef<number | null>(null);
-  const canUndo = useHistoryStore((state) => state.canUndo);
-  const canRedo = useHistoryStore((state) => state.canRedo);
-  const requestUndo = useHistoryStore((state) => state.requestUndo);
-  const requestRedo = useHistoryStore((state) => state.requestRedo);
+  const canUndo = useUnifiedHistoryStore((state) => state.canUndo);
+  const canRedo = useUnifiedHistoryStore((state) => state.canRedo);
+  const requestUndo = useUnifiedHistoryStore((state) => state.requestUndo);
+  const requestRedo = useUnifiedHistoryStore((state) => state.requestRedo);
   const registerCanvasGetter = useCallback(
     (getter: () => CanvasDocument) => {
       canvasGetterRef.current = getter;
@@ -491,7 +491,14 @@ const DesignLayout = () => {
         </div>
       </header>
       {toastMessage && (
-        <div className="fixed left-1/2 top-5 z-50 -translate-x-1/2 rounded-full bg-black-90 px-4 py-2 text-14-medium text-white-100 shadow-lg">
+        <div
+          className={`fixed left-1/2 top-5 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-14-medium shadow-lg ${
+            toastMessage ===
+            "자료 제작을 위한 기본세트 페이지 3장이 적용되었습니다."
+              ? "bg-primary text-white"
+              : "bg-black-90 text-white-100"
+          }`}
+        >
           {toastMessage}
         </div>
       )}
