@@ -557,7 +557,9 @@ const TextBox = ({
   const showHandles = showChrome && !locked && isSelected;
   const contentWhiteSpace = widthMode === "fixed" ? "pre-wrap" : "pre";
 
-  const beginEditing = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const beginEditing = (
+    event: ReactPointerEvent<HTMLDivElement> | ReactMouseEvent<HTMLDivElement>
+  ) => {
     if (!editable || locked) return;
     event.preventDefault();
     event.stopPropagation();
