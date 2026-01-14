@@ -128,6 +128,58 @@ const isEmotionPlaceholderElement = (
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
 
+const isAacCardElement = (
+  elements: CanvasElement[],
+  element: CanvasElement
+): element is Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }> => {
+  if (
+    element.type !== "rect" &&
+    element.type !== "roundRect" &&
+    element.type !== "ellipse"
+  ) {
+    return false;
+  }
+  const labelId = findLabelElementId(
+    elements,
+    element,
+    isAacLabelElement
+  );
+  if (labelId) return true;
+  if (!element.imageBox) return false;
+  const sizeTolerance = 2;
+  const hasInsetImageBox =
+    Math.abs(element.imageBox.w - element.w) > sizeTolerance ||
+    Math.abs(element.imageBox.h - element.h) > sizeTolerance;
+  const hasAacBorder =
+    element.border?.enabled === true &&
+    element.border.color === "#E5E7EB" &&
+    element.border.width === 2;
+  return hasAacBorder && hasInsetImageBox;
+};
+
+const getNextAacCardId = (
+  elements: CanvasElement[],
+  currentId: string
+) => {
+  const rowTolerance = mmToPx(2);
+  const aacCards = elements.filter((element) =>
+    isAacCardElement(elements, element)
+  );
+  if (aacCards.length === 0) return null;
+  const orderedCards = [...aacCards].sort((a, b) => {
+    const yDiff = a.y - b.y;
+    if (Math.abs(yDiff) > rowTolerance) {
+      return yDiff;
+    }
+    return a.x - b.x;
+  });
+  const currentIndex = orderedCards.findIndex(
+    (element) => element.id === currentId
+  );
+  if (currentIndex < 0) return null;
+  return orderedCards[currentIndex + 1]?.id ?? null;
+};
+
 const findLabelElementId = (
   elements: CanvasElement[],
   shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }>,
@@ -1012,6 +1064,29 @@ const MainSection = () => {
             : page;
         })
       );
+      if (activeSelectedIds.length === 1) {
+        const activePage = pagesRef.current.find(
+          (page) => page.id === activePageId
+        );
+        const selectedId = activeSelectedIds[0];
+        const selectedElement = activePage?.elements.find(
+          (element) => element.id === selectedId
+        );
+        if (
+          activePage &&
+          selectedElement &&
+          isAacCardElement(activePage.elements, selectedElement)
+        ) {
+          const nextAacId = getNextAacCardId(
+            activePage.elements,
+            selectedId
+          );
+          if (nextAacId) {
+            setSelectedIds([nextAacId]);
+            setEditingTextId(null);
+          }
+        }
+      }
     });
     return unsubscribe;
   }, []);

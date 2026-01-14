@@ -122,6 +122,9 @@ const TextBox = ({
 }: TextBoxProps) => {
   const rectRef = useRef(rect);
   const selectAllRef = useRef(false);
+  const pendingCaretRef = useRef<{ x: number; y: number } | null>(null);
+  const pendingEditRef = useRef(false);
+  const didMoveRef = useRef(false);
   const actionRef = useRef<ActiveListeners | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const editableRef = useRef<HTMLDivElement>(null);
@@ -185,6 +188,37 @@ const TextBox = ({
         selection?.addRange(range);
         selectAllRef.current = false;
         return;
+      }
+
+      const pendingCaret = pendingCaretRef.current;
+      if (pendingCaret) {
+        pendingCaretRef.current = null;
+        const selection = window.getSelection();
+        const doc = document as Document & {
+          caretPositionFromPoint?: (
+            x: number,
+            y: number
+          ) => { offsetNode: Node; offset: number } | null;
+          caretRangeFromPoint?: (x: number, y: number) => Range | null;
+        };
+        const range = doc.caretPositionFromPoint
+          ? (() => {
+              const position = doc.caretPositionFromPoint?.(
+                pendingCaret.x,
+                pendingCaret.y
+              );
+              if (!position) return null;
+              const nextRange = document.createRange();
+              nextRange.setStart(position.offsetNode, position.offset);
+              nextRange.collapse(true);
+              return nextRange;
+            })()
+          : doc.caretRangeFromPoint?.(pendingCaret.x, pendingCaret.y) ?? null;
+        if (selection && range && editable.contains(range.startContainer)) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return;
+        }
       }
 
       const selection = window.getSelection();
@@ -310,6 +344,9 @@ const TextBox = ({
 
       const dx = (moveEvent.clientX - startX) / scale;
       const dy = (moveEvent.clientY - startY) / scale;
+      if (!didMoveRef.current && Math.hypot(dx, dy) > 3) {
+        didMoveRef.current = true;
+      }
 
       if (type === "drag") {
         const nextRect = transformRect
@@ -654,12 +691,44 @@ const TextBox = ({
       ref={boxRef}
       onPointerDown={(event) => {
         if (event.button !== 0) return;
+        didMoveRef.current = false;
+        pendingEditRef.current =
+          editable && !isEditing && !locked && !event.shiftKey;
+        if (pendingEditRef.current) {
+          pendingCaretRef.current = { x: event.clientX, y: event.clientY };
+        }
         if (editable && !isEditing && !isSelected) {
           onSelectChange?.(true, { additive: event.shiftKey });
         }
         startAction(event, "drag");
       }}
-      onDoubleClick={beginEditing}
+      onPointerUp={(event) => {
+        if (!pendingEditRef.current) return;
+        pendingEditRef.current = false;
+        if (event.button !== 0) return;
+        if (didMoveRef.current) return;
+        if (!editable || locked) return;
+        pendingCaretRef.current = { x: event.clientX, y: event.clientY };
+        selectAllRef.current = false;
+        onStartEditing?.();
+      }}
+      onDoubleClick={(event) => {
+        if (isEditing) {
+          event.preventDefault();
+          event.stopPropagation();
+          selectAllRef.current = false;
+          const editable = editableRef.current;
+          if (!editable) return;
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(editable);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          return;
+        }
+        pendingCaretRef.current = null;
+        beginEditing(event);
+      }}
       onContextMenu={onContextMenu}
       className={`absolute flex select-none ${justifyClass} ${alignYClass} ${className}`}
       style={{
@@ -669,7 +738,7 @@ const TextBox = ({
         height: rect.height,
         touchAction: "none",
         pointerEvents: locked ? "none" : "auto",
-        cursor: editable && !isEditing ? "text" : "move",
+        cursor: editable ? "text" : "default",
       }}
     >
       {showOutline && (

@@ -44,13 +44,13 @@ export const TEMPLATE_REGISTRY = {
   },
   normal_1: {
     id: "normal_1",
-    label: "템플릿1",
+    label: "감정 어휘 표현 일기",
     template: normal_1,
     orientation: "vertical-only" as TemplateOrientation,
   },
   normal_2: {
     id: "normal_2",
-    label: "템플릿2",
+    label: "감정 탐험 노트",
     template: normal_2,
     orientation: "vertical-only" as TemplateOrientation,
   },

@@ -8,9 +8,9 @@ const pageWidthMm = 210;
 const horizontalPaddingMm = 20;
 
 const logoXmm = 9;
-const logoYmm = 9;
+const logoYmm = 2;
 const logoWidthMm = 24;
-const logoHeightMm = 10;
+const logoHeightMm = logoWidthMm;
 
 const dateWidthMm = 50;
 const dateHeightMm = 6;

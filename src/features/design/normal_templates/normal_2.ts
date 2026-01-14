@@ -72,7 +72,7 @@ export const normal_2: Template = {
       y: mmToPx(headerCenterYmm - headerTextHeightMm / 2),
       w: mmToPx(60),
       h: mmToPx(headerTextHeightMm),
-      text: "번째 감정어휘",
+      text: "번째 감정 어휘",
       widthMode: "fixed",
       style: {
         fontSize: 25,
@@ -180,7 +180,7 @@ export const normal_2: Template = {
       y: mmToPx(instructionYmm),
       w: mmToPx(contentWidthMm),
       h: mmToPx(instructionHeightMm),
-      text: "📌 아래 목표감정어휘를 사용하여 그림 또는 글로 표현해 보세요!",
+      text: "📌 아래 목표 감정 어휘를 사용하여 그림 또는 글로 표현해 보세요!",
       widthMode: "fixed",
       style: {
         fontSize: 20,
@@ -212,7 +212,7 @@ export const normal_2: Template = {
       y: mmToPx(targetBoxYmm),
       w: mmToPx(targetBoxWidthMm),
       h: mmToPx(targetBoxHeightMm),
-      text: "목표 감정어휘: ~~다",
+      text: "목표 감정 어휘: ~~다",
       widthMode: "fixed",
       lockHeight: true,
       style: {

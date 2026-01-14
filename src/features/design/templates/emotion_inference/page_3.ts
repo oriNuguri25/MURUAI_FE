@@ -8,9 +8,9 @@ const pageWidthMm = 210;
 const pageHeightMm = 297;
 
 const logoXmm = 9;
-const logoYmm = 9;
+const logoYmm = 2;
 const logoWidthMm = 24;
-const logoHeightMm = 10;
+const logoHeightMm = logoWidthMm;
 
 const titleWidthMm = 80;
 const titleHeightMm = 10;

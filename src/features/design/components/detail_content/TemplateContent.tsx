@@ -56,12 +56,7 @@ const POPULAR_TEMPLATES = ALL_TEMPLATES.filter(
 
 const BASIC_TEMPLATES = ALL_TEMPLATES.filter((template) =>
   isNormalTemplate(template.id)
-)
-  .sort((a, b) => sortNormalTemplates(a.id, b.id))
-  .map((template, index) => ({
-    ...template,
-    title: `템플릿${index + 1}`,
-  }));
+).sort((a, b) => sortNormalTemplates(a.id, b.id));
 
 const addElementId = (element: TemplateElement, id: string): CanvasElement => ({
   ...(element as CanvasElement),

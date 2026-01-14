@@ -13,9 +13,9 @@ const frameHeightMm = pageHeightMm - frameInsetMm * 2;
 const frameRadiusMm = 10;
 
 const logoXmm = frameInsetMm + 4;
-const logoYmm = frameInsetMm + 4;
+const logoYmm = frameInsetMm - 3;
 const logoWidthMm = 24;
-const logoHeightMm = 10;
+const logoHeightMm = logoWidthMm;
 
 const faceWidthMm = 110;
 const faceHeightMm = 22;
