@@ -139,7 +139,7 @@ const AACContent = () => {
                 onClick={() => requestImageFill(image.url, image.alt)}
                 className="flex flex-col items-center p-3 rounded-xl border-2 border-black-25 hover:border-primary hover:shadow-md transition-all cursor-pointer group"
               >
-                <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-xl bg-white overflow-hidden transition-transform group-hover:scale-110">
+                <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-xl bg-white overflow-hidden">
                   <img
                     src={image.url}
                     alt={image.alt}
