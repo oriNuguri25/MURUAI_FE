@@ -455,8 +455,14 @@ const addTextElement = ({
   const pageOrientation = getOrientation();
   const pageWidth = mmToPx(pageOrientation === "horizontal" ? 297 : 210);
   const pageHeight = mmToPx(pageOrientation === "horizontal" ? 210 : 297);
+  // 캔버스 양옆 패딩 10px씩 = 20px
+  const canvasPadding = 20;
+  const maxAllowedWidth = pageWidth - canvasPadding;
   const { width: measuredWidth, height: measuredHeight } =
-    measureTextBoxSize(preset.text, preset.fontSize, preset.fontWeight);
+    measureTextBoxSize(preset.text, preset.fontSize, preset.fontWeight, {
+      lineHeight: 1.2,
+      maxWidth: maxAllowedWidth,
+    });
   const textWidth = Math.max(measuredWidth, 1);
   const textHeight = Math.max(measuredHeight, 1);
   const x = (pageWidth - textWidth) / 2;
@@ -941,20 +947,22 @@ const MainSection = () => {
       // 선택된 요소가 없으면 독립적인 이미지 요소 생성
       if (activeSelectedIds.length === 0) {
         const newElementId = `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        const defaultSize = 200;
+        const defaultWidth = 200;
+        const aspectRatio = 240 / 200;
+        const defaultHeight = Math.round(defaultWidth * aspectRatio);
         const newImageElement: ShapeElement = {
           id: newElementId,
           type: "rect",
           x: 100,
           y: 100,
-          w: defaultSize,
-          h: defaultSize,
+          w: defaultWidth,
+          h: defaultHeight,
           fill: normalizedUrl,
           imageBox: {
             x: 0,
             y: 0,
-            w: defaultSize,
-            h: defaultSize,
+            w: defaultWidth,
+            h: defaultHeight,
           },
         };
 
@@ -1733,7 +1741,8 @@ const MainSection = () => {
       <div
         ref={containerRef}
         className="flex-1 w-full min-h-0 overflow-auto"
-        style={{ padding: "10px" }}
+        // 텍스트 편집 중 레이아웃 변화로 인한 스크롤 점프를 차단한다.
+        style={{ padding: "10px", overflowAnchor: "none" }}
         onClick={(e) => {
           // 컨테이너 배경 클릭 시 선택 해제
           if (

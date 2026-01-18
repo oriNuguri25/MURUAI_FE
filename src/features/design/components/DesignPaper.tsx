@@ -718,6 +718,11 @@ const DesignPaper = ({
         w: nextRect.width,
         h: nextRect.height,
       };
+      if (targetElement?.type === "text") {
+        // 텍스트 자동 리사이즈 시 중심축을 유지하기 위해 x 좌표도 반영한다.
+        updates.x = nextRect.x;
+        updates.y = nextRect.y;
+      }
 
       // 이미지가 있는 요소의 경우 imageBox도 함께 업데이트
       if (targetElement &&
