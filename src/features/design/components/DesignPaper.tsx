@@ -7,19 +7,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import {
-  ArrowUpFromLine,
-  ArrowUpToLine,
-  ChevronsDown,
-  ChevronsUp,
-  ChevronRight,
-  Clipboard,
-  Copy,
-  Group,
-  Layers,
-  Trash2,
-  Ungroup,
-} from "lucide-react";
 import type {
   CanvasElement,
   LineElement,
@@ -28,6 +15,12 @@ import type {
   ResizeHandle,
 } from "../model/canvasTypes";
 import SmartGuideOverlay from "./SmartGuideOverlay";
+import {
+  DesignPaperContextMenu,
+  type ContextMenuState,
+  type LayerDirection,
+} from "./DesignPaperContextMenu";
+import { GroupSelectionOverlay, SelectionRectOverlay } from "./DesignPaperOverlays";
 import { useSmartGuides } from "../model/useSmartGuides";
 import Arrow from "./template_component/arrow/Arrow";
 import CircleBox from "./template_component/circle/CircleBox";
@@ -35,7 +28,19 @@ import Line from "./template_component/line/Line";
 import RoundBox from "./template_component/round_box/RoundBox";
 import TextBox from "./template_component/text/TextBox";
 import { useSideBarStore } from "../store/sideBarStore";
-import { measureTextBoxSize } from "../utils/textMeasure";
+import { useDesignPaperClipboard } from "./hooks/useDesignPaperClipboard";
+import { useDesignPaperGroupDrag } from "./hooks/useDesignPaperGroupDrag";
+import { useDesignPaperKeyboard } from "./hooks/useDesignPaperKeyboard";
+import { useDesignPaperPaste } from "./hooks/useDesignPaperPaste";
+import { useDesignPaperSelection } from "./hooks/useDesignPaperSelection";
+import { useEmotionSlotBindings } from "./hooks/useEmotionSlotBindings";
+import {
+  DEFAULT_STROKE,
+  getRectFromElement,
+  isEditableTarget,
+  isEmotionSlotShape,
+  type Rect,
+} from "./designPaperUtils";
 
 interface DesignPaperProps {
   pageId: string;
@@ -55,7 +60,6 @@ interface DesignPaperProps {
   showShadow?: boolean;
 }
 
-type Rect = { x: number; y: number; width: number; height: number };
 type TextStylePatch = Partial<TextElement["style"]>;
 type TextElementPatch = Omit<Partial<TextElement>, "style"> & {
   style?: TextStylePatch;
@@ -74,17 +78,6 @@ type ElementPatch =
   | LineElementPatch
   | Partial<CanvasElement>;
 type Point = LineElement["start"];
-type GroupDragItem =
-  | { kind: "rect"; rect: Rect }
-  | { kind: "line"; line: { start: Point; end: Point } };
-type GroupDragState = {
-  activeId: string;
-  activeKind: GroupDragItem["kind"];
-  activeRect?: Rect;
-  activeLine?: { start: Point; end: Point };
-  items: Map<string, GroupDragItem>;
-};
-type SelectionRect = { x: number; y: number; width: number; height: number };
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
@@ -92,77 +85,7 @@ const PAGE_WIDTH_PX = mmToPx(210);
 const PAGE_HEIGHT_PX = mmToPx(297);
 const GUIDE_THRESHOLD_PX = 6;
 const SNAP_THRESHOLD_PX = 3;
-const RECT_TOLERANCE = 1;
-const DEFAULT_TEXT_FONT_SIZE = 24;
-const DEFAULT_TEXT_LINE_HEIGHT = 1.2;
-const PASTE_TEXT_WIDTH = 400;
-const DEFAULT_STROKE: LineElement["stroke"] = {
-  color: "#000000",
-  width: 2,
-};
 
-const isEmotionSlotShape = (
-  element: CanvasElement
-): element is ShapeElement =>
-  (element.type === "rect" ||
-    element.type === "roundRect" ||
-    element.type === "ellipse") &&
-  element.border?.enabled === true &&
-  element.border?.color === "#A5B4FC";
-
-const isEmotionPlaceholderText = (
-  element: CanvasElement
-): element is TextElement =>
-  element.type === "text" &&
-  element.style.fontSize === 10 &&
-  element.style.fontWeight === "normal" &&
-  element.style.color === "#A5B4FC" &&
-  element.style.alignX === "center" &&
-  element.style.alignY === "middle";
-
-const isEmotionLabelText = (
-  element: CanvasElement
-): element is TextElement =>
-  element.type === "text" &&
-  element.style.fontWeight === "normal" &&
-  element.style.color === "#111827" &&
-  element.style.alignX === "center" &&
-  element.style.alignY === "middle";
-
-const EMOTION_LABEL_TOLERANCE = 8;
-const EMOTION_PLACEHOLDER_TOLERANCE = 8;
-
-const getRectFromElement = (element: CanvasElement): Rect | null => {
-  if ("x" in element && "w" in element && "h" in element) {
-    return {
-      x: element.x,
-      y: element.y,
-      width: element.w,
-      height: element.h,
-    };
-  }
-  if (element.type === "line" || element.type === "arrow") {
-    const strokeWidth = element.stroke?.width ?? DEFAULT_STROKE.width;
-    const halfStroke = Math.max(strokeWidth, 1) / 2;
-    const minX = Math.min(element.start.x, element.end.x);
-    const minY = Math.min(element.start.y, element.end.y);
-    const width = Math.max(Math.abs(element.end.x - element.start.x), 1);
-    const height = Math.max(Math.abs(element.end.y - element.start.y), 1);
-    return {
-      x: minX - halfStroke,
-      y: minY - halfStroke,
-      width: width + halfStroke * 2,
-      height: height + halfStroke * 2,
-    };
-  }
-  return null;
-};
-
-const isSameRect = (rect: Rect, element: TextElement) =>
-  Math.abs(rect.x - element.x) <= RECT_TOLERANCE &&
-  Math.abs(rect.y - element.y) <= RECT_TOLERANCE &&
-  Math.abs(rect.width - element.w) <= RECT_TOLERANCE &&
-  Math.abs(rect.height - element.h) <= RECT_TOLERANCE;
 
 const DesignPaper = ({
   pageId,
@@ -183,13 +106,7 @@ const DesignPaper = ({
     id: string;
     rect: Rect;
   } | null>(null);
-  const [contextMenu, setContextMenu] = useState<{
-    id: string;
-    x: number;
-    y: number;
-    activeSubmenu?: "layer";
-  } | null>(null);
-  const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [editingShapeTextId, setEditingShapeTextId] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -200,10 +117,7 @@ const DesignPaper = ({
     startFontSize?: number;
     handle?: ResizeHandle;
   } | null>(null);
-  const groupDragRef = useRef<GroupDragState | null>(null);
   const selectedIdsRef = useRef<string[]>(selectedIds);
-  const selectionStartRef = useRef<{ x: number; y: number } | null>(null);
-  const selectionAdditiveRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
   const isHorizontal = orientation === "horizontal";
@@ -229,164 +143,10 @@ const DesignPaper = ({
     });
     return () => cancelAnimationFrame(frame);
   }, [editingTextId, readOnly, selectedIds]);
-  const findEmotionSlotTextId = useCallback(
-    (shape: ShapeElement) => {
-      const shapeRect = getRectFromElement(shape);
-      if (!shapeRect) return null;
-      const matched = elements.find(
-        (element) => element.type === "text" && isSameRect(shapeRect, element)
-      );
-      return matched?.id ?? null;
-    },
-    [elements]
-  );
 
-  const findEmotionPlaceholderId = useCallback(
-    (shape: ShapeElement) => {
-      const exactId = findEmotionSlotTextId(shape);
-      if (exactId) return exactId;
-      const shapeRect = getRectFromElement(shape);
-      if (!shapeRect) return null;
-      const targetCenterX = shapeRect.x + shapeRect.width / 2;
-      const targetCenterY = shapeRect.y + shapeRect.height / 2;
-      let bestId: string | null = null;
-      let bestDistance = Number.POSITIVE_INFINITY;
-      elements.forEach((element) => {
-        if (!isEmotionPlaceholderText(element)) return;
-        const centerX = element.x + element.w / 2;
-        const centerY = element.y + element.h / 2;
-        if (
-          centerX < shapeRect.x - EMOTION_PLACEHOLDER_TOLERANCE ||
-          centerX >
-            shapeRect.x + shapeRect.width + EMOTION_PLACEHOLDER_TOLERANCE
-        ) {
-          return;
-        }
-        if (
-          centerY < shapeRect.y - EMOTION_PLACEHOLDER_TOLERANCE ||
-          centerY >
-            shapeRect.y + shapeRect.height + EMOTION_PLACEHOLDER_TOLERANCE
-        ) {
-          return;
-        }
-        const distance = Math.hypot(
-          centerX - targetCenterX,
-          centerY - targetCenterY
-        );
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestId = element.id;
-        }
-      });
-      return bestId;
-    },
-    [elements, findEmotionSlotTextId]
-  );
-
-  const findEmotionLabelId = useCallback(
-    (shape: ShapeElement) => {
-      const shapeRect = getRectFromElement(shape);
-      if (!shapeRect) return null;
-      const targetCenterX = shapeRect.x + shapeRect.width / 2;
-      let bestId: string | null = null;
-      let bestDistance = Number.POSITIVE_INFINITY;
-      elements.forEach((element) => {
-        if (!isEmotionLabelText(element)) return;
-        const centerX = element.x + element.w / 2;
-        const matchesCenter =
-          Math.abs(centerX - targetCenterX) <= EMOTION_LABEL_TOLERANCE;
-        const matchesLeft =
-          Math.abs(element.x - shapeRect.x) <= EMOTION_LABEL_TOLERANCE;
-        if (!matchesCenter && !matchesLeft) {
-          return;
-        }
-        const centerY = element.y + element.h / 2;
-        const distance = centerY - (shapeRect.y + shapeRect.height);
-        if (distance < -EMOTION_LABEL_TOLERANCE) return;
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestId = element.id;
-        }
-      });
-      return bestId;
-    },
-    [elements]
-  );
-
-  const emotionSlotTextIds = new Set<string>();
-  elements.forEach((element) => {
-    if (!isEmotionSlotShape(element)) return;
-    const slotTextId = findEmotionPlaceholderId(element);
-    if (slotTextId) {
-      emotionSlotTextIds.add(slotTextId);
-    }
-  });
-
-  const applyEmotionSlotRectUpdate = useCallback(
-    (shapeId: string, nextRect: Rect) => {
-      if (readOnly || !onElementsChange) return;
-      const shape = elements.find(
-        (element) => element.id === shapeId
-      );
-      if (!shape || !isEmotionSlotShape(shape)) return;
-      const shapeRect = getRectFromElement(shape) ?? {
-        x: shape.x,
-        y: shape.y,
-        width: shape.w,
-        height: shape.h,
-      };
-      const placeholderId = findEmotionPlaceholderId(shape);
-      const labelId = findEmotionLabelId(shape);
-      const label = labelId
-        ? elements.find(
-            (element) => element.id === labelId && element.type === "text"
-          )
-        : null;
-      const labelOffset =
-        label && label.type === "text"
-          ? label.y - (shapeRect.y + shapeRect.height)
-          : 0;
-      const nextElements = elements.map((element) => {
-        if (element.id === shapeId && "x" in element) {
-          return {
-            ...element,
-            x: nextRect.x,
-            y: nextRect.y,
-            w: nextRect.width,
-            h: nextRect.height,
-          } as ShapeElement;
-        }
-        if (placeholderId && element.id === placeholderId) {
-          return {
-            ...element,
-            x: nextRect.x,
-            y: nextRect.y,
-            w: nextRect.width,
-            h: nextRect.height,
-            widthMode: "fixed",
-          } as TextElement;
-        }
-        if (labelId && element.id === labelId) {
-          return {
-            ...element,
-            x: nextRect.x,
-            y: nextRect.y + nextRect.height + labelOffset,
-            w: nextRect.width,
-            widthMode: "fixed",
-          } as TextElement;
-        }
-        return element;
-      });
-      onElementsChange(nextElements);
-    },
-    [
-      elements,
-      findEmotionLabelId,
-      findEmotionPlaceholderId,
-      onElementsChange,
-      readOnly,
-    ]
-  );
+  const clearContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
 
   const getContainerScale = useCallback(() => {
     const node = containerRef.current;
@@ -407,37 +167,6 @@ const DesignPaper = ({
     },
     [getContainerScale]
   );
-
-  const getElementBoundsForSelection = (element: CanvasElement): Rect | null => {
-    if (element.visible === false || element.selectable === false) return null;
-    if (element.type === "line" || element.type === "arrow") {
-      const stroke = element.stroke ?? DEFAULT_STROKE;
-      const markerPadding = element.type === "arrow" ? 12 : 0;
-      const padding = Math.max(6, stroke.width, markerPadding);
-      const minX = Math.min(element.start.x, element.end.x) - padding;
-      const minY = Math.min(element.start.y, element.end.y) - padding;
-      const width = Math.max(Math.abs(element.end.x - element.start.x), 1) + padding * 2;
-      const height = Math.max(Math.abs(element.end.y - element.start.y), 1) + padding * 2;
-      return { x: minX, y: minY, width, height };
-    }
-    return getRectFromElement(element);
-  };
-
-  const normalizeSelectionRect = (
-    start: { x: number; y: number },
-    current: { x: number; y: number }
-  ): SelectionRect => ({
-    x: Math.min(start.x, current.x),
-    y: Math.min(start.y, current.y),
-    width: Math.abs(current.x - start.x),
-    height: Math.abs(current.y - start.y),
-  });
-
-  const rectsIntersect = (a: SelectionRect, b: Rect) =>
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y;
 
   const updateElement = useCallback((id: string, patch: ElementPatch) => {
     if (readOnly || !onElementsChange) return;
@@ -502,78 +231,89 @@ const DesignPaper = ({
     onElementsChange(nextElements);
   }, [elements, onElementsChange, readOnly]);
 
-  const clearEmotionSlotImage = useCallback(
-    (shapeId: string) => {
-      if (readOnly || !onElementsChange) return;
-      const target = elements.find((element) => element.id === shapeId);
-      if (!target || !isEmotionSlotShape(target)) return;
-      const isImageFill =
-        target.fill.startsWith("url(") || target.fill.startsWith("data:");
-      if (!isImageFill) return;
-      const placeholderId = findEmotionPlaceholderId(target);
-      const nextElements = elements.map((element) => {
-        if (element.id === target.id) {
-          return {
-            ...element,
-            fill: "#FFFFFF",
-            imageBox: undefined,
-          };
-        }
-        if (
-          placeholderId &&
-          element.id === placeholderId &&
-          element.type === "text"
-        ) {
-          return { ...element, text: "감정을 선택해주세요" };
-        }
-        return element;
-      });
-      onElementsChange(nextElements);
-    },
-    [elements, findEmotionPlaceholderId, onElementsChange, readOnly]
-  );
+  const {
+    emotionSlotTextIds,
+    findEmotionPlaceholderId,
+    findEmotionLabelId,
+    applyEmotionSlotRectUpdate,
+    clearEmotionSlotImage,
+  } = useEmotionSlotBindings({
+    elements,
+    readOnly,
+    selectedIds,
+    editingTextId,
+    onElementsChange,
+    onEditingTextIdChange,
+    updateElement,
+  });
 
-  const buildGroupDragState = useCallback(
-    (activeId: string): GroupDragState | null => {
-      const activeSelectedIds = selectedIdsRef.current;
-      if (activeSelectedIds.length <= 1) return null;
-      const items = new Map<string, GroupDragItem>();
-      elements.forEach((element) => {
-        if (!activeSelectedIds.includes(element.id) || element.locked) return;
-        if (element.type === "line" || element.type === "arrow") {
-          items.set(element.id, {
-            kind: "line",
-            line: {
-              start: { ...element.start },
-              end: { ...element.end },
-            },
-          });
-          return;
-        }
-        if ("x" in element && "y" in element && "w" in element && "h" in element) {
-          items.set(element.id, {
-            kind: "rect",
-            rect: {
-              x: element.x,
-              y: element.y,
-              width: element.w,
-              height: element.h,
-            },
-          });
-        }
-      });
-      const activeItem = items.get(activeId);
-      if (!activeItem) return null;
-      return {
-        activeId,
-        activeKind: activeItem.kind,
-        activeRect: activeItem.kind === "rect" ? activeItem.rect : undefined,
-        activeLine: activeItem.kind === "line" ? activeItem.line : undefined,
-        items,
-      };
-    },
-    [elements]
-  );
+  const { copySelectedElements, pasteElements, getClipboard } =
+    useDesignPaperClipboard({
+      pageId,
+      elements,
+      selectedIdsRef,
+      onElementsChange,
+      onSelectedIdsChange,
+      readOnly,
+      clearContextMenu,
+    });
+
+  const {
+    groupDragRef,
+    buildGroupDragState,
+    getGroupBoundingBox,
+    applyGroupDelta,
+  } = useDesignPaperGroupDrag({
+    elements,
+    selectedIds,
+    selectedIdsRef,
+    readOnly,
+    onElementsChange,
+    findEmotionPlaceholderId,
+    findEmotionLabelId,
+  });
+
+  const { selectionRect, handleBackgroundPointerDown } =
+    useDesignPaperSelection({
+      readOnly,
+      elements,
+      selectedIdsRef,
+      onSelectedIdsChange,
+      onEditingTextIdChange,
+      clearContextMenu,
+      setEditingImageId,
+      setEditingShapeTextId,
+      getPointerPosition,
+    });
+
+  useDesignPaperKeyboard({
+    readOnly,
+    editingTextId,
+    editingImageId,
+    setEditingImageId,
+    elements,
+    selectedIdsRef,
+    onElementsChange,
+    onSelectedIdsChange,
+    onEditingTextIdChange,
+    clearContextMenu,
+    clearEmotionSlotImage,
+    copySelectedElements,
+    pasteElements,
+    getClipboard,
+    smartGuides,
+  });
+
+  useDesignPaperPaste({
+    readOnly,
+    elements,
+    onElementsChange,
+    selectedIdsRef,
+    onSelectedIdsChange,
+    onEditingTextIdChange,
+    containerRef,
+    lastPointerRef,
+  });
 
   const getRenderableRect = (element: CanvasElement) => {
     if (activePreview?.id === element.id) return activePreview.rect;
@@ -590,125 +330,6 @@ const DesignPaper = ({
       )
       .map((element) => getRectFromElement(element))
       .filter((rect): rect is Rect => Boolean(rect));
-
-  const getGroupBoundingBox = (elementId: string, currentElementRect: Rect): Rect | null => {
-    const element = elements.find((el) => el.id === elementId);
-    if (!element) return null;
-
-    // Check if this element is part of a selected group
-    const elementGroupId = element.groupId;
-    if (!elementGroupId) return null;
-
-    // Check if all elements with the same groupId are selected
-    const groupElements = elements.filter((el) => el.groupId === elementGroupId);
-    const allGroupSelected = groupElements.every((el) =>
-      selectedIds.includes(el.id)
-    );
-
-    if (!allGroupSelected) return null;
-
-    // Calculate the offset between current element's original and new position
-    const originalRect = getRectFromElement(element);
-    if (!originalRect) return null;
-
-    const deltaX = currentElementRect.x - originalRect.x;
-    const deltaY = currentElementRect.y - originalRect.y;
-
-    // Calculate bounding box of the entire group with the offset applied
-    const groupRects = groupElements
-      .map((el) => {
-        const rect = getRectFromElement(el);
-        if (!rect) return null;
-        // Apply the same offset to all group elements
-        return {
-          x: rect.x + deltaX,
-          y: rect.y + deltaY,
-          width: rect.width,
-          height: rect.height,
-        };
-      })
-      .filter((rect): rect is Rect => Boolean(rect));
-
-    if (groupRects.length === 0) return null;
-
-    const minX = Math.min(...groupRects.map((r) => r.x));
-    const minY = Math.min(...groupRects.map((r) => r.y));
-    const maxX = Math.max(...groupRects.map((r) => r.x + r.width));
-    const maxY = Math.max(...groupRects.map((r) => r.y + r.height));
-
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    };
-  };
-
-  const applyGroupDelta = useCallback(
-    (delta: { x: number; y: number }) => {
-      if (readOnly || !onElementsChange) return;
-      const snapshot = groupDragRef.current;
-      if (!snapshot) return;
-      const selectedIds = new Set(snapshot.items.keys());
-      const linkedIds = new Set<string>();
-      elements.forEach((element) => {
-        if (!selectedIds.has(element.id)) return;
-        if (!isEmotionSlotShape(element)) return;
-        const placeholderId = findEmotionPlaceholderId(element);
-        const labelId = findEmotionLabelId(element);
-        if (placeholderId && !selectedIds.has(placeholderId)) {
-          linkedIds.add(placeholderId);
-        }
-        if (labelId && !selectedIds.has(labelId)) {
-          linkedIds.add(labelId);
-        }
-      });
-      const nextElements = elements.map((element) => {
-        const item = snapshot.items.get(element.id);
-        if (!item) return element;
-        if (item.kind === "line" && (element.type === "line" || element.type === "arrow")) {
-          return {
-            ...element,
-            start: {
-              x: item.line.start.x + delta.x,
-              y: item.line.start.y + delta.y,
-            },
-            end: {
-              x: item.line.end.x + delta.x,
-              y: item.line.end.y + delta.y,
-            },
-          };
-        }
-        if (item.kind === "rect" && "x" in element && "y" in element) {
-          return {
-            ...element,
-            x: item.rect.x + delta.x,
-            y: item.rect.y + delta.y,
-          };
-        }
-        return element;
-      });
-      const nextElementsWithLinked = linkedIds.size
-        ? nextElements.map((element) => {
-            if (!linkedIds.has(element.id)) return element;
-            if (!("x" in element && "y" in element)) return element;
-            return {
-              ...element,
-              x: element.x + delta.x,
-              y: element.y + delta.y,
-            } as CanvasElement;
-          })
-        : nextElements;
-      onElementsChange(nextElementsWithLinked);
-    },
-    [
-      elements,
-      findEmotionLabelId,
-      findEmotionPlaceholderId,
-      onElementsChange,
-      readOnly,
-    ]
-  );
 
   const handleRectChange = (elementId: string, nextRect: Rect) => {
     const activeInteraction = activeInteractionRef.current;
@@ -1069,127 +690,9 @@ const DesignPaper = ({
     if (!options?.keepContextMenu) {
       setContextMenu(null);
     }
-    // Focus the canvas to enable keyboard navigation
+    // 키보드 조작을 위해 캔버스에 포커스를 준다.
     containerRef.current?.focus();
   };
-
-  const handleBackgroundPointerDown = (
-    event: ReactPointerEvent<HTMLDivElement>
-  ) => {
-    if (event.currentTarget !== event.target) return;
-    if (event.button !== 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    setContextMenu(null);
-    setEditingImageId(null);
-    setEditingShapeTextId(null);
-    const startPoint = getPointerPosition(event);
-    selectionStartRef.current = startPoint;
-    selectionAdditiveRef.current = event.shiftKey;
-    setSelectionRect({ x: startPoint.x, y: startPoint.y, width: 0, height: 0 });
-
-    const moveListener = (moveEvent: PointerEvent) => {
-      const movePoint = getPointerPosition(moveEvent);
-      const nextRect = normalizeSelectionRect(startPoint, movePoint);
-      setSelectionRect(nextRect);
-    };
-
-    const upListener = (upEvent: PointerEvent) => {
-      window.removeEventListener("pointermove", moveListener);
-      window.removeEventListener("pointerup", upListener);
-      const endPoint = getPointerPosition(upEvent);
-      const nextRect = normalizeSelectionRect(startPoint, endPoint);
-      const isAdditive = selectionAdditiveRef.current;
-      selectionStartRef.current = null;
-      selectionAdditiveRef.current = false;
-      setSelectionRect(null);
-
-      const isClick =
-        nextRect.width < 3 && nextRect.height < 3;
-      if (isClick) {
-        if (isAdditive) return;
-        selectedIdsRef.current = [];
-        onSelectedIdsChange?.([]);
-        onEditingTextIdChange?.(null);
-        // 요소 선택 해제 시 요소 클립보드 초기화 (페이지 복사가 가능하도록)
-        sessionStorage.removeItem("copiedElements");
-        return;
-      }
-
-      const hitIds = elements
-        .map((element) => ({
-          id: element.id,
-          rect: getElementBoundsForSelection(element),
-        }))
-        .filter((item): item is { id: string; rect: Rect } => Boolean(item.rect))
-        .filter((item) => rectsIntersect(nextRect, item.rect))
-        .map((item) => item.id);
-
-      const baseIds = isAdditive ? selectedIdsRef.current : [];
-      const nextSelectedIds = [
-        ...new Set([...baseIds, ...hitIds]),
-      ];
-      selectedIdsRef.current = nextSelectedIds;
-      onSelectedIdsChange?.(nextSelectedIds);
-      if (!isAdditive) {
-        onEditingTextIdChange?.(null);
-      }
-    };
-
-    window.addEventListener("pointermove", moveListener);
-    window.addEventListener("pointerup", upListener);
-  };
-
-  useEffect(() => {
-    if (readOnly || !onElementsChange) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      if (editingTextId) return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      if (selectedIds.length !== 1) return;
-      const selectedElement = elements.find(
-        (element) => element.id === selectedIds[0]
-      );
-      if (!selectedElement || !isEmotionSlotShape(selectedElement)) return;
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      if (event.key.length !== 1) return;
-      const slotTextId = findEmotionPlaceholderId(selectedElement);
-      if (!slotTextId) return;
-      const slotText = elements.find((element) => element.id === slotTextId);
-      if (!slotText || slotText.type !== "text") return;
-      event.preventDefault();
-      const nextText =
-        slotText.text === "감정을 선택해주세요"
-          ? event.key
-          : `${slotText.text}${event.key}`;
-      updateElement(slotTextId, {
-        text: nextText,
-        style: { fontSize: 12, color: "#111827" },
-      });
-      onEditingTextIdChange?.(slotTextId);
-    };
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown, true);
-    };
-  }, [
-    editingTextId,
-    elements,
-    findEmotionPlaceholderId,
-    onElementsChange,
-    onEditingTextIdChange,
-    readOnly,
-    selectedIds,
-    updateElement,
-  ]);
 
   const openContextMenu = (
     event: ReactMouseEvent<HTMLElement>,
@@ -1219,10 +722,7 @@ const DesignPaper = ({
     setContextMenu({ id: elementId, x: clampedX, y: clampedY });
   };
 
-  const moveElement = (
-    elementId: string,
-    direction: "forward" | "front" | "backward" | "back"
-  ) => {
+  const moveElement = (elementId: string, direction: LayerDirection) => {
     if (readOnly || !onElementsChange) return;
     const index = elements.findIndex((element) => element.id === elementId);
     if (index === -1) return;
@@ -1251,105 +751,6 @@ const DesignPaper = ({
     onElementsChange(nextElements);
     setContextMenu(null);
   };
-
-  const setClipboard = useCallback((items: CanvasElement[]) => {
-    try {
-      sessionStorage.setItem("copiedElements", JSON.stringify(items));
-    } catch {
-      // ignore clipboard failures
-    }
-  }, []);
-
-  const getClipboard = useCallback((): CanvasElement[] | null => {
-    try {
-      const raw = sessionStorage.getItem("copiedElements");
-      if (!raw) return null;
-      return JSON.parse(raw) as CanvasElement[];
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const copySelectedElements = useCallback(() => {
-    const selected = elements.filter((element) =>
-      selectedIds.includes(element.id)
-    );
-    if (selected.length === 0) return;
-    setClipboard(selected);
-    setContextMenu(null);
-  }, [elements, selectedIds, setClipboard]);
-
-  const pasteElements = useCallback(() => {
-    if (readOnly || !onElementsChange) return;
-    const clipboard = getClipboard();
-    if (!clipboard || clipboard.length === 0) return;
-    const offset = 10;
-    const groupIdMap = new Map<string, string>();
-    const nextElements = clipboard.map((element) => {
-      const id = crypto.randomUUID();
-      const nextGroupId =
-        element.groupId != null
-          ? groupIdMap.get(element.groupId) ??
-            (() => {
-              const newId = crypto.randomUUID();
-              groupIdMap.set(element.groupId as string, newId);
-              return newId;
-            })()
-          : undefined;
-      if (element.type === "line" || element.type === "arrow") {
-        return {
-          ...element,
-          id,
-          groupId: nextGroupId,
-          start: {
-            x: element.start.x + offset,
-            y: element.start.y + offset,
-          },
-          end: { x: element.end.x + offset, y: element.end.y + offset },
-        };
-      }
-      if ("x" in element && "y" in element) {
-        if (element.type === "text") {
-          const lineHeight = element.style.lineHeight ?? DEFAULT_TEXT_LINE_HEIGHT;
-          const letterSpacing = element.style.letterSpacing ?? 0;
-          const widthMode = element.widthMode ?? "auto";
-          const { width, height } = measureTextBoxSize(
-            element.text ?? "",
-            element.style.fontSize,
-            element.style.fontWeight,
-            {
-              lineHeight,
-              letterSpacing,
-              maxWidth: widthMode === "fixed" ? element.w : undefined,
-            }
-          );
-          return {
-            ...element,
-            id,
-            groupId: nextGroupId,
-            x: element.x + offset,
-            y: element.y + offset,
-            w: widthMode === "fixed" ? element.w : Math.max(width, 1),
-            h: Math.max(height, 1),
-            widthMode,
-          };
-        }
-        return {
-          ...element,
-          id,
-          groupId: nextGroupId,
-          x: element.x + offset,
-          y: element.y + offset,
-        };
-      }
-      return { ...element, id, groupId: nextGroupId };
-    });
-    onElementsChange([...elements, ...nextElements]);
-    const nextSelectedIds = nextElements.map((element) => element.id);
-    selectedIdsRef.current = nextSelectedIds;
-    onSelectedIdsChange?.(nextSelectedIds);
-    setContextMenu(null);
-  }, [readOnly, onElementsChange, elements, onSelectedIdsChange, getClipboard]);
 
   const groupSelectedElements = () => {
     if (readOnly || !onElementsChange) return;
@@ -1380,231 +781,6 @@ const DesignPaper = ({
     onElementsChange(nextElements);
     setContextMenu(null);
   };
-
-  useEffect(() => {
-    if (readOnly || !onElementsChange) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-
-      if (editingTextId) return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
-      if (event.key === "Escape") {
-        selectedIdsRef.current = [];
-        onSelectedIdsChange?.([]);
-        onEditingTextIdChange?.(null);
-        setContextMenu(null);
-        sessionStorage.removeItem("copiedElements");
-        return;
-      }
-
-      if (event.key === "Backspace" || event.key === "Delete") {
-        if (editingImageId) {
-          const targetElement = elements.find(
-            (element) => element.id === editingImageId
-          );
-          if (targetElement && isEmotionSlotShape(targetElement)) {
-            event.preventDefault();
-            clearEmotionSlotImage(editingImageId);
-            setEditingImageId(null);
-            return;
-          }
-        }
-
-        // Delete selected elements
-        const currentSelectedIds = selectedIdsRef.current;
-        if (currentSelectedIds.length > 0) {
-          event.preventDefault();
-          onElementsChange(
-            elements.filter((element) => !currentSelectedIds.includes(element.id))
-          );
-          selectedIdsRef.current = [];
-          onSelectedIdsChange?.([]);
-          onEditingTextIdChange?.(null);
-          return;
-        }
-      }
-
-      if (
-        event.key === "ArrowLeft" ||
-        event.key === "ArrowRight" ||
-        event.key === "ArrowUp" ||
-        event.key === "ArrowDown"
-      ) {
-        const currentSelectedIds = selectedIdsRef.current;
-        if (currentSelectedIds.length === 0) return;
-
-        event.preventDefault();
-
-        const baseDelta =
-          event.key === "ArrowLeft"
-            ? { x: -1, y: 0 }
-            : event.key === "ArrowRight"
-            ? { x: 1, y: 0 }
-            : event.key === "ArrowUp"
-            ? { x: 0, y: -1 }
-            : { x: 0, y: 1 };
-
-        // Calculate the bounding box of selected elements
-        const selectedElements = elements.filter((el) => currentSelectedIds.includes(el.id));
-        const rects = selectedElements
-          .map((el) => getRectFromElement(el))
-          .filter((rect): rect is Rect => Boolean(rect));
-
-        if (rects.length === 0) {
-          console.log('No rects found for selected elements');
-          return;
-        }
-
-        const minX = Math.min(...rects.map((r) => r.x));
-        const minY = Math.min(...rects.map((r) => r.y));
-        const maxX = Math.max(...rects.map((r) => r.x + r.width));
-        const maxY = Math.max(...rects.map((r) => r.y + r.height));
-
-        const activeRect = {
-          x: minX + baseDelta.x,
-          y: minY + baseDelta.y,
-          width: maxX - minX,
-          height: maxY - minY,
-        };
-
-        // Get target rects (exclude selected elements)
-        const otherRects = elements
-          .filter((el) => !currentSelectedIds.includes(el.id) && el.visible !== false && !el.locked)
-          .map((el) => getRectFromElement(el))
-          .filter((rect): rect is Rect => Boolean(rect));
-
-        // Compute smart guides for feedback without snapping on keyboard moves
-        smartGuides.compute({
-          activeRect,
-          otherRects,
-        });
-
-        const delta = baseDelta;
-
-        const newElements = elements.map((element) => {
-          if (!currentSelectedIds.includes(element.id) || element.locked) {
-            return element;
-          }
-          if (element.type === "line" || element.type === "arrow") {
-            return {
-              ...element,
-              start: {
-                x: element.start.x + delta.x,
-                y: element.start.y + delta.y,
-              },
-              end: {
-                x: element.end.x + delta.x,
-                y: element.end.y + delta.y,
-              },
-            };
-          }
-          if ("x" in element && "y" in element) {
-            return {
-              ...element,
-              x: element.x + delta.x,
-              y: element.y + delta.y,
-            };
-          }
-          return element;
-        });
-
-        onElementsChange(newElements);
-
-        // Clear guides after a short delay
-        setTimeout(() => {
-          smartGuides.clear();
-        }, 100);
-        return;
-      }
-
-      // Ctrl+C 또는 Cmd+C (요소 복사)
-      if ((event.ctrlKey || event.metaKey) && event.key === "c") {
-        if (selectedIdsRef.current.length === 0) return;
-        copySelectedElements();
-      }
-
-      // Ctrl+V 또는 Cmd+V (요소 붙여넣기)
-      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
-        const clipboard = getClipboard();
-        if (clipboard && clipboard.length > 0) {
-          event.preventDefault();
-          pasteElements();
-        }
-        // If clipboard is empty, let the paste event handler handle text paste
-      }
-
-      // Tab 키 (다음 요소로 이동)
-      if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey) {
-        event.preventDefault();
-
-        // 편집 가능한 요소들만 필터링 (locked 제외)
-        const selectableElements = elements.filter(
-          (element) => !element.locked && element.selectable !== false
-        );
-
-        if (selectableElements.length === 0) return;
-
-        // 요소들을 위에서 아래, 왼쪽에서 오른쪽 순서로 정렬
-        const sortedElements = [...selectableElements].sort((a, b) => {
-          const aY = "y" in a ? a.y : 0;
-          const bY = "y" in b ? b.y : 0;
-          const aX = "x" in a ? a.x : 0;
-          const bX = "x" in b ? b.x : 0;
-
-          // 먼저 Y 좌표로 정렬 (위에서 아래)
-          if (Math.abs(aY - bY) > 10) { // 10px 이상 차이나면 다른 줄로 간주
-            return aY - bY;
-          }
-          // Y가 비슷하면 X 좌표로 정렬 (왼쪽에서 오른쪽)
-          return aX - bX;
-        });
-
-        // 현재 선택된 요소의 인덱스 찾기
-        const currentIndex = selectedIdsRef.current.length > 0
-          ? sortedElements.findIndex((el) => el.id === selectedIdsRef.current[0])
-          : -1;
-
-        // 다음 요소 선택 (Shift+Tab이면 이전, Tab이면 다음)
-        let nextIndex;
-        if (event.shiftKey) {
-          nextIndex = currentIndex <= 0 ? sortedElements.length - 1 : currentIndex - 1;
-        } else {
-          nextIndex = currentIndex >= sortedElements.length - 1 ? 0 : currentIndex + 1;
-        }
-
-        const nextElement = sortedElements[nextIndex];
-        if (nextElement) {
-          onSelectedIdsChange?.([nextElement.id]);
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown, true);
-    };
-  }, [
-    readOnly,
-    onElementsChange,
-    editingTextId,
-    editingImageId,
-    clearEmotionSlotImage,
-    onEditingTextIdChange,
-    onSelectedIdsChange,
-    copySelectedElements,
-    pasteElements,
-    getClipboard,
-    elements,
-    smartGuides,
-  ]);
 
   const deleteElementById = useCallback(
     (id: string) => {
@@ -1666,97 +842,339 @@ const DesignPaper = ({
     (element) => selectedIds.includes(element.id) && element.groupId
   );
 
-  // Handle global paste events
-  useEffect(() => {
-    if (readOnly || !onElementsChange) return;
+  // 요소 렌더 헬퍼로 메인 맵을 간결하게 유지한다.
+  const shouldShowIndividualBorder = (elementId: string) =>
+    selectedIds.includes(elementId) &&
+    (!isGroupedSelection || selectedIds.length === 1);
 
-    const handlePaste = (event: ClipboardEvent) => {
-      // Check if we're pasting into a text box or input field (don't create new one)
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.closest('[contenteditable="true"]') ||
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA")
-      ) {
-        return;
+  const handleSelectChange = (
+    elementId: string,
+    isSelected: boolean,
+    options?: { keepContextMenu?: boolean; additive?: boolean }
+  ) => {
+    if (isSelected) {
+      handleSelect(elementId, options);
+    }
+  };
+
+  const transformElementRect = (
+    elementId: string,
+    nextRect: Rect,
+    context: { type: "drag" | "resize"; handle?: ResizeHandle }
+  ) => {
+    const activeInteraction = activeInteractionRef.current;
+    if (!activeInteraction || activeInteraction.id !== elementId) {
+      return nextRect;
+    }
+    if (context.type === "resize") {
+      const handle = context.handle ?? "";
+      const activeX = handle.includes("e")
+        ? [nextRect.x + nextRect.width]
+        : handle.includes("w")
+        ? [nextRect.x]
+        : [];
+      const activeY = handle.includes("s")
+        ? [nextRect.y + nextRect.height]
+        : handle.includes("n")
+        ? [nextRect.y]
+        : [];
+      const { snapOffset } = smartGuides.compute({
+        activeRect: nextRect,
+        otherRects: getTargetRects(elementId),
+        activeX,
+        activeY,
+      });
+      const next = { ...nextRect };
+      if (handle.includes("e")) {
+        next.width += snapOffset.x;
+      } else if (handle.includes("w")) {
+        next.x += snapOffset.x;
+        next.width -= snapOffset.x;
       }
-
-      // Check if there's text in the clipboard
-      const rawText = event.clipboardData?.getData("text/plain") ?? "";
-
-      // If there's text in the clipboard, create a text box
-      if (rawText.trim()) {
-        event.preventDefault();
-
-        // Create a new text element at the last pointer position or canvas center
-        const container = containerRef.current;
-        if (!container) return;
-
-        const basePoint = lastPointerRef.current;
-        const centerX =
-          basePoint?.x ??
-          container.offsetWidth / 2;
-        const centerY =
-          basePoint?.y ??
-          container.offsetHeight / 2;
-
-        const { height } = measureTextBoxSize(
-          rawText,
-          DEFAULT_TEXT_FONT_SIZE,
-          "normal",
-          {
-            lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
-            maxWidth: PASTE_TEXT_WIDTH,
-          }
-        );
-        const x = centerX - PASTE_TEXT_WIDTH / 2;
-        const y = centerY - Math.max(height, 1) / 2;
-
-        const newTextElement: Omit<TextElement, "id"> = {
-          type: "text",
-          text: rawText,
-          richText: undefined,
-          x,
-          y,
-          w: PASTE_TEXT_WIDTH,
-          h: Math.max(height, 1),
-          widthMode: "fixed",
-          style: {
-            fontSize: DEFAULT_TEXT_FONT_SIZE,
-            fontWeight: "normal",
-            color: "#000000",
-            underline: false,
-            alignX: "left",
-            alignY: "top",
-            lineHeight: DEFAULT_TEXT_LINE_HEIGHT,
-            letterSpacing: 0,
-          },
-          locked: false,
-          visible: true,
-        };
-
-        const newId = crypto.randomUUID();
-        const newElement: TextElement = { ...newTextElement, id: newId };
-
-        onElementsChange([...elements, newElement]);
-        selectedIdsRef.current = [newId];
-        onSelectedIdsChange?.([newId]);
-        onEditingTextIdChange?.(null);
+      if (handle.includes("s")) {
+        next.height += snapOffset.y;
+      } else if (handle.includes("n")) {
+        next.y += snapOffset.y;
+        next.height -= snapOffset.y;
       }
-    };
+      return next;
+    }
+    const groupBoundingBox = getGroupBoundingBox(elementId, nextRect);
+    const activeRect = groupBoundingBox || nextRect;
 
-    window.addEventListener("paste", handlePaste);
-    return () => {
-      window.removeEventListener("paste", handlePaste);
+    const { snapOffset } = smartGuides.compute({
+      activeRect,
+      otherRects: getTargetRects(elementId),
+    });
+    return {
+      ...nextRect,
+      x: nextRect.x + snapOffset.x,
+      y: nextRect.y + snapOffset.y,
     };
-  }, [
-    readOnly,
-    onElementsChange,
-    elements,
-    onSelectedIdsChange,
-    onEditingTextIdChange,
-  ]);
+  };
+
+  const renderTextElement = (element: TextElement) => {
+    const showToolbar = selectedIds[0] === element.id && selectedIds.length === 1;
+    const isEditing = editingTextId === element.id;
+    const isEmotionSlotText = emotionSlotTextIds.has(element.id);
+    const forceEditable = isEmotionSlotText && isEditing;
+    const locked =
+      readOnly ||
+      (element.locked && !forceEditable) ||
+      (isEmotionSlotText && !isEditing);
+    const rect = getRenderableRect(element);
+    if (!rect) return null;
+    const minFontSize = 12;
+    const maxFontSize = 120;
+    const clampFontSize = (value: number) =>
+      Math.min(maxFontSize, Math.max(minFontSize, value));
+    const lineHeight = element.style.lineHeight ?? 1.3;
+    const letterSpacing = element.style.letterSpacing ?? 0;
+    const fontWeight =
+      element.style.fontWeight === "bold" ? 700 : 400;
+    const minTextHeight = element.lockHeight ? rect.height : 1;
+    return (
+      <TextBox
+        key={element.id}
+        text={element.text}
+        richText={element.richText}
+        editable={!readOnly && (!element.locked || forceEditable)}
+        rect={rect}
+        minWidth={1}
+        minHeight={minTextHeight}
+        showChrome={!isEmotionSlotText}
+        textClassName="text-headline-42-semibold"
+        textStyle={{
+          fontSize: `${element.style.fontSize}px`,
+          fontWeight,
+          color: element.style.color,
+          textDecoration: element.style.underline ? "underline" : "none",
+          lineHeight,
+          letterSpacing,
+        }}
+        textAlign={element.style.alignX}
+        textAlignY={element.style.alignY}
+        isSelected={shouldShowIndividualBorder(element.id)}
+        isEditing={isEditing}
+        locked={locked}
+        showToolbar={showToolbar}
+        widthMode={element.widthMode ?? "auto"}
+        toolbar={{
+          offset: mmToPx(4),
+          minFontSize,
+          maxFontSize,
+          fontSize: element.style.fontSize,
+          lineHeight,
+          letterSpacing,
+          color: element.style.color,
+          isBold: element.style.fontWeight === "bold",
+          isUnderline: Boolean(element.style.underline),
+          align: element.style.alignX,
+          alignY: element.style.alignY,
+          onFontSizeChange: (value) =>
+            updateElement(element.id, {
+              style: { fontSize: clampFontSize(value) },
+            }),
+          onFontSizeStep: (delta) =>
+            updateElement(element.id, {
+              style: {
+                fontSize: clampFontSize(
+                  element.style.fontSize + delta
+                ),
+              },
+            }),
+          onLineHeightChange: (value) =>
+            updateElement(element.id, { style: { lineHeight: value } }),
+          onLetterSpacingChange: (value) =>
+            updateElement(element.id, {
+              style: { letterSpacing: value },
+            }),
+          onColorChange: (color) =>
+            updateElement(element.id, { style: { color } }),
+          onToggleBold: () =>
+            updateElement(element.id, {
+              style: {
+                fontWeight:
+                  element.style.fontWeight === "bold"
+                    ? "normal"
+                    : "bold",
+              },
+            }),
+          onToggleUnderline: () =>
+            updateElement(element.id, {
+              style: { underline: !element.style.underline },
+            }),
+          onAlignChange: (align) =>
+            updateElement(element.id, { style: { alignX: align } }),
+          onAlignYChange: (alignY) =>
+            updateElement(element.id, { style: { alignY } }),
+        }}
+        onTextChange={(nextText, nextRichText) =>
+          updateElement(element.id, { text: nextText, richText: nextRichText })
+        }
+        onRectChange={
+          isEmotionSlotText
+            ? undefined
+            : (nextRect) => handleRectChange(element.id, nextRect)
+        }
+        onWidthModeChange={(mode) =>
+          updateElement(element.id, { widthMode: mode })
+        }
+        onDragStateChange={(isDragging, finalRect, context) =>
+          handleDragStateChange(element.id, isDragging, finalRect, context)
+        }
+        onSelectChange={(isSelected, options) =>
+          handleSelectChange(element.id, isSelected, options)
+        }
+        onContextMenu={(event) => openContextMenu(event, element.id)}
+        onStartEditing={() =>
+          onEditingTextIdChange?.(element.id)
+        }
+        onFinishEditing={() => onEditingTextIdChange?.(null)}
+        onRequestDelete={() => deleteElementById(element.id)}
+        transformRect={(nextRect, context) =>
+          transformElementRect(element.id, nextRect, context)
+        }
+      />
+    );
+  };
+
+  const renderShapeElement = (element: ShapeElement) => {
+    const rect = getRenderableRect(element);
+    if (!rect) return null;
+    const isSelected = selectedIds.includes(element.id);
+    const radius =
+      element.type === "roundRect"
+        ? element.radius ?? 0
+        : element.type === "ellipse"
+        ? Math.min(rect.width, rect.height) / 2
+        : 0;
+    const isImageFill =
+      element.fill.startsWith("url(") ||
+      element.fill.startsWith("data:");
+    const isImageEditing =
+      isImageFill && editingImageId === element.id && isSelected;
+    const imageBox = element.imageBox;
+
+    const ShapeComponent =
+      element.type === "ellipse" ? CircleBox : RoundBox;
+    const handleImageBoxChange =
+      readOnly || element.locked || !isImageFill
+        ? undefined
+        : (value: { x: number; y: number; w: number; h: number }) =>
+            updateElement(element.id, { imageBox: value });
+
+    const isShapeTextEditing = editingShapeTextId === element.id;
+
+    return (
+      <ShapeComponent
+        key={element.id}
+        rect={rect}
+        minWidth={1}
+        minHeight={1}
+        borderRadius={radius}
+        fill={element.fill}
+        imageBox={imageBox}
+        border={element.border}
+        text={element.text}
+        textStyle={element.textStyle}
+        isSelected={shouldShowIndividualBorder(element.id)}
+        isImageEditing={isImageEditing}
+        isTextEditing={isShapeTextEditing}
+        locked={readOnly || element.locked}
+        selectable={element.selectable}
+        onImageEditingChange={(isEditing: boolean) =>
+          setEditingImageId(isEditing ? element.id : null)
+        }
+        onTextEditingChange={(isEditing: boolean) =>
+          setEditingShapeTextId(isEditing ? element.id : null)
+        }
+        onTextChange={(text: string) =>
+          updateElement(element.id, { text })
+        }
+        onImageBoxChange={handleImageBoxChange}
+        onImageDrop={
+          readOnly || element.locked
+            ? undefined
+            : (imageUrl) =>
+                updateElement(element.id, {
+                  fill: imageUrl.startsWith("url(")
+                    ? imageUrl
+                    : `url(${imageUrl})`,
+                  imageBox: {
+                    x: 0,
+                    y: 0,
+                    w: rect.width,
+                    h: rect.height,
+                  },
+                })
+        }
+        onRectChange={(nextRect) =>
+          handleRectChange(element.id, nextRect)
+        }
+        onDragStateChange={(isDragging, finalRect, context) =>
+          handleDragStateChange(element.id, isDragging, finalRect, context)
+        }
+        onSelectChange={(isSelected, options) =>
+          handleSelectChange(element.id, isSelected, options)
+        }
+        onContextMenu={(event) => openContextMenu(event, element.id)}
+        transformRect={(nextRect, context) =>
+          transformElementRect(element.id, nextRect, context)
+        }
+      />
+    );
+  };
+
+  const renderLineElement = (element: LineElement) => {
+    const stroke = element.stroke ?? DEFAULT_STROKE;
+    const sharedProps = {
+      id: element.id,
+      start: element.start,
+      end: element.end,
+      stroke,
+      isSelected: shouldShowIndividualBorder(element.id),
+      locked: readOnly || element.locked,
+      onLineChange: (nextLine: { start: Point; end: Point }) =>
+        handleLineChange(element.id, nextLine),
+      onDragStateChange: (
+        isDragging: boolean,
+        nextLine?: { start: Point; end: Point },
+        context?: { type: "drag" | "resize" }
+      ) =>
+        handleLineDragStateChange(
+          element.id,
+          isDragging,
+          nextLine,
+          context
+        ),
+      onSelectChange: (isSelected: boolean, options?: { keepContextMenu?: boolean; additive?: boolean }) =>
+        handleSelectChange(element.id, isSelected, options),
+      onContextMenu: (event: ReactMouseEvent<HTMLElement>) =>
+        openContextMenu(event, element.id),
+    };
+    return element.type === "line" ? (
+      <Line key={element.id} {...sharedProps} />
+    ) : (
+      <Arrow key={element.id} {...sharedProps} />
+    );
+  };
+
+  const renderElement = (element: CanvasElement) => {
+    switch (element.type) {
+      case "text":
+        return renderTextElement(element);
+      case "rect":
+      case "roundRect":
+      case "ellipse":
+        return renderShapeElement(element);
+      case "line":
+      case "arrow":
+        return renderLineElement(element);
+      default:
+        return null;
+    }
+  };
 
   return (
     <div
@@ -1771,20 +1189,14 @@ const DesignPaper = ({
       onFocus={() => !readOnly && setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       onKeyDown={(event) => {
-        // Stop propagation to prevent BottomBar from handling canvas keyboard events
+        // 하단 바가 캔버스 키보드 이벤트를 처리하지 않도록 전파를 막는다.
         if (!readOnly) {
           event.stopPropagation();
 
-          // Handle Delete/Backspace for selected elements
+          // 선택 요소 삭제 키 동작을 처리한다.
           if ((event.key === "Delete" || event.key === "Backspace") && !editingTextId) {
-            const target = event.target as HTMLElement | null;
-            // Don't delete if we're typing in a text field
-            if (
-              target &&
-              (target.tagName === "INPUT" ||
-                target.tagName === "TEXTAREA" ||
-                target.isContentEditable)
-            ) {
+            // 입력 중인 텍스트 필드에서는 삭제하지 않는다.
+            if (isEditableTarget(event.target)) {
               return;
             }
 
@@ -1802,16 +1214,9 @@ const DesignPaper = ({
         }
       }}
       onPointerDown={(event) => {
-        const target = event.target as HTMLElement | null;
-        const isEditableTarget = Boolean(
-          target &&
-            (target.tagName === "INPUT" ||
-              target.tagName === "TEXTAREA" ||
-              target.isContentEditable)
-        );
         if (!readOnly) {
           const container = containerRef.current;
-          if (container && !isEditableTarget) {
+          if (container && !isEditableTarget(event.target)) {
             container.focus();
           }
         }
@@ -1820,15 +1225,8 @@ const DesignPaper = ({
         }
       }}
       onPointerDownCapture={(event) => {
-        const target = event.target as HTMLElement | null;
-        const isEditableTarget = Boolean(
-          target &&
-            (target.tagName === "INPUT" ||
-              target.tagName === "TEXTAREA" ||
-              target.isContentEditable)
-        );
         if (!readOnly) {
-          if (!isEditableTarget) {
+          if (!isEditableTarget(event.target)) {
             containerRef.current?.focus();
           }
         }
@@ -1838,594 +1236,29 @@ const DesignPaper = ({
         lastPointerRef.current = getPointerPosition(event);
       }}
     >
-      {elements.map((element) => {
-        if (element.type === "text") {
-          const isSelected = selectedIds.includes(element.id);
-          const showToolbar = selectedIds[0] === element.id && selectedIds.length === 1;
-          const isEditing = editingTextId === element.id;
-          const isEmotionSlotText = emotionSlotTextIds.has(element.id);
-          const forceEditable = isEmotionSlotText && isEditing;
-          const locked =
-            readOnly ||
-            (element.locked && !forceEditable) ||
-            (isEmotionSlotText && !isEditing);
-          const rect = getRenderableRect(element);
-          if (!rect) return null;
-          const minFontSize = 12;
-          const maxFontSize = 120;
-          const clampFontSize = (value: number) =>
-            Math.min(maxFontSize, Math.max(minFontSize, value));
-          const lineHeight = element.style.lineHeight ?? 1.3;
-          const letterSpacing = element.style.letterSpacing ?? 0;
-          const fontWeight =
-            element.style.fontWeight === "bold" ? 700 : 400;
-          const minTextHeight = element.lockHeight ? rect.height : 1;
-          // Hide individual border if part of grouped selection
-          const showIndividualBorder = isSelected && (!isGroupedSelection || selectedIds.length === 1);
-          return (
-            <TextBox
-              key={element.id}
-              text={element.text}
-              richText={element.richText}
-              editable={!readOnly && (!element.locked || forceEditable)}
-              rect={rect}
-              minWidth={1}
-              minHeight={minTextHeight}
-              showChrome={!isEmotionSlotText}
-              textClassName="text-headline-42-semibold"
-              textStyle={{
-                fontSize: `${element.style.fontSize}px`,
-                fontWeight,
-                color: element.style.color,
-                textDecoration: element.style.underline ? "underline" : "none",
-                lineHeight,
-                letterSpacing,
-              }}
-              textAlign={element.style.alignX}
-              textAlignY={element.style.alignY}
-              isSelected={showIndividualBorder}
-              isEditing={isEditing}
-              locked={locked}
-              showToolbar={showToolbar}
-              widthMode={element.widthMode ?? "auto"}
-              toolbar={{
-                offset: mmToPx(4),
-                minFontSize,
-                maxFontSize,
-                fontSize: element.style.fontSize,
-                lineHeight,
-                letterSpacing,
-                color: element.style.color,
-                isBold: element.style.fontWeight === "bold",
-                isUnderline: Boolean(element.style.underline),
-                align: element.style.alignX,
-                alignY: element.style.alignY,
-                onFontSizeChange: (value) =>
-                  updateElement(element.id, {
-                    style: { fontSize: clampFontSize(value) },
-                  }),
-                onFontSizeStep: (delta) =>
-                  updateElement(element.id, {
-                    style: {
-                      fontSize: clampFontSize(
-                        element.style.fontSize + delta
-                      ),
-                    },
-                  }),
-                onLineHeightChange: (value) =>
-                  updateElement(element.id, { style: { lineHeight: value } }),
-                onLetterSpacingChange: (value) =>
-                  updateElement(element.id, {
-                    style: { letterSpacing: value },
-                  }),
-                onColorChange: (color) =>
-                  updateElement(element.id, { style: { color } }),
-                onToggleBold: () =>
-                  updateElement(element.id, {
-                    style: {
-                      fontWeight:
-                        element.style.fontWeight === "bold"
-                          ? "normal"
-                          : "bold",
-                    },
-                  }),
-                onToggleUnderline: () =>
-                  updateElement(element.id, {
-                    style: { underline: !element.style.underline },
-                  }),
-                onAlignChange: (align) =>
-                  updateElement(element.id, { style: { alignX: align } }),
-                onAlignYChange: (alignY) =>
-                  updateElement(element.id, { style: { alignY } }),
-              }}
-              onTextChange={(nextText, nextRichText) =>
-                updateElement(element.id, { text: nextText, richText: nextRichText })
-              }
-              onRectChange={
-                isEmotionSlotText
-                  ? undefined
-                  : (nextRect) => handleRectChange(element.id, nextRect)
-              }
-              onWidthModeChange={(mode) =>
-                updateElement(element.id, { widthMode: mode })
-              }
-              onDragStateChange={(isDragging, finalRect, context) =>
-                handleDragStateChange(element.id, isDragging, finalRect, context)
-              }
-              onSelectChange={(isSelected, options) => {
-                if (isSelected) {
-                  handleSelect(element.id, options);
-                }
-              }}
-              onContextMenu={(event) => openContextMenu(event, element.id)}
-              onStartEditing={() =>
-                onEditingTextIdChange?.(element.id)
-              }
-              onFinishEditing={() => onEditingTextIdChange?.(null)}
-              onRequestDelete={() => deleteElementById(element.id)}
-              transformRect={(nextRect, context) => {
-                const activeInteraction = activeInteractionRef.current;
-                if (!activeInteraction || activeInteraction.id !== element.id) {
-                  return nextRect;
-                }
-                if (context.type === "resize") {
-                  const handle = context.handle ?? "";
-                  const activeX = handle.includes("e")
-                    ? [nextRect.x + nextRect.width]
-                    : handle.includes("w")
-                    ? [nextRect.x]
-                    : [];
-                  const activeY = handle.includes("s")
-                    ? [nextRect.y + nextRect.height]
-                    : handle.includes("n")
-                    ? [nextRect.y]
-                    : [];
-                  const { snapOffset } = smartGuides.compute({
-                    activeRect: nextRect,
-                    otherRects: getTargetRects(element.id),
-                    activeX,
-                    activeY,
-                  });
-                  const next = { ...nextRect };
-                  if (handle.includes("e")) {
-                    next.width += snapOffset.x;
-                  } else if (handle.includes("w")) {
-                    next.x += snapOffset.x;
-                    next.width -= snapOffset.x;
-                  }
-                  if (handle.includes("s")) {
-                    next.height += snapOffset.y;
-                  } else if (handle.includes("n")) {
-                    next.y += snapOffset.y;
-                    next.height -= snapOffset.y;
-                  }
-                  return next;
-                }
-                // Check if element is part of a selected group
-                const groupBoundingBox = getGroupBoundingBox(element.id, nextRect);
-                const activeRect = groupBoundingBox || nextRect;
-
-                const { snapOffset } = smartGuides.compute({
-                  activeRect,
-                  otherRects: getTargetRects(element.id),
-                });
-                return {
-                  ...nextRect,
-                  x: nextRect.x + snapOffset.x,
-                  y: nextRect.y + snapOffset.y,
-                };
-              }}
-            />
-          );
-        }
-
-        if (
-          element.type === "rect" ||
-          element.type === "roundRect" ||
-          element.type === "ellipse"
-        ) {
-          const rect = getRenderableRect(element);
-          if (!rect) return null;
-          const isSelected = selectedIds.includes(element.id);
-          const radius =
-            element.type === "roundRect"
-              ? element.radius ?? 0
-              : element.type === "ellipse"
-              ? Math.min(rect.width, rect.height) / 2
-              : 0;
-          const isImageFill =
-            element.fill.startsWith("url(") ||
-            element.fill.startsWith("data:");
-          const isImageEditing =
-            isImageFill && editingImageId === element.id && isSelected;
-          const imageBox = element.imageBox;
-
-          const ShapeComponent =
-            element.type === "ellipse" ? CircleBox : RoundBox;
-          const handleImageBoxChange =
-            readOnly || element.locked || !isImageFill
-              ? undefined
-              : (value: { x: number; y: number; w: number; h: number }) =>
-                  updateElement(element.id, { imageBox: value });
-
-          const isShapeTextEditing = editingShapeTextId === element.id;
-          // Hide individual border if part of grouped selection
-          const showIndividualBorder = isSelected && (!isGroupedSelection || selectedIds.length === 1);
-
-          return (
-            <ShapeComponent
-              key={element.id}
-              rect={rect}
-              minWidth={1}
-              minHeight={1}
-              borderRadius={radius}
-              fill={element.fill}
-              imageBox={imageBox}
-              border={element.border}
-              text={element.text}
-              textStyle={element.textStyle}
-              isSelected={showIndividualBorder}
-              isImageEditing={isImageEditing}
-              isTextEditing={isShapeTextEditing}
-              locked={readOnly || element.locked}
-              selectable={element.selectable}
-              onImageEditingChange={(isEditing: boolean) =>
-                setEditingImageId(isEditing ? element.id : null)
-              }
-              onTextEditingChange={(isEditing: boolean) =>
-                setEditingShapeTextId(isEditing ? element.id : null)
-              }
-              onTextChange={(text: string) =>
-                updateElement(element.id, { text })
-              }
-              onImageBoxChange={handleImageBoxChange}
-              onImageDrop={
-                readOnly || element.locked
-                  ? undefined
-                  : (imageUrl) =>
-                      updateElement(element.id, {
-                        fill: imageUrl.startsWith("url(")
-                          ? imageUrl
-                          : `url(${imageUrl})`,
-                        imageBox: {
-                          x: 0,
-                          y: 0,
-                          w: rect.width,
-                          h: rect.height,
-                        },
-                      })
-              }
-              onRectChange={(nextRect) =>
-                handleRectChange(element.id, nextRect)
-              }
-              onDragStateChange={(isDragging, finalRect, context) =>
-                handleDragStateChange(element.id, isDragging, finalRect, context)
-              }
-              onSelectChange={(isSelected, options) => {
-                if (isSelected) {
-                  handleSelect(element.id, options);
-                }
-              }}
-              onContextMenu={(event) => openContextMenu(event, element.id)}
-              transformRect={(nextRect, context) => {
-                const activeInteraction = activeInteractionRef.current;
-                if (!activeInteraction || activeInteraction.id !== element.id) {
-                  return nextRect;
-                }
-                if (context.type === "resize") {
-                  const handle = context.handle ?? "";
-                  const activeX = handle.includes("e")
-                    ? [nextRect.x + nextRect.width]
-                    : handle.includes("w")
-                    ? [nextRect.x]
-                    : [];
-                  const activeY = handle.includes("s")
-                    ? [nextRect.y + nextRect.height]
-                    : handle.includes("n")
-                    ? [nextRect.y]
-                    : [];
-                  const { snapOffset } = smartGuides.compute({
-                    activeRect: nextRect,
-                    otherRects: getTargetRects(element.id),
-                    activeX,
-                    activeY,
-                  });
-                  const next = { ...nextRect };
-                  if (handle.includes("e")) {
-                    next.width += snapOffset.x;
-                  } else if (handle.includes("w")) {
-                    next.x += snapOffset.x;
-                    next.width -= snapOffset.x;
-                  }
-                  if (handle.includes("s")) {
-                    next.height += snapOffset.y;
-                  } else if (handle.includes("n")) {
-                    next.y += snapOffset.y;
-                    next.height -= snapOffset.y;
-                  }
-                  return next;
-                }
-                // Check if element is part of a selected group
-                const groupBoundingBox = getGroupBoundingBox(element.id, nextRect);
-                const activeRect = groupBoundingBox || nextRect;
-
-                const { snapOffset } = smartGuides.compute({
-                  activeRect,
-                  otherRects: getTargetRects(element.id),
-                });
-                return {
-                  ...nextRect,
-                  x: nextRect.x + snapOffset.x,
-                  y: nextRect.y + snapOffset.y,
-                };
-              }}
-            />
-          );
-        }
-
-        if (element.type === "line" || element.type === "arrow") {
-          const stroke = element.stroke ?? DEFAULT_STROKE;
-          const isSelected = selectedIds.includes(element.id);
-          // Hide individual border if part of grouped selection
-          const showIndividualBorder = isSelected && (!isGroupedSelection || selectedIds.length === 1);
-
-          if (element.type === "line") {
-            return (
-              <Line
-                key={element.id}
-                id={element.id}
-                start={element.start}
-                end={element.end}
-                stroke={stroke}
-                isSelected={showIndividualBorder}
-                locked={readOnly || element.locked}
-                onLineChange={(nextLine) => handleLineChange(element.id, nextLine)}
-                onDragStateChange={(isDragging, nextLine, context) =>
-                  handleLineDragStateChange(
-                    element.id,
-                    isDragging,
-                    nextLine,
-                    context
-                  )
-                }
-                onSelectChange={(isSelected, options) => {
-                  if (isSelected) {
-                    handleSelect(element.id, options);
-                  }
-                }}
-                onContextMenu={(event) => openContextMenu(event, element.id)}
-              />
-            );
-          }
-
-          return (
-            <Arrow
-              key={element.id}
-              id={element.id}
-              start={element.start}
-              end={element.end}
-              stroke={stroke}
-              isSelected={showIndividualBorder}
-              locked={readOnly || element.locked}
-              onLineChange={(nextLine) => handleLineChange(element.id, nextLine)}
-              onDragStateChange={(isDragging, nextLine, context) =>
-                handleLineDragStateChange(
-                  element.id,
-                  isDragging,
-                  nextLine,
-                  context
-                )
-              }
-              onSelectChange={(isSelected, options) => {
-                if (isSelected) {
-                  handleSelect(element.id, options);
-                }
-              }}
-              onContextMenu={(event) => openContextMenu(event, element.id)}
-            />
-          );
-        }
-        return null;
-      })}
-      {selectionRect && (
-        <div
-          className="absolute z-40 border border-primary/60 bg-primary/10 pointer-events-none"
-          style={{
-            left: selectionRect.x,
-            top: selectionRect.y,
-            width: selectionRect.width,
-            height: selectionRect.height,
-          }}
-        />
-      )}
-      {isGroupedSelection && !readOnly && (() => {
-        // Calculate bounding box for the grouped selection
-        const groupRects = selectedIds
-          .map((id) => {
-            const element = elements.find((el) => el.id === id);
-            if (!element) return null;
-            return getRectFromElement(element);
-          })
-          .filter((rect): rect is Rect => Boolean(rect));
-
-        if (groupRects.length === 0) return null;
-
-        const minX = Math.min(...groupRects.map((r) => r.x));
-        const minY = Math.min(...groupRects.map((r) => r.y));
-        const maxX = Math.max(...groupRects.map((r) => r.x + r.width));
-        const maxY = Math.max(...groupRects.map((r) => r.y + r.height));
-
-        const groupBoundingBox = {
-          x: minX,
-          y: minY,
-          width: maxX - minX,
-          height: maxY - minY,
-        };
-
-        return (
-          <div
-            className="absolute z-30 border border-primary/40 pointer-events-none"
-            style={{
-              left: groupBoundingBox.x,
-              top: groupBoundingBox.y,
-              width: groupBoundingBox.width,
-              height: groupBoundingBox.height,
-            }}
-          />
-        );
-      })()}
-      {contextMenu && (
-        <div
-          className="absolute z-50"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onContextMenu={(event) => event.preventDefault()}
-          onMouseLeave={() =>
-            setContextMenu((prev) =>
-              prev ? { ...prev, activeSubmenu: undefined } : prev
-            )
-          }
-        >
-          <div className="w-56 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
-            <button
-              type="button"
-              onClick={copySelectedElements}
-              className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-            >
-              <span className="flex items-center gap-2">
-                <Copy className="h-4 w-4" />
-                복사
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={pasteElements}
-              disabled={!getClipboard()}
-              className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
-                getClipboard()
-                  ? "text-black-90 hover:bg-black-5"
-                  : "text-black-40"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Clipboard className="h-4 w-4" />
-                붙여넣기
-              </span>
-            </button>
-            {canGroupSelection && (
-              <button
-                type="button"
-                onClick={groupSelectedElements}
-                disabled={isGroupedSelection}
-                className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
-                  isGroupedSelection
-                    ? "cursor-not-allowed text-black-40"
-                    : "text-black-90 hover:bg-black-5"
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Group className="h-4 w-4" />
-                  그룹화
-                </span>
-              </button>
-            )}
-            {canUngroupSelection && (
-              <button
-                type="button"
-                onClick={ungroupSelectedElements}
-                className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-              >
-                <span className="flex items-center gap-2">
-                  <Ungroup className="h-4 w-4" />
-                  그룹 해제
-                </span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={deleteSelectedElements}
-              className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-            >
-              <span className="flex items-center gap-2">
-                <Trash2 className="h-4 w-4" />
-                삭제
-              </span>
-            </button>
-            <button
-              type="button"
-              onMouseEnter={() =>
-                setContextMenu((prev) =>
-                  prev ? { ...prev, activeSubmenu: "layer" } : prev
-                )
-              }
-              className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-            >
-              <span className="flex items-center gap-2">
-                <Layers className="h-4 w-4" />
-                레이어
-              </span>
-              <ChevronRight className="h-4 w-4 text-black-50" />
-            </button>
-          </div>
-          {contextMenu.activeSubmenu === "layer" && (() => {
-            const index = elements.findIndex(
-              (element) => element.id === contextMenu.id
-            );
-            const canForward = index < elements.length - 1;
-            const canBackward = index > 0;
-            const items = [
-              {
-                key: "forward",
-                label: "앞으로 가져오기",
-                Icon: ArrowUpFromLine,
-                enabled: canForward,
-                action: () => moveElement(contextMenu.id, "forward"),
-              },
-              {
-                key: "front",
-                label: "맨 앞으로 가져오기",
-                Icon: ChevronsUp,
-                enabled: canForward,
-                action: () => moveElement(contextMenu.id, "front"),
-              },
-              {
-                key: "backward",
-                label: "뒤로 보내기",
-                Icon: ArrowUpToLine,
-                enabled: canBackward,
-                action: () => moveElement(contextMenu.id, "backward"),
-              },
-              {
-                key: "back",
-                label: "맨 뒤로 보내기",
-                Icon: ChevronsDown,
-                enabled: canBackward,
-                action: () => moveElement(contextMenu.id, "back"),
-              },
-            ];
-            return (
-              <div className="absolute left-full top-0 ml-2 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
-                {items.map(({ key, label, Icon, enabled, action }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={action}
-                    disabled={!enabled}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-14-regular ${
-                      enabled
-                        ? "text-black-90 hover:bg-black-5"
-                        : "text-black-40"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      )}
+      {elements.map((element) => renderElement(element))}
+      <SelectionRectOverlay selectionRect={selectionRect} />
+      <GroupSelectionOverlay
+        isGroupedSelection={isGroupedSelection}
+        readOnly={readOnly}
+        selectedIds={selectedIds}
+        elements={elements}
+      />
+      <DesignPaperContextMenu
+        contextMenu={contextMenu}
+        elements={elements}
+        canGroupSelection={canGroupSelection}
+        canUngroupSelection={canUngroupSelection}
+        isGroupedSelection={isGroupedSelection}
+        canPaste={Boolean(getClipboard())}
+        onCopy={copySelectedElements}
+        onPaste={pasteElements}
+        onGroup={groupSelectedElements}
+        onUngroup={ungroupSelectedElements}
+        onDelete={deleteSelectedElements}
+        onMoveLayer={moveElement}
+        setContextMenu={setContextMenu}
+      />
       <SmartGuideOverlay guides={smartGuides.guides} />
     </div>
   );

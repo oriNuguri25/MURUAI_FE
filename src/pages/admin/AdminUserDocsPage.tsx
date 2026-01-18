@@ -196,19 +196,15 @@ const AdminUserDocsPage = () => {
     return { docsByUser: grouped, userEntries: entries };
   }, [filteredDocs]);
 
-  useEffect(() => {
-    if (userEntries.length === 0) {
-      setSelectedUserId(null);
-      return;
+  const activeUserId = useMemo(() => {
+    if (userEntries.length === 0) return null;
+    if (selectedUserId && docsByUser.has(selectedUserId)) {
+      return selectedUserId;
     }
-    if (!selectedUserId || !docsByUser.has(selectedUserId)) {
-      setSelectedUserId(userEntries[0].userId);
-    }
+    return userEntries[0]?.userId ?? null;
   }, [docsByUser, selectedUserId, userEntries]);
 
-  const selectedDocs = selectedUserId
-    ? docsByUser.get(selectedUserId) ?? []
-    : [];
+  const selectedDocs = activeUserId ? docsByUser.get(activeUserId) ?? [] : [];
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -280,7 +276,7 @@ const AdminUserDocsPage = () => {
                     type="button"
                     onClick={() => setSelectedUserId(entry.userId)}
                     className={`flex flex-col gap-2 rounded-xl border px-3 py-3 text-left transition ${
-                      selectedUserId === entry.userId
+                      activeUserId === entry.userId
                         ? "border-primary bg-primary/5"
                         : "border-black-10 hover:border-black-20"
                     }`}
@@ -306,13 +302,13 @@ const AdminUserDocsPage = () => {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <span className="text-title-16-semibold text-black-100">
-                {selectedUserId
-                  ? `유저 ${selectedUserId}`
+                <span className="text-title-16-semibold text-black-100">
+                {activeUserId
+                  ? `유저 ${activeUserId}`
                   : "유저를 선택해주세요"}
               </span>
               <span className="text-12-regular text-black-50">
-                {selectedUserId
+                {activeUserId
                   ? `${selectedDocs.length}개 자료`
                   : "좌측 목록에서 유저를 선택하면 자료를 확인할 수 있어요."}
               </span>
@@ -331,7 +327,7 @@ const AdminUserDocsPage = () => {
                 학습자료를 불러오는 중입니다.
               </span>
             </div>
-          ) : !selectedUserId ? (
+          ) : !activeUserId ? (
             <div className="flex items-center justify-center rounded-xl border border-black-10 bg-black-5 py-14">
               <span className="text-14-regular text-black-50">
                 유저를 선택해주세요.

@@ -25,6 +25,8 @@ const EMOTIONS = [
   { id: 10, name: "불안함", image: "😰" },
 ];
 
+const EMOTION_CARD_SIZE = { width: 200, height: 260 };
+
 const getTwemojiUrl = (emoji: string) => {
   const codepoints = Array.from(emoji).map((char) => {
     const code = char.codePointAt(0);
@@ -140,7 +142,9 @@ const EmotionList = ({
                 key={emotion.id}
                 draggable
                 onDragStart={(event) => setDragImageData(event, imageUrl)}
-                onClick={() => requestImageFill(imageUrl, emotion.name)}
+                onClick={() =>
+                  requestImageFill(imageUrl, emotion.name, EMOTION_CARD_SIZE)
+                }
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <img
@@ -308,7 +312,9 @@ const PhotoEmotionContent = () => {
                 key={emotion.id}
                 draggable
                 onDragStart={(event) => setDragImageData(event, emotion.url)}
-                onClick={() => requestImageFill(emotion.url, emotion.label)}
+                onClick={() =>
+                  requestImageFill(emotion.url, emotion.label, EMOTION_CARD_SIZE)
+                }
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">

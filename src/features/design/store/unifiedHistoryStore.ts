@@ -42,6 +42,8 @@ const clonePages = (pages: Page[]): Page[] => {
   return JSON.parse(JSON.stringify(pages));
 };
 
+const HISTORY_MERGE_WINDOW_MS = 500;
+
 // Helper to check if two page arrays are equal
 const arePagesEqual = (a: Page[], b: Page[]): boolean => {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -79,13 +81,31 @@ export const useUnifiedHistoryStore = create<UnifiedHistoryState>((set, get) => 
     if (state.transactionActive) return;
     if (state.present && arePagesEqual(state.present.pages, pages)) return;
 
+    const now = Date.now();
     const newEntry: HistoryEntry = {
       pages: clonePages(pages),
       selectedPageId,
       selectedIds: [...selectedIds],
-      timestamp: Date.now(),
+      timestamp: now,
       label,
     };
+
+    const canMerge =
+      !label &&
+      state.present &&
+      state.past.length > 0 &&
+      now - state.present.timestamp < HISTORY_MERGE_WINDOW_MS;
+
+    if (canMerge) {
+      set({
+        past: state.past,
+        present: newEntry,
+        future: [],
+        canUndo: state.past.length > 0,
+        canRedo: false,
+      });
+      return;
+    }
 
     set({
       past: state.present ? [...state.past, state.present] : state.past,

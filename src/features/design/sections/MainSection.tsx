@@ -37,6 +37,7 @@ import {
 import {
   buildAacBoardElements,
   type AacBoardConfig,
+  type AacBoardElement,
 } from "../utils/aacBoardUtils";
 import {
   withLogoCanvasElements,
@@ -187,19 +188,34 @@ const findLabelElementId = (
     element: CanvasElement
   ) => element is Extract<CanvasElement, { type: "text" }>
 ) => {
-  const centerX = shape.x + shape.w / 2;
-  const centerY = shape.y + shape.h / 2;
+  const shapeLeft = shape.x;
+  const shapeRight = shape.x + shape.w;
+  const shapeTop = shape.y;
+  const shapeBottom = shape.y + shape.h;
   let bestId: string | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
-  const tolerance = mmToPx(2);
+  const tolerance = mmToPx(5); // tolerance 확대 (2mm -> 5mm)
 
   elements.forEach((element) => {
-    if (!isLabelElement(element)) return;
-    const labelCenterX = element.x + element.w / 2;
-    if (Math.abs(labelCenterX - centerX) > tolerance) return;
-    if (Math.abs(element.w - shape.w) > tolerance) return;
+    if (element.type !== "text") return;
+    const isLabel = isLabelElement(element);
+    if (!isLabel) return;
+
+    const labelLeft = element.x;
+    const labelRight = element.x + element.w;
+    // 라벨이 shape의 가로 범위 안에 있는지 확인
+    const horizontalOverlap =
+      Math.abs(labelLeft - shapeLeft) < tolerance &&
+      Math.abs(labelRight - shapeRight) < tolerance;
+    if (!horizontalOverlap) return;
+    // 라벨이 shape의 세로 범위 안이나 근처에 있는지 확인
     const labelCenterY = element.y + element.h / 2;
-    const distance = Math.abs(labelCenterY - centerY);
+    const isInsideOrNearShape =
+      labelCenterY >= shapeTop - tolerance &&
+      labelCenterY <= shapeBottom + tolerance;
+    if (!isInsideOrNearShape) return;
+    const shapeCenterY = shapeTop + shape.h / 2;
+    const distance = Math.abs(labelCenterY - shapeCenterY);
     if (distance < bestDistance) {
       bestDistance = distance;
       bestId = element.id;
@@ -338,12 +354,33 @@ const addAacBoardPage = ({
   setPages: Dispatch<SetStateAction<Page[]>>;
 }) => {
   const newPageId = Date.now().toString();
-  const elementsWithLogo = withLogoTemplateElements(
-    buildAacBoardElements(config)
-  ).map((element) => ({
-    ...element,
-    id: crypto.randomUUID(),
-  }));
+  const aacElements = buildAacBoardElements(config);
+
+  // tempId -> 실제 id 매핑 생성
+  const idMap = new Map<string, string>();
+  aacElements.forEach((element) => {
+    if (element.tempId) {
+      idMap.set(element.tempId, crypto.randomUUID());
+    }
+  });
+
+  const elementsWithLogo = (
+    withLogoTemplateElements(aacElements) as AacBoardElement[]
+  ).map((element) => {
+    const newId = element.tempId
+      ? idMap.get(element.tempId)
+      : crypto.randomUUID();
+    const newLabelId = element.labelId
+      ? idMap.get(element.labelId)
+      : undefined;
+    return {
+      ...element,
+      id: newId ?? crypto.randomUUID(),
+      tempId: undefined,
+      labelId: newLabelId,
+    };
+  });
+
   const firstSelectableElementId =
     elementsWithLogo.find((element) => !element.locked)?.id ?? null;
   setPages((prevPages) => {
@@ -647,6 +684,9 @@ const MainSection = () => {
   const lastUndoRequestIdRef = useRef(0);
   const lastRedoRequestIdRef = useRef(0);
   const blockRecordUntilRef = useRef(0);
+  const applyHistoryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   useEffect(() => {
     if (!isInitializedRef.current) return;
@@ -723,34 +763,34 @@ const MainSection = () => {
 
   // Handle undo/redo requests
   useEffect(() => {
-    if (undoRequestId === 0) return;
-    const present = historyStore.present;
-    if (!present) return;
+    const unsubscribe = useUnifiedHistoryStore.subscribe(
+      (state, prevState) => {
+        const undoChanged = state.undoRequestId !== prevState.undoRequestId;
+        const redoChanged = state.redoRequestId !== prevState.redoRequestId;
+        if (!undoChanged && !redoChanged) return;
+        if (!state.present) return;
 
-    isApplyingHistoryRef.current = true;
-    setPages(present.pages);
-    setSelectedPageId(present.selectedPageId);
-    setSelectedIds(present.selectedIds);
+        isApplyingHistoryRef.current = true;
+        setPages(state.present.pages);
+        setSelectedPageId(state.present.selectedPageId);
+        setSelectedIds(state.present.selectedIds);
 
-    setTimeout(() => {
-      isApplyingHistoryRef.current = false;
-    }, 150);
-  }, [undoRequestId, historyStore.present]);
+        if (applyHistoryTimeoutRef.current) {
+          clearTimeout(applyHistoryTimeoutRef.current);
+        }
+        applyHistoryTimeoutRef.current = setTimeout(() => {
+          isApplyingHistoryRef.current = false;
+        }, 150);
+      }
+    );
 
-  useEffect(() => {
-    if (redoRequestId === 0) return;
-    const present = historyStore.present;
-    if (!present) return;
-
-    isApplyingHistoryRef.current = true;
-    setPages(present.pages);
-    setSelectedPageId(present.selectedPageId);
-    setSelectedIds(present.selectedIds);
-
-    setTimeout(() => {
-      isApplyingHistoryRef.current = false;
-    }, 150);
-  }, [redoRequestId, historyStore.present]);
+    return () => {
+      unsubscribe();
+      if (applyHistoryTimeoutRef.current) {
+        clearTimeout(applyHistoryTimeoutRef.current);
+      }
+    };
+  }, [setPages, setSelectedPageId, setSelectedIds]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -947,9 +987,9 @@ const MainSection = () => {
       // 선택된 요소가 없으면 독립적인 이미지 요소 생성
       if (activeSelectedIds.length === 0) {
         const newElementId = `element-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        const defaultWidth = 200;
-        const aspectRatio = 240 / 200;
-        const defaultHeight = Math.round(defaultWidth * aspectRatio);
+        const defaultWidth = state.width ?? 200;
+        const defaultHeight =
+          state.height ?? Math.round(defaultWidth * (240 / 200));
         const newImageElement: ShapeElement = {
           id: newElementId,
           type: "rect",
@@ -994,21 +1034,27 @@ const MainSection = () => {
                   element.type === "ellipse") &&
                 activeSelectedIds.includes(element.id)
               ) {
-                const aacLabelId = findLabelElementId(
-                  page.elements,
-                  element,
-                  isAacLabelElement
-                );
-                if (aacLabelId) {
-                  labelUpdates.set(aacLabelId, labelText);
-                }
-                const emotionLabelId = findLabelElementId(
-                  page.elements,
-                  element,
-                  isEmotionLabelElement
-                );
-                if (emotionLabelId) {
-                  labelUpdates.set(emotionLabelId, labelText);
+                // labelId가 있으면 직접 사용
+                if (element.labelId) {
+                  labelUpdates.set(element.labelId, labelText);
+                } else {
+                  // fallback: 기존 방식으로 라벨 찾기
+                  const aacLabelId = findLabelElementId(
+                    page.elements,
+                    element,
+                    isAacLabelElement
+                  );
+                  if (aacLabelId) {
+                    labelUpdates.set(aacLabelId, labelText);
+                  }
+                  const emotionLabelId = findLabelElementId(
+                    page.elements,
+                    element,
+                    isEmotionLabelElement
+                  );
+                  if (emotionLabelId) {
+                    labelUpdates.set(emotionLabelId, labelText);
+                  }
                 }
               }
             });
@@ -1041,12 +1087,25 @@ const MainSection = () => {
             }
             if (element.locked) return element;
             hasChanges = true;
-            const nextImageBox = element.imageBox ?? {
+            const baseImageBox = element.imageBox ?? {
               x: 0,
               y: 0,
               w: element.w,
               h: element.h,
             };
+            const borderWidth =
+              element.border?.enabled ? element.border.width : 0;
+            const nextImageBox =
+              borderWidth > 0 && isAacCardElement(page.elements, element)
+                ? {
+                    ...baseImageBox,
+                    x: Math.round(
+                      (Math.max(0, element.w - borderWidth * 2) -
+                        baseImageBox.w) /
+                        2
+                    ),
+                  }
+                : baseImageBox;
             return {
               ...element,
               fill: normalizedUrl,
@@ -1062,9 +1121,11 @@ const MainSection = () => {
             if (!nextLabel && nextPlaceholder === undefined) return element;
             if (element.type !== "text") return element;
             hasChanges = true;
+            const newText = nextLabel ?? nextPlaceholder ?? element.text;
             return {
               ...element,
-              text: nextLabel ?? nextPlaceholder ?? element.text,
+              text: newText,
+              richText: newText,
             };
           });
           return hasChanges
@@ -1137,10 +1198,9 @@ const MainSection = () => {
 
   const handleSelectPage = (pageId: string) => {
     setActivePage(pageId);
-    // 페이지 선택 시 요소 선택 해제 및 클립보드 초기화
+    // 페이지 선택 시 요소 선택 해제 (클립보드는 유지하여 페이지 간 복사/붙여넣기 허용)
     setSelectedIds([]);
     setEditingTextId(null);
-    sessionStorage.removeItem("copiedElements");
   };
 
   const handleReorderPages = (reorderedPages: Page[]) => {
@@ -1264,6 +1324,7 @@ const MainSection = () => {
     setSelectedIds([]);
     setEditingTextId(null);
     sessionStorage.removeItem("copiedElements");
+    sessionStorage.removeItem("copiedElementsMeta");
   }, []);
 
   // 복사/붙여넣기/삭제 기능 활성화
@@ -1751,7 +1812,6 @@ const MainSection = () => {
           ) {
             setSelectedIds([]);
             setEditingTextId(null);
-            sessionStorage.removeItem("copiedElements");
           }
         }}
       >
@@ -1768,7 +1828,6 @@ const MainSection = () => {
             if (e.target === e.currentTarget) {
               setSelectedIds([]);
               setEditingTextId(null);
-              sessionStorage.removeItem("copiedElements");
             }
           }}
         >

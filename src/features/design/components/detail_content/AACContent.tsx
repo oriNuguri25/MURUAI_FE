@@ -5,6 +5,8 @@ import { useAacCards } from "../../hooks/useAacCards";
 
 type Category = "food" | "animal" | "clothing" | "verb";
 
+const AAC_CARD_SIZE = { width: 200, height: 200 };
+
 const CATEGORY_VALUE_MAP: Record<Category, string[]> = {
   food: ["food"],
   animal: ["animal"],
@@ -136,7 +138,9 @@ const AACContent = () => {
                 key={image.id}
                 draggable
                 onDragStart={(event) => setDragImageData(event, image.url)}
-                onClick={() => requestImageFill(image.url, image.alt)}
+                onClick={() =>
+                  requestImageFill(image.url, image.alt, AAC_CARD_SIZE)
+                }
                 className="flex flex-col items-center p-3 rounded-xl border-2 border-black-25 hover:border-primary hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-xl bg-white overflow-hidden">

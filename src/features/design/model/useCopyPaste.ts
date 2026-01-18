@@ -35,17 +35,17 @@ export const useCopyPaste = ({
 
       // Ctrl+C 또는 Cmd+C (복사)
       if ((e.ctrlKey || e.metaKey) && e.key === "c") {
-        // 요소 복사가 있는지 확인
-        const copiedElements = sessionStorage.getItem("copiedElements");
-
-        // 요소 복사가 없는 경우에만 페이지 복사 수행
-        if (!copiedElements || selectedIds.length === 0) {
-          const selectedPage = pages.find((page) => page.id === selectedPageId);
-          if (selectedPage) {
-            // 복사할 페이지 ID를 세션 스토리지에 저장
-            sessionStorage.setItem("copiedPageId", selectedPage.id);
-          }
+        if (selectedIds.length > 0) return;
+        const selectedPage = pages.find((page) => page.id === selectedPageId);
+        if (!selectedPage) return;
+        try {
+          sessionStorage.setItem("copiedPageId", selectedPage.id);
+          sessionStorage.removeItem("copiedElements");
+          sessionStorage.removeItem("copiedElementsMeta");
+        } catch {
+          // ignore clipboard failures
         }
+        return;
       }
 
       // Ctrl+V 또는 Cmd+V (붙여넣기)

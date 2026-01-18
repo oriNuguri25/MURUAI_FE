@@ -83,6 +83,7 @@ export type ShapeElement = ElementBase & {
     fontWeight?: "normal" | "bold";
     color?: string;
   };
+  labelId?: string;
 };
 
 export type LineElement = ElementBase & {
