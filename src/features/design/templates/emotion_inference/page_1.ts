@@ -65,8 +65,6 @@ export const emotionInferencePage1: Template = {
         width: 2,
         style: "solid",
       },
-      locked: true,
-      selectable: false,
     },
     {
       type: "rect",

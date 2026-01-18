@@ -68,9 +68,9 @@ export const useTextBoxInteraction = ({
   ) => {
     if (locked) return;
     if (event.button !== 0) return;
+    if (isEditing && type === "drag") return;
     event.preventDefault();
     event.stopPropagation();
-    if (editable && isEditing && type === "drag") return;
     if (editable && isEditing && type === "resize") {
       const editableNode = editableRef.current;
       const nextText = editableNode?.innerText ?? text;

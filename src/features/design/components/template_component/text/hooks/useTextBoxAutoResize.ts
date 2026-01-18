@@ -7,6 +7,7 @@ type UseTextBoxAutoResizeProps = {
   widthMode: "auto" | "fixed";
   minWidth: number;
   minHeight: number;
+  textAlign: "left" | "center" | "right";
   onRectChange?: (rect: Rect) => void;
   rect: Rect;
   richText?: string;
@@ -24,6 +25,7 @@ export const useTextBoxAutoResize = ({
   widthMode,
   minWidth,
   minHeight,
+  textAlign,
   onRectChange,
   rect,
   richText,
@@ -63,8 +65,12 @@ export const useTextBoxAutoResize = ({
       const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
       if (widthChanged || heightChanged) {
         const widthDelta = targetWidth - rectWidth;
-        // Move half the width delta to keep the center anchored.
-        const newX = currentRect.x - widthDelta / 2;
+        const newX =
+          textAlign === "right"
+            ? currentRect.x + (rectWidth - targetWidth)
+            : textAlign === "center"
+            ? currentRect.x - widthDelta / 2
+            : currentRect.x;
         onRectChange({
           ...currentRect,
           x: newX,
@@ -92,6 +98,7 @@ export const useTextBoxAutoResize = ({
     richText,
     styleSignature,
     text,
+    textAlign,
     boxRef,
     editableRef,
     isResizingRef,

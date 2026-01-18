@@ -1,5 +1,6 @@
 import { images } from "@/shared/assets";
 import type { CanvasElement, TemplateElement } from "../model/canvasTypes";
+import { fitTemplateTextElements } from "./templateTextFit";
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
@@ -26,8 +27,12 @@ export const hasLogoElement = (
       element.fill === logoFill
   );
 
-export const withLogoTemplateElements = (elements: TemplateElement[]) =>
-  hasLogoElement(elements) ? elements : [getLogoTemplateElement(), ...elements];
+export const withLogoTemplateElements = (elements: TemplateElement[]) => {
+  const normalized = fitTemplateTextElements(elements);
+  return hasLogoElement(normalized)
+    ? normalized
+    : [getLogoTemplateElement(), ...normalized];
+};
 
 export const withLogoCanvasElements = (elements: CanvasElement[]) =>
   hasLogoElement(elements)

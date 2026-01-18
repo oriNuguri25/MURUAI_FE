@@ -805,7 +805,7 @@ const RoundBox = ({
       )}
       {!locked && (isHovered || isActive) && (
         <div
-          className="absolute left-1/2 top-full mt-1 w-32 -translate-x-1/2 rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap"
+          className="absolute left-1/2 top-full mt-1 w-32 -translate-x-1/2 rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap z-50"
           style={{ pointerEvents: "none" }}
         >
           가로: {Math.round(rect.width)} 세로: {Math.round(rect.height)}

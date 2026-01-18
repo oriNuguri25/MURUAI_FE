@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
+  Copy,
   Folder,
   LayoutGrid,
   List,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/shared/supabase/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
+import BaseModal from "@/shared/ui/BaseModal";
 import DesignPaper from "@/features/design/components/DesignPaper";
 import type { CanvasDocument } from "@/features/design/model/pageTypes";
 
@@ -88,6 +90,8 @@ const MyDocPage = () => {
   const [selectedTarget, setSelectedTarget] = useState<DocTarget | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pendingDuplicateDoc, setPendingDuplicateDoc] = useState<DocItem | null>(null);
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -285,6 +289,66 @@ const MyDocPage = () => {
       return;
     }
     setDocs((prev) => prev.filter((doc) => doc.id !== docId));
+  };
+  const handleDuplicateDoc = async (doc: DocItem) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setErrorMessage("로그인이 필요해요.");
+      return false;
+    }
+    const baseName = doc.name?.trim() || "제목 없음";
+    const nextName = `${baseName}(복제본)`;
+    const payload = {
+      user_id: user.id,
+      name: nextName,
+      canvas_data: doc.canvas_data ?? doc.canvasData,
+    };
+    const { data, error } = await supabase
+      .from("user_made_n")
+      .insert(payload)
+      .select("id,name,created_at,canvas_data")
+      .single();
+    if (error || !data) {
+      setErrorMessage("학습자료를 복제하지 못했어요.");
+      return false;
+    }
+
+    let nextTargets = doc.targets;
+    if (doc.targets.length > 0) {
+      const targetPayload = doc.targets.map((target) =>
+        target.type === "child"
+          ? { user_made_id: data.id, child_id: target.id }
+          : { user_made_id: data.id, group_id: target.id }
+      );
+      const { error: targetError } = await supabase
+        .from("user_made_targets_n")
+        .insert(targetPayload);
+      if (targetError) {
+        setErrorMessage("학습자료를 복제하지 못했어요.");
+        nextTargets = [];
+      }
+    }
+
+    setDocs((prev) => [
+      {
+        ...data,
+        targets: nextTargets,
+        canvasData: parseCanvasData(data.canvas_data),
+      },
+      ...prev,
+    ]);
+    return true;
+  };
+  const handleConfirmDuplicate = async () => {
+    if (!pendingDuplicateDoc || isDuplicating) return;
+    setIsDuplicating(true);
+    const success = await handleDuplicateDoc(pendingDuplicateDoc);
+    setIsDuplicating(false);
+    if (success) {
+      setPendingDuplicateDoc(null);
+    }
   };
 
   return (
@@ -603,17 +667,30 @@ const MyDocPage = () => {
                     className="flex cursor-pointer flex-col gap-3 rounded-2xl border border-black-20 bg-white-100 p-3 text-left shadow-sm transition hover:border-primary hover:shadow-md"
                   >
                     <div className="relative aspect-3/4 w-full overflow-hidden rounded-xl border border-black-10 bg-black-5">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteDoc(doc.id);
-                        }}
-                        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-red-200 hover:text-red-500"
-                        aria-label="학습자료 삭제"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPendingDuplicateDoc(doc);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-primary/40 hover:text-primary"
+                          aria-label="학습자료 복제"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteDoc(doc.id);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-black-20 bg-white-100 text-black-60 shadow-sm transition hover:border-red-200 hover:text-red-500"
+                          aria-label="학습자료 삭제"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                       {previewPage ? (
                         <div
                           className="absolute left-1/2 top-1/2"
@@ -674,6 +751,47 @@ const MyDocPage = () => {
           )}
         </section>
       </div>
+      <BaseModal
+        isOpen={Boolean(pendingDuplicateDoc)}
+        onClose={() => {
+          if (!isDuplicating) {
+            setPendingDuplicateDoc(null);
+          }
+        }}
+        title="학습자료 복제"
+      >
+        <div className="flex flex-col gap-6">
+          <p className="text-14-regular text-black-70">
+            복제하시겠습니까?
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (!isDuplicating) {
+                  setPendingDuplicateDoc(null);
+                }
+              }}
+              className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-title-14-semibold text-black-70 transition hover:bg-black-10"
+              disabled={isDuplicating}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDuplicate}
+              disabled={isDuplicating}
+              className={`flex-1 rounded-lg px-4 py-3 text-title-14-semibold text-white-100 transition ${
+                isDuplicating
+                  ? "bg-black-40 cursor-not-allowed"
+                  : "bg-primary hover:bg-primary/90"
+              }`}
+            >
+              {isDuplicating ? "복제 중..." : "복제하기"}
+            </button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 };

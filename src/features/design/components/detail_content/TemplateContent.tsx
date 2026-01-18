@@ -27,6 +27,7 @@ import {
   type AacLabelPosition,
 } from "../../utils/aacBoardUtils";
 import { withLogoTemplateElements } from "../../utils/logoElement";
+import { fitTemplateTextElement } from "../../utils/templateTextFit";
 import {
   buildStorySequenceElements,
   type StoryDirection,
@@ -65,7 +66,7 @@ const addElementId = (element: TemplateElement, id: string): CanvasElement => ({
 
 const toPreviewElements = (template: Template): CanvasElement[] =>
   template.elements.map((element, index) =>
-    addElementId(element, `${template.id}-${index}`)
+    addElementId(fitTemplateTextElement(element), `${template.id}-${index}`)
   );
 
 // 공통 컴포넌트

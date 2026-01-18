@@ -1802,9 +1802,16 @@ const DesignPaper = ({
         }
       }}
       onPointerDown={(event) => {
+        const target = event.target as HTMLElement | null;
+        const isEditableTarget = Boolean(
+          target &&
+            (target.tagName === "INPUT" ||
+              target.tagName === "TEXTAREA" ||
+              target.isContentEditable)
+        );
         if (!readOnly) {
           const container = containerRef.current;
-          if (container) {
+          if (container && !isEditableTarget) {
             container.focus();
           }
         }
@@ -1813,8 +1820,17 @@ const DesignPaper = ({
         }
       }}
       onPointerDownCapture={(event) => {
+        const target = event.target as HTMLElement | null;
+        const isEditableTarget = Boolean(
+          target &&
+            (target.tagName === "INPUT" ||
+              target.tagName === "TEXTAREA" ||
+              target.isContentEditable)
+        );
         if (!readOnly) {
-          containerRef.current?.focus();
+          if (!isEditableTarget) {
+            containerRef.current?.focus();
+          }
         }
         lastPointerRef.current = getPointerPosition(event);
       }}
