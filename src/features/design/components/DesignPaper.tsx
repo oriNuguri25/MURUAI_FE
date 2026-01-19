@@ -320,16 +320,66 @@ const DesignPaper = ({
     return getRectFromElement(element);
   };
 
-  const getTargetRects = (activeId: string) =>
+  const getTargetRects = (activeId: string, excludeIds?: Set<string>) =>
     elements
       .filter(
         (element) =>
           element.id !== activeId &&
           element.visible !== false &&
-          !element.locked
+          !element.locked &&
+          !excludeIds?.has(element.id)
       )
       .map((element) => getRectFromElement(element))
       .filter((rect): rect is Rect => Boolean(rect));
+
+  const getGroupDragBoundingBox = (elementId: string, nextRect: Rect) => {
+    const groupDrag = groupDragRef.current;
+    if (!groupDrag || groupDrag.activeId !== elementId) return null;
+    if (!groupDrag.activeRect) return null;
+    const delta = {
+      x: nextRect.x - groupDrag.activeRect.x,
+      y: nextRect.y - groupDrag.activeRect.y,
+    };
+    const rects: Rect[] = [];
+    groupDrag.items.forEach((item) => {
+      if (item.kind === "rect") {
+        rects.push({
+          x: item.rect.x + delta.x,
+          y: item.rect.y + delta.y,
+          width: item.rect.width,
+          height: item.rect.height,
+        });
+      } else {
+        const minX = Math.min(item.line.start.x, item.line.end.x) + delta.x;
+        const minY = Math.min(item.line.start.y, item.line.end.y) + delta.y;
+        const width = Math.max(
+          Math.abs(item.line.end.x - item.line.start.x),
+          1
+        );
+        const height = Math.max(
+          Math.abs(item.line.end.y - item.line.start.y),
+          1
+        );
+        rects.push({
+          x: minX,
+          y: minY,
+          width,
+          height,
+        });
+      }
+    });
+    if (rects.length === 0) return null;
+    const minX = Math.min(...rects.map((rect) => rect.x));
+    const minY = Math.min(...rects.map((rect) => rect.y));
+    const maxX = Math.max(...rects.map((rect) => rect.x + rect.width));
+    const maxY = Math.max(...rects.map((rect) => rect.y + rect.height));
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  };
 
   const handleRectChange = (elementId: string, nextRect: Rect) => {
     const activeInteraction = activeInteractionRef.current;
@@ -430,6 +480,43 @@ const DesignPaper = ({
       updateElement(elementId, patch);
       setActivePreview({ id: elementId, rect: nextRect });
       return;
+    }
+
+    if (
+      activeInteraction.type === "drag" &&
+      targetElement &&
+      (targetElement.type === "rect" ||
+        targetElement.type === "roundRect" ||
+        targetElement.type === "ellipse") &&
+      targetElement.labelId &&
+      onElementsChange
+    ) {
+      const deltaX = nextRect.x - targetElement.x;
+      const deltaY = nextRect.y - targetElement.y;
+      if (deltaX !== 0 || deltaY !== 0) {
+        const nextElements = elements.map((element) => {
+          if (element.id === elementId) {
+            return {
+              ...element,
+              x: nextRect.x,
+              y: nextRect.y,
+              w: nextRect.width,
+              h: nextRect.height,
+            };
+          }
+          if (element.id === targetElement.labelId && element.type === "text") {
+            return {
+              ...element,
+              x: element.x + deltaX,
+              y: element.y + deltaY,
+            };
+          }
+          return element;
+        });
+        onElementsChange(nextElements);
+        setActivePreview(null);
+        return;
+      }
     }
 
     // Shape 요소의 resize 중 이미지가 있으면 실시간으로 imageBox 업데이트
@@ -562,6 +649,7 @@ const DesignPaper = ({
         }
         updateElement(elementId, patch);
       } else {
+        const isResize = context?.type === "resize";
         const updates: Partial<ShapeElement> = {
           x: finalRect.x,
           y: finalRect.y,
@@ -573,7 +661,8 @@ const DesignPaper = ({
         if (targetElement &&
             (targetElement.type === "rect" || targetElement.type === "roundRect" || targetElement.type === "ellipse") &&
             targetElement.fill &&
-            (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:"))) {
+            (targetElement.fill.startsWith("url(") || targetElement.fill.startsWith("data:")) &&
+            isResize) {
           updates.imageBox = {
             x: 0,
             y: 0,
@@ -581,8 +670,53 @@ const DesignPaper = ({
             h: finalRect.height,
           };
         }
+        const labelId =
+          targetElement &&
+          (targetElement.type === "rect" ||
+            targetElement.type === "roundRect" ||
+            targetElement.type === "ellipse")
+            ? targetElement.labelId
+            : undefined;
+        const deltaX =
+          targetElement && "x" in targetElement
+            ? finalRect.x - targetElement.x
+            : 0;
+        const deltaY =
+          targetElement && "y" in targetElement
+            ? finalRect.y - targetElement.y
+            : 0;
+        const shouldMoveLabel =
+          context?.type === "drag" &&
+          Boolean(labelId) &&
+          (deltaX !== 0 || deltaY !== 0) &&
+          !readOnly &&
+          Boolean(onElementsChange);
 
-        updateElement(elementId, updates);
+        if (shouldMoveLabel && onElementsChange) {
+          const nextElements = elements.map((element): CanvasElement => {
+            if (element.id === elementId) {
+              if (
+                element.type === "rect" ||
+                element.type === "roundRect" ||
+                element.type === "ellipse"
+              ) {
+                return { ...element, ...updates };
+              }
+              return element;
+            }
+            if (labelId && element.id === labelId && element.type === "text") {
+              return {
+                ...element,
+                x: element.x + deltaX,
+                y: element.y + deltaY,
+              };
+            }
+            return element;
+          });
+          onElementsChange(nextElements);
+        } else {
+          updateElement(elementId, updates);
+        }
       }
     }
     if (context?.type) {
@@ -650,7 +784,7 @@ const DesignPaper = ({
     if (readOnly) return;
     const currentSelectedIds = selectedIdsRef.current;
     const selectedElement = elements.find((element) => element.id === elementId);
-    if (!selectedElement || selectedElement.selectable === false) return;
+    if (!selectedElement || selectedElement.selectable === false || selectedElement.locked) return;
     const groupedIds =
       selectedElement.groupId != null
         ? elements
@@ -782,24 +916,46 @@ const DesignPaper = ({
     setContextMenu(null);
   };
 
+  // 연결된 labelId를 포함한 삭제 대상 ID 수집
+  const getLinkedIdsToDelete = useCallback(
+    (idsToDelete: string[]) => {
+      const linkedIds = new Set<string>();
+      elements.forEach((element) => {
+        if (idsToDelete.includes(element.id)) {
+          if (
+            (element.type === "rect" ||
+              element.type === "roundRect" ||
+              element.type === "ellipse") &&
+            element.labelId
+          ) {
+            linkedIds.add(element.labelId);
+          }
+        }
+      });
+      return new Set([...idsToDelete, ...linkedIds]);
+    },
+    [elements]
+  );
+
   const deleteElementById = useCallback(
     (id: string) => {
       if (readOnly || !onElementsChange) return;
+      const allIdsToDelete = getLinkedIdsToDelete([id]);
       onElementsChange(
-        elements.filter((element) => element.id !== id)
+        elements.filter((element) => !allIdsToDelete.has(element.id))
       );
       const nextSelected = selectedIdsRef.current.filter(
-        (selectedId) => selectedId !== id
+        (selectedId) => !allIdsToDelete.has(selectedId)
       );
       selectedIdsRef.current = nextSelected;
       onSelectedIdsChange?.(nextSelected);
-      if (editingTextId === id) {
+      if (editingTextId && allIdsToDelete.has(editingTextId)) {
         onEditingTextIdChange?.(null);
       }
-      if (editingImageId === id) {
+      if (editingImageId && allIdsToDelete.has(editingImageId)) {
         setEditingImageId(null);
       }
-      setContextMenu((prev) => (prev?.id === id ? null : prev));
+      setContextMenu((prev) => (prev?.id && allIdsToDelete.has(prev.id) ? null : prev));
     },
     [
       readOnly,
@@ -809,14 +965,16 @@ const DesignPaper = ({
       onEditingTextIdChange,
       editingTextId,
       editingImageId,
+      getLinkedIdsToDelete,
     ]
   );
 
   const deleteSelectedElements = () => {
     if (readOnly || !onElementsChange) return;
     if (selectedIds.length === 0) return;
+    const allIdsToDelete = getLinkedIdsToDelete(selectedIds);
     onElementsChange(
-      elements.filter((element) => !selectedIds.includes(element.id))
+      elements.filter((element) => !allIdsToDelete.has(element.id))
     );
     selectedIdsRef.current = [];
     onSelectedIdsChange?.([]);
@@ -866,6 +1024,12 @@ const DesignPaper = ({
     if (!activeInteraction || activeInteraction.id !== elementId) {
       return nextRect;
     }
+    const guideExcludeIds =
+      context.type === "drag" &&
+      groupDragRef.current?.activeId === elementId &&
+      groupDragRef.current.items.size > 1
+        ? new Set(groupDragRef.current.items.keys())
+        : undefined;
     if (context.type === "resize") {
       const handle = context.handle ?? "";
       const activeX = handle.includes("e")
@@ -880,7 +1044,7 @@ const DesignPaper = ({
         : [];
       const { snapOffset } = smartGuides.compute({
         activeRect: nextRect,
-        otherRects: getTargetRects(elementId),
+        otherRects: getTargetRects(elementId, guideExcludeIds),
         activeX,
         activeY,
       });
@@ -899,12 +1063,14 @@ const DesignPaper = ({
       }
       return next;
     }
-    const groupBoundingBox = getGroupBoundingBox(elementId, nextRect);
+    const groupBoundingBox =
+      getGroupDragBoundingBox(elementId, nextRect) ??
+      getGroupBoundingBox(elementId, nextRect);
     const activeRect = groupBoundingBox || nextRect;
 
     const { snapOffset } = smartGuides.compute({
       activeRect,
-      otherRects: getTargetRects(elementId),
+      otherRects: getTargetRects(elementId, guideExcludeIds),
     });
     return {
       ...nextRect,
@@ -942,6 +1108,7 @@ const DesignPaper = ({
         rect={rect}
         minWidth={1}
         minHeight={minTextHeight}
+        clipOverflow={readOnly && Boolean(element.lockHeight)}
         showChrome={!isEmotionSlotText}
         textClassName="text-headline-42-semibold"
         textStyle={{
@@ -1082,7 +1249,7 @@ const DesignPaper = ({
         isImageEditing={isImageEditing}
         isTextEditing={isShapeTextEditing}
         locked={readOnly || element.locked}
-        selectable={element.selectable}
+        selectable={element.selectable !== false && !element.locked}
         onImageEditingChange={(isEditing: boolean) =>
           setEditingImageId(isEditing ? element.id : null)
         }
@@ -1182,9 +1349,10 @@ const DesignPaper = ({
       tabIndex={readOnly ? undefined : 0}
       className={`relative bg-white shrink-0 outline-none transition-all ${
         showShadow ? "shadow-lg" : ""
-      } ${isHorizontal ? "w-[297mm] h-[210mm]" : "w-[210mm] h-[297mm]"} ${
-        className ?? ""
-      } ${isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""}`}
+      } ${className ?? ""} ${
+        isFocused && !readOnly ? "ring-2 ring-primary ring-offset-2" : ""
+      }`}
+      style={{ width: pageWidth, height: pageHeight }}
       data-page-id={pageId}
       onFocus={() => !readOnly && setIsFocused(true)}
       onBlur={() => setIsFocused(false)}

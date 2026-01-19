@@ -168,54 +168,52 @@ export const emotionInferencePage3: Template = {
         alignY: "middle",
       },
     },
-    ...Array.from({ length: cardRows * cardColumns }).map((_, index) => {
+    ...Array.from({ length: cardRows * cardColumns }).flatMap((_, index) => {
       const row = Math.floor(index / cardColumns);
       const col = index % cardColumns;
       const x = cardsStartXmm + col * (cardWidthMm + cardGapMm);
       const y = cardsStartYmm + row * (cardHeightMm + cardRowGapMm);
-      return {
-        type: "roundRect" as const,
-        x: mmToPx(x),
-        y: mmToPx(y),
-        w: mmToPx(cardWidthMm),
-        h: mmToPx(cardHeightMm),
-        fill: "#FFFFFF",
-        radius: mmToPx(cardRadiusMm),
-        border: {
-          enabled: true,
-          color: "#A5B4FC",
-          width: 1.5,
-          style: "solid" as const,
+      const labelY = y + cardHeightMm + labelGapMm;
+      const cardTempId = `emotion3-card-${index}`;
+      const labelTempId = `emotion3-label-${index}`;
+      return [
+        {
+          type: "roundRect" as const,
+          x: mmToPx(x),
+          y: mmToPx(y),
+          w: mmToPx(cardWidthMm),
+          h: mmToPx(cardHeightMm),
+          fill: "#FFFFFF",
+          radius: mmToPx(cardRadiusMm),
+          border: {
+            enabled: true,
+            color: "#A5B4FC",
+            width: 1.5,
+            style: "solid" as const,
+          },
+          tempId: cardTempId,
+          labelId: labelTempId,
         },
-      };
-    }),
-    ...Array.from({ length: cardRows * cardColumns }).map((_, index) => {
-      const row = Math.floor(index / cardColumns);
-      const col = index % cardColumns;
-      const x = cardsStartXmm + col * (cardWidthMm + cardGapMm);
-      const y =
-        cardsStartYmm +
-        row * (cardHeightMm + cardRowGapMm) +
-        cardHeightMm +
-        labelGapMm;
-      return {
-        type: "text" as const,
-        x: mmToPx(x),
-        y: mmToPx(y),
-        w: mmToPx(labelWidthMm),
-        h: mmToPx(labelHeightMm),
-        text: "(감정)",
-        widthMode: "fixed" as const,
-        lockHeight: true,
-        style: {
-          fontSize: 14,
-          fontWeight: "normal" as const,
-          color: "#111827",
-          underline: false as const,
-          alignX: "center" as const,
-          alignY: "middle" as const,
+        {
+          type: "text" as const,
+          x: mmToPx(x),
+          y: mmToPx(labelY),
+          w: mmToPx(labelWidthMm),
+          h: mmToPx(labelHeightMm),
+          text: "(감정)",
+          widthMode: "auto" as const,
+          lockHeight: true,
+          style: {
+            fontSize: 14,
+            fontWeight: "normal" as const,
+            color: "#111827",
+            underline: false as const,
+            alignX: "center" as const,
+            alignY: "middle" as const,
+          },
+          tempId: labelTempId,
         },
-      };
+      ];
     }),
     {
       type: "text",

@@ -129,6 +129,8 @@ export const emotionInferencePage4: Template = {
     },
     ...Array.from({ length: 3 }).flatMap((_, index) => {
       const cardXmm = cardsStartXmm + index * (cardWidthMm + cardGapMm);
+      const cardTempId = `emotion4-card-${index}`;
+      const labelTempId = `emotion4-label-${index}`;
       return [
         {
           type: "roundRect" as const,
@@ -144,24 +146,14 @@ export const emotionInferencePage4: Template = {
             width: 2,
             style: "solid" as const,
           },
-        },
-        {
-          type: "text" as const,
-          x: mmToPx(cardXmm),
-          y: mmToPx(cardsStartYmm),
-          w: mmToPx(cardWidthMm),
-          h: mmToPx(cardHeightMm),
           text: "감정을 선택해주세요",
-          locked: true,
-          widthMode: "fixed" as const,
-          style: {
+          textStyle: {
             fontSize: 10,
             fontWeight: "normal" as const,
             color: "#A5B4FC",
-            underline: false as const,
-            alignX: "center" as const,
-            alignY: "middle" as const,
           },
+          tempId: cardTempId,
+          labelId: labelTempId,
         },
         {
           type: "text" as const,
@@ -170,7 +162,7 @@ export const emotionInferencePage4: Template = {
           w: mmToPx(cardWidthMm),
           h: mmToPx(labelHeightMm),
           text: "(감정)",
-          widthMode: "fixed" as const,
+          widthMode: "auto" as const,
           style: {
             fontSize: 20,
             fontWeight: "normal" as const,
@@ -179,6 +171,7 @@ export const emotionInferencePage4: Template = {
             alignX: "center" as const,
             alignY: "middle" as const,
           },
+          tempId: labelTempId,
         },
       ];
     }),

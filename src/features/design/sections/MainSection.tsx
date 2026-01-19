@@ -54,6 +54,7 @@ import BaseModal from "@/shared/ui/BaseModal";
 
 export interface OutletContext {
   zoom: number;
+  setZoom: Dispatch<SetStateAction<number>>;
   orientation: "horizontal" | "vertical";
   setOrientation: Dispatch<SetStateAction<"horizontal" | "vertical">>;
   registerCanvasGetter: (getter: () => CanvasDocument) => void;
@@ -119,16 +120,6 @@ const isEmotionLabelElement = (
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
 
-const isEmotionPlaceholderElement = (
-  element: CanvasElement
-): element is Extract<CanvasElement, { type: "text" }> =>
-  element.type === "text" &&
-  element.style.fontSize === 10 &&
-  element.style.fontWeight === "normal" &&
-  element.style.color === "#A5B4FC" &&
-  element.style.alignX === "center" &&
-  element.style.alignY === "middle";
-
 const isAacCardElement = (
   elements: CanvasElement[],
   element: CanvasElement
@@ -168,6 +159,49 @@ const getNextAacCardId = (
   );
   if (aacCards.length === 0) return null;
   const orderedCards = [...aacCards].sort((a, b) => {
+    const yDiff = a.y - b.y;
+    if (Math.abs(yDiff) > rowTolerance) {
+      return yDiff;
+    }
+    return a.x - b.x;
+  });
+  const currentIndex = orderedCards.findIndex(
+    (element) => element.id === currentId
+  );
+  if (currentIndex < 0) return null;
+  return orderedCards[currentIndex + 1]?.id ?? null;
+};
+
+// 감정 추론 활동 카드인지 확인 (labelId가 있고 border 색상이 #A5B4FC인 경우)
+const isEmotionInferenceCard = (
+  element: CanvasElement
+): element is Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }> => {
+  if (
+    element.type !== "rect" &&
+    element.type !== "roundRect" &&
+    element.type !== "ellipse"
+  ) {
+    return false;
+  }
+  // labelId가 있고 감정 추론 활동 스타일의 border를 가진 카드
+  return (
+    element.labelId !== undefined &&
+    element.border?.enabled === true &&
+    element.border.color === "#A5B4FC"
+  );
+};
+
+const getNextEmotionCardId = (
+  elements: CanvasElement[],
+  currentId: string
+) => {
+  const rowTolerance = mmToPx(2);
+  const emotionCards = elements.filter((element) =>
+    isEmotionInferenceCard(element)
+  );
+  if (emotionCards.length === 0) return null;
+  // 좌→우, 상→하 순서로 정렬
+  const orderedCards = [...emotionCards].sort((a, b) => {
     const yDiff = a.y - b.y;
     if (Math.abs(yDiff) > rowTolerance) {
       return yDiff;
@@ -223,26 +257,6 @@ const findLabelElementId = (
   });
 
   return bestId;
-};
-
-const findOverlayTextElementId = (
-  elements: CanvasElement[],
-  shape: Extract<CanvasElement, { type: "rect" | "roundRect" | "ellipse" }>,
-  isOverlayElement: (
-    element: CanvasElement
-  ) => element is Extract<CanvasElement, { type: "text" }>
-) => {
-  const tolerance = mmToPx(1);
-  const matched = elements.find((element) => {
-    if (!isOverlayElement(element)) return false;
-    return (
-      Math.abs(element.x - shape.x) <= tolerance &&
-      Math.abs(element.y - shape.y) <= tolerance &&
-      Math.abs(element.w - shape.w) <= tolerance &&
-      Math.abs(element.h - shape.h) <= tolerance
-    );
-  });
-  return matched?.id ?? null;
 };
 
 const applyTemplateToCurrentPage = ({
@@ -572,6 +586,7 @@ const addLineElement = ({
 const MainSection = () => {
   const {
     zoom,
+    setZoom,
     orientation,
     setOrientation,
     registerCanvasGetter,
@@ -1025,7 +1040,6 @@ const MainSection = () => {
           if (page.id !== activePageId) return page;
           let hasChanges = false;
           const labelUpdates = new Map<string, string>();
-          const placeholderUpdates = new Map<string, string>();
           if (labelText) {
             page.elements.forEach((element) => {
               if (
@@ -1059,23 +1073,6 @@ const MainSection = () => {
               }
             });
           }
-          page.elements.forEach((element) => {
-            if (
-              (element.type === "rect" ||
-                element.type === "roundRect" ||
-                element.type === "ellipse") &&
-              activeSelectedIds.includes(element.id)
-            ) {
-              const placeholderId = findOverlayTextElementId(
-                page.elements,
-                element,
-                isEmotionPlaceholderElement
-              );
-              if (placeholderId) {
-                placeholderUpdates.set(placeholderId, "");
-              }
-            }
-          });
           const nextElements = page.elements.map((element) => {
             if (!activeSelectedIds.includes(element.id)) return element;
             if (
@@ -1112,20 +1109,18 @@ const MainSection = () => {
               imageBox: nextImageBox,
             };
           });
-          if (labelUpdates.size === 0 && placeholderUpdates.size === 0) {
+          if (labelUpdates.size === 0) {
             return hasChanges ? { ...page, elements: nextElements } : page;
           }
           const nextElementsWithLabels = nextElements.map((element) => {
             const nextLabel = labelUpdates.get(element.id);
-            const nextPlaceholder = placeholderUpdates.get(element.id);
-            if (!nextLabel && nextPlaceholder === undefined) return element;
+            if (!nextLabel) return element;
             if (element.type !== "text") return element;
             hasChanges = true;
-            const newText = nextLabel ?? nextPlaceholder ?? element.text;
             return {
               ...element,
-              text: newText,
-              richText: newText,
+              text: nextLabel,
+              richText: nextLabel,
             };
           });
           return hasChanges
@@ -1141,18 +1136,28 @@ const MainSection = () => {
         const selectedElement = activePage?.elements.find(
           (element) => element.id === selectedId
         );
-        if (
-          activePage &&
-          selectedElement &&
-          isAacCardElement(activePage.elements, selectedElement)
-        ) {
-          const nextAacId = getNextAacCardId(
-            activePage.elements,
-            selectedId
-          );
-          if (nextAacId) {
-            setSelectedIds([nextAacId]);
-            setEditingTextId(null);
+        if (activePage && selectedElement) {
+          // AAC 카드인 경우
+          if (isAacCardElement(activePage.elements, selectedElement)) {
+            const nextAacId = getNextAacCardId(
+              activePage.elements,
+              selectedId
+            );
+            if (nextAacId) {
+              setSelectedIds([nextAacId]);
+              setEditingTextId(null);
+            }
+          }
+          // 감정 추론 활동 카드인 경우
+          else if (isEmotionInferenceCard(selectedElement)) {
+            const nextEmotionId = getNextEmotionCardId(
+              activePage.elements,
+              selectedId
+            );
+            if (nextEmotionId) {
+              setSelectedIds([nextEmotionId]);
+              setEditingTextId(null);
+            }
           }
         }
       }
@@ -1296,16 +1301,34 @@ const MainSection = () => {
     (ids: string[]) => {
       if (ids.length === 0) return;
       setPages((prevPages) =>
-        prevPages.map((page) =>
-          page.id === selectedPageId
-            ? {
-                ...page,
-                elements: page.elements.filter(
-                  (element) => !ids.includes(element.id)
-                ),
+        prevPages.map((page) => {
+          if (page.id !== selectedPageId) return page;
+
+          // 삭제할 요소들의 연결된 labelId 수집
+          const linkedIds = new Set<string>();
+          page.elements.forEach((element) => {
+            if (ids.includes(element.id)) {
+              if (
+                (element.type === "rect" ||
+                  element.type === "roundRect" ||
+                  element.type === "ellipse") &&
+                element.labelId
+              ) {
+                linkedIds.add(element.labelId);
               }
-            : page
-        )
+            }
+          });
+
+          // 원래 삭제할 ID + 연결된 ID 모두 삭제
+          const allIdsToDelete = new Set([...ids, ...linkedIds]);
+
+          return {
+            ...page,
+            elements: page.elements.filter(
+              (element) => !allIdsToDelete.has(element.id)
+            ),
+          };
+        })
       );
       setSelectedIds([]);
       setEditingTextId(null);
@@ -1349,6 +1372,24 @@ const MainSection = () => {
     containerRef,
     orientation: activeOrientation,
   });
+
+  // Ctrl + 마우스 휠로 줌 조절
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -10 : 10;
+      setZoom((prev) => Math.min(200, Math.max(10, prev + delta)));
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, [setZoom]);
 
   // 선택된 요소 정보 가져오기
   const activePage = pages.find((page) => page.id === selectedPageId);

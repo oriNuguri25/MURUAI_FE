@@ -25,6 +25,7 @@ const TextBox = ({
   isSelected = false,
   isEditing = false,
   locked = false,
+  clipOverflow = false,
   widthMode = "auto",
   showToolbar = true,
   toolbar,
@@ -230,6 +231,7 @@ const TextBox = ({
   return (
     <div
       ref={boxRef}
+      data-textbox="true"
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         if (isEditing) {
@@ -287,6 +289,7 @@ const TextBox = ({
         top: rect.y,
         width: rect.width,
         height: rect.height,
+        overflow: clipOverflow ? "hidden" : "visible",
         touchAction: "none",
         pointerEvents: locked ? "none" : "auto",
         cursor: editable ? "text" : "default",
@@ -298,6 +301,7 @@ const TextBox = ({
       {editable && isEditing ? (
         <div
           ref={editableRef}
+          data-textbox-content="true"
           contentEditable
           suppressContentEditableWarning
           spellCheck={false}
@@ -325,6 +329,7 @@ const TextBox = ({
         />
       ) : (
         <div
+          data-textbox-content="true"
           className={`block w-full pointer-events-none ${textClassName}`}
           style={{
             ...textStyle,

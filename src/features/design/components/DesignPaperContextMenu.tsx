@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import type { CanvasElement } from "../model/canvasTypes";
 
-type LayerDirection = "forward" | "front" | "backward" | "back";
+export type LayerDirection = "forward" | "front" | "backward" | "back";
 
-type ContextMenuState = {
+export type ContextMenuState = {
   id: string;
   x: number;
   y: number;

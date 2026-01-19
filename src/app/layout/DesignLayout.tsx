@@ -506,6 +506,7 @@ const DesignLayout = () => {
       <Outlet
         context={{
           zoom,
+          setZoom,
           orientation: effectiveOrientation,
           setOrientation,
           registerCanvasGetter,

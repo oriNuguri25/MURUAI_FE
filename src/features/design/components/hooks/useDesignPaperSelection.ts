@@ -86,6 +86,7 @@ export const useDesignPaperSelection = ({
         }
 
         const hitIds = elements
+          .filter((element) => !element.locked && element.selectable !== false)
           .map((element) => ({
             id: element.id,
             rect: getElementBoundsForSelection(element),

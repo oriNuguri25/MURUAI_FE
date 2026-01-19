@@ -1,8 +1,36 @@
-import type { CanvasElement, Template } from "../model/canvasTypes";
+import type { CanvasElement, Template, TemplateElement } from "../model/canvasTypes";
 import { fitTemplateTextElement } from "../utils/templateTextFit";
 
-export const instantiateTemplate = (template: Template): CanvasElement[] =>
-  template.elements.map((element) => ({
-    ...fitTemplateTextElement(element),
-    id: crypto.randomUUID(),
-  }));
+type ElementWithTempIds = TemplateElement & {
+  tempId?: string;
+  labelId?: string;
+};
+
+export const instantiateTemplate = (template: Template): CanvasElement[] => {
+  const elements = template.elements as ElementWithTempIds[];
+
+  // tempId -> 실제 id 매핑 생성
+  const idMap = new Map<string, string>();
+  elements.forEach((element) => {
+    if (element.tempId) {
+      idMap.set(element.tempId, crypto.randomUUID());
+    }
+  });
+
+  return elements.map((element) => {
+    const newId = element.tempId
+      ? idMap.get(element.tempId)
+      : crypto.randomUUID();
+    const newLabelId = element.labelId
+      ? idMap.get(element.labelId)
+      : undefined;
+
+    const fitted = fitTemplateTextElement(element);
+    return {
+      ...fitted,
+      id: newId ?? crypto.randomUUID(),
+      tempId: undefined,
+      labelId: newLabelId,
+    };
+  });
+};

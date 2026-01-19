@@ -43,6 +43,7 @@ export interface TextBoxProps {
   isSelected?: boolean;
   isEditing?: boolean;
   locked?: boolean;
+  clipOverflow?: boolean;
   widthMode?: "auto" | "fixed";
   showToolbar?: boolean;
   toolbar?: TextBoxToolbar;

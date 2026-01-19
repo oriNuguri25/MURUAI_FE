@@ -125,6 +125,95 @@ export const generatePdfFromDomPages = async ({
     throw new Error("No .pdf-page elements found");
   }
 
+  const waitForFonts = async () => {
+    if (document.fonts?.ready) {
+      await document.fonts.ready;
+    }
+  };
+
+  const waitForImages = async (root: HTMLElement) => {
+    const images = Array.from(root.querySelectorAll("img"));
+    if (images.length === 0) return;
+    await Promise.all(
+      images.map(async (img) => {
+        if (img.complete && img.naturalWidth > 0) return;
+        try {
+          await img.decode();
+        } catch {
+          await new Promise<void>((resolve) => {
+            const done = () => resolve();
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          });
+        }
+      })
+    );
+  };
+
+  const waitForNextFrame = () =>
+    new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+  const normalizePdfTextLayout = (root: HTMLElement) => {
+    const pdfTextYOffset = -10;
+    const restores: Array<() => void> = [];
+    const boxes = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-textbox=\"true\"]")
+    );
+    boxes.forEach((box) => {
+      const content = box.querySelector<HTMLElement>(
+        "[data-textbox-content=\"true\"]"
+      );
+      if (!content) return;
+      const boxRect = box.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      const alignItems = getComputedStyle(box).alignItems;
+      let offsetY = 0;
+      if (alignItems === "center") {
+        offsetY = (boxRect.height - contentRect.height) / 2;
+      } else if (alignItems === "flex-end") {
+        offsetY = boxRect.height - contentRect.height;
+      }
+      offsetY += pdfTextYOffset;
+      const prevBoxStyle = {
+        display: box.style.display,
+      };
+      const prevContentStyle = {
+        position: content.style.position,
+        top: content.style.top,
+        left: content.style.left,
+        right: content.style.right,
+        width: content.style.width,
+        marginTop: content.style.marginTop,
+        transform: content.style.transform,
+      };
+      box.style.display = "block";
+      content.style.position = "absolute";
+      content.style.left = "0";
+      content.style.right = "0";
+      content.style.width = "100%";
+      content.style.top = `${Math.round(offsetY * 100) / 100}px`;
+      content.style.marginTop = "0";
+      content.style.transform = "none";
+      restores.push(() => {
+        box.style.display = prevBoxStyle.display;
+        content.style.position = prevContentStyle.position;
+        content.style.top = prevContentStyle.top;
+        content.style.left = prevContentStyle.left;
+        content.style.right = prevContentStyle.right;
+        content.style.width = prevContentStyle.width;
+        content.style.marginTop = prevContentStyle.marginTop;
+        content.style.transform = prevContentStyle.transform;
+      });
+    });
+    return () => {
+      restores.forEach((restore) => restore());
+    };
+  };
+
+  await waitForFonts();
+  await waitForNextFrame();
+  await waitForNextFrame();
+
   const getPageSize = (orientation: "horizontal" | "vertical") =>
     orientation === "horizontal"
       ? { width: 297, height: 210 }
@@ -150,12 +239,27 @@ export const generatePdfFromDomPages = async ({
   for (let i = 0; i < pages.length; i += 1) {
     const orientation = resolveOrientation(pages[i]);
     const { width: pdfW, height: pdfH } = getPageSize(orientation);
+    const rect = pages[i].getBoundingClientRect();
+    const width = Math.ceil(pages[i].offsetWidth || rect.width);
+    const height = Math.ceil(pages[i].offsetHeight || rect.height);
 
-    const canvas = await html2canvas(pages[i], {
-      scale: quality,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
+    await waitForImages(pages[i]);
+    await waitForNextFrame();
+
+    const restoreLayout = normalizePdfTextLayout(pages[i]);
+    await waitForNextFrame();
+    let canvas: HTMLCanvasElement;
+    try {
+      canvas = await html2canvas(pages[i], {
+        scale: quality,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        width,
+        height,
+      });
+    } finally {
+      restoreLayout();
+    }
     const imgData = canvas.toDataURL("image/jpeg", imageQuality);
     const props = pdf.getImageProperties(imgData);
 

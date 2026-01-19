@@ -153,6 +153,20 @@ export const useDesignPaperGroupDrag = ({
           linkedIds.add(labelId);
         }
       });
+      elements.forEach((element) => {
+        if (!selected.has(element.id)) return;
+        if (
+          element.type !== "rect" &&
+          element.type !== "roundRect" &&
+          element.type !== "ellipse"
+        ) {
+          return;
+        }
+        if (!element.labelId) return;
+        if (!selected.has(element.labelId)) {
+          linkedIds.add(element.labelId);
+        }
+      });
       const nextElements = elements.map((element) => {
         const item = snapshot.items.get(element.id);
         if (!item) return element;
