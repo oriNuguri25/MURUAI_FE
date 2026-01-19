@@ -137,6 +137,7 @@ export const useDesignPaperClipboard = ({
             {
               lineHeight,
               letterSpacing,
+              fontFamily: element.style.fontFamily,
               maxWidth: widthMode === "fixed" ? element.w : undefined,
             }
           );

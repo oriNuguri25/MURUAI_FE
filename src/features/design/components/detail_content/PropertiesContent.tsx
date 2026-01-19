@@ -474,7 +474,10 @@ const TextProperties = ({
   const maxFontSize = 200;
   const fontSize = element.style?.fontSize ?? 16;
   const color = element.style?.color ?? "#000000";
-  const isBold = element.style?.fontWeight === "bold";
+  const isBold =
+    element.style?.fontWeight === "bold" ||
+    (typeof element.style?.fontWeight === "number" &&
+      element.style.fontWeight >= 700);
   const isUnderline = element.style?.underline ?? false;
   const align = element.style?.alignX ?? "left";
   const alignY = element.style?.alignY ?? "top";

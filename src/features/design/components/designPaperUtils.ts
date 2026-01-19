@@ -37,12 +37,15 @@ export const isEmotionSlotShape = (
   element.border?.enabled === true &&
   element.border?.color === "#A5B4FC";
 
+const isNormalWeight = (weight: TextElement["style"]["fontWeight"]) =>
+  weight === "normal" || weight === 400;
+
 export const isEmotionPlaceholderText = (
   element: CanvasElement
 ): element is TextElement =>
   element.type === "text" &&
   element.style.fontSize === 10 &&
-  element.style.fontWeight === "normal" &&
+  isNormalWeight(element.style.fontWeight) &&
   element.style.color === "#A5B4FC" &&
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
@@ -51,7 +54,7 @@ export const isEmotionLabelText = (
   element: CanvasElement
 ): element is TextElement =>
   element.type === "text" &&
-  element.style.fontWeight === "normal" &&
+  isNormalWeight(element.style.fontWeight) &&
   element.style.color === "#111827" &&
   element.style.alignX === "center" &&
   element.style.alignY === "middle";

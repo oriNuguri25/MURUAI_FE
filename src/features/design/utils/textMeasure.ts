@@ -8,7 +8,7 @@ type MeasureOptions = {
 export const measureTextBoxSize = (
   text: string,
   fontSize: number,
-  fontWeight: "normal" | "bold",
+  fontWeight: "normal" | "bold" | number,
   options: MeasureOptions = {}
 ) => {
   const safeText = text ?? "";
@@ -36,7 +36,13 @@ export const measureTextBoxSize = (
   span.style.whiteSpace = "pre";
   span.style.display = "inline-block";
   span.style.fontSize = `${fontSize}px`;
-  span.style.fontWeight = fontWeight === "bold" ? "700" : "400";
+  const resolvedWeight =
+    typeof fontWeight === "number"
+      ? String(fontWeight)
+      : fontWeight === "bold"
+      ? "700"
+      : "400";
+  span.style.fontWeight = resolvedWeight;
   if (options.lineHeight != null) {
     span.style.lineHeight = `${options.lineHeight}`;
   }

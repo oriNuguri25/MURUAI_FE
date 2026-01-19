@@ -13,6 +13,7 @@ import AACContent from "../components/detail_content/AACContent";
 import EmotionContent from "../components/detail_content/EmotionContent";
 import ElementContent from "../components/detail_content/ElementContent";
 import TextContent from "../components/detail_content/TextContent";
+import FontContent from "../components/detail_content/FontContent";
 import TemplateContent from "../components/detail_content/TemplateContent";
 import { useSideBarStore, type SideBarMenu } from "../store/sideBarStore";
 
@@ -33,7 +34,7 @@ const SideBar = () => {
   const toggleMenu = useSideBarStore((state) => state.toggleMenu);
 
   const menuItems: Array<{
-    id: Exclude<SideBarMenu, null>;
+    id: Exclude<SideBarMenu, null | "font">;
     icon: typeof PenTool;
     label: string;
   }> = [
@@ -48,7 +49,9 @@ const SideBar = () => {
 
   const getMenuTitle = () => {
     const currentMenu = menuItems.find((item) => item.id === selectedMenu);
-    return currentMenu?.label || "";
+    if (currentMenu) return currentMenu.label;
+    if (selectedMenu === "font") return "글꼴";
+    return "";
   };
 
   const renderContent = () => {
@@ -63,6 +66,8 @@ const SideBar = () => {
         return <ElementContent />;
       case "text":
         return <TextContent />;
+      case "font":
+        return <FontContent />;
       case "upload":
         return <UploadContent />;
       case "aac":

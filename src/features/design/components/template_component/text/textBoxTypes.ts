@@ -9,6 +9,8 @@ type TextBoxToolbar = {
   minFontSize: number;
   maxFontSize: number;
   fontSize: number;
+  fontFamily: string;
+  fontLabel: string;
   lineHeight: number;
   letterSpacing: number;
   color: string;
@@ -21,6 +23,7 @@ type TextBoxToolbar = {
   onLineHeightChange: (value: number) => void;
   onLetterSpacingChange: (value: number) => void;
   onColorChange: (value: string) => void;
+  onFontFamilyClick: () => void;
   onToggleBold: () => void;
   onToggleUnderline: () => void;
   onAlignChange: (value: TextAlign) => void;
@@ -44,12 +47,12 @@ export interface TextBoxProps {
   isEditing?: boolean;
   locked?: boolean;
   clipOverflow?: boolean;
-  widthMode?: "auto" | "fixed";
+  widthMode?: "auto" | "fixed" | "element";
   showToolbar?: boolean;
   toolbar?: TextBoxToolbar;
   onTextChange?: (text: string, richText?: string) => void;
   onRectChange?: (rect: Rect) => void;
-  onWidthModeChange?: (mode: "auto" | "fixed") => void;
+  onWidthModeChange?: (mode: "auto" | "fixed" | "element") => void;
   onDragStateChange?: (
     isDragging: boolean,
     finalRect?: Rect,

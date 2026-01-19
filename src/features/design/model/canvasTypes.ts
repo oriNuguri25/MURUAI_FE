@@ -38,12 +38,12 @@ export type TextElement = ElementBase & {
   h: number;
   text: string;
   richText?: string;
-  textSource?: "element" | "template";
-  widthMode?: "auto" | "fixed";
+  widthMode?: "auto" | "fixed" | "element";
   lockHeight?: boolean;
   style: {
     fontSize: number;
-    fontWeight: "normal" | "bold";
+    fontWeight: "normal" | "bold" | number;
+    fontFamily?: string;
     color: string;
     underline?: boolean;
     alignX: "left" | "center" | "right";

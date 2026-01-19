@@ -28,6 +28,8 @@ import Line from "./template_component/line/Line";
 import RoundBox from "./template_component/round_box/RoundBox";
 import TextBox from "./template_component/text/TextBox";
 import { useSideBarStore } from "../store/sideBarStore";
+import { useFontStore } from "../store/fontStore";
+import { getFontLabel, normalizeFontWeight } from "../utils/fontOptions";
 import { useDesignPaperClipboard } from "./hooks/useDesignPaperClipboard";
 import { useDesignPaperGroupDrag } from "./hooks/useDesignPaperGroupDrag";
 import { useDesignPaperKeyboard } from "./hooks/useDesignPaperKeyboard";
@@ -102,6 +104,7 @@ const DesignPaper = ({
   showShadow = false,
 }: DesignPaperProps) => {
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
+  const setFontPanel = useFontStore((state) => state.setPanelFont);
   const [activePreview, setActivePreview] = useState<{
     id: string;
     rect: Rect;
@@ -1136,8 +1139,7 @@ const DesignPaper = ({
       Math.min(maxFontSize, Math.max(minFontSize, value));
     const lineHeight = element.style.lineHeight ?? 1.3;
     const letterSpacing = element.style.letterSpacing ?? 0;
-    const fontWeight =
-      element.style.fontWeight === "bold" ? 700 : 400;
+    const fontWeight = normalizeFontWeight(element.style.fontWeight);
     const minTextHeight = element.lockHeight ? rect.height : 1;
     return (
       <TextBox
@@ -1154,6 +1156,7 @@ const DesignPaper = ({
         textStyle={{
           fontSize: `${element.style.fontSize}px`,
           fontWeight,
+          fontFamily: element.style.fontFamily,
           color: element.style.color,
           textDecoration: element.style.underline ? "underline" : "none",
           lineHeight,
@@ -1174,10 +1177,22 @@ const DesignPaper = ({
           lineHeight,
           letterSpacing,
           color: element.style.color,
-          isBold: element.style.fontWeight === "bold",
+          isBold:
+            element.style.fontWeight === "bold" ||
+            (typeof element.style.fontWeight === "number" &&
+              element.style.fontWeight >= 700),
           isUnderline: Boolean(element.style.underline),
           align: element.style.alignX,
           alignY: element.style.alignY,
+          fontFamily: element.style.fontFamily ?? "Pretendard",
+          fontLabel: getFontLabel(element.style.fontFamily ?? "Pretendard"),
+          onFontFamilyClick: () => {
+            setSideBarMenu("font");
+            setFontPanel({
+              fontFamily: element.style.fontFamily ?? "Pretendard",
+              fontWeight: fontWeight,
+            });
+          },
           onFontSizeChange: (value) =>
             updateElement(element.id, {
               style: { fontSize: clampFontSize(value) },

@@ -6,6 +6,7 @@ export type SideBarMenu =
   | "emotion"
   | "element"
   | "text"
+  | "font"
   | "upload"
   | "aac"
   | null;
@@ -13,7 +14,7 @@ export type SideBarMenu =
 interface SideBarStore {
   selectedMenu: SideBarMenu;
   setSelectedMenu: (menu: SideBarMenu) => void;
-  toggleMenu: (menu: Exclude<SideBarMenu, null>) => void;
+  toggleMenu: (menu: Exclude<SideBarMenu, null | "font">) => void;
 }
 
 export const useSideBarStore = create<SideBarStore>((set) => ({

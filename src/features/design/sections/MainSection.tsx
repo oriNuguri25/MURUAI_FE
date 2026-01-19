@@ -31,6 +31,7 @@ import { useSideBarStore } from "../store/sideBarStore";
 import { useStoryBoardStore } from "../store/storyBoardStore";
 import { useUnifiedHistoryStore } from "../store/unifiedHistoryStore";
 import { useToastStore } from "../store/toastStore";
+import { useFontStore } from "../store/fontStore";
 import { instantiateTemplate } from "../templates/instantiateTemplate";
 import {
   TEMPLATE_REGISTRY,
@@ -107,7 +108,7 @@ const isAacLabelElement = (
 ): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
   (element.style.fontSize === 14 || element.style.fontSize === 18) &&
-  element.style.fontWeight === "normal" &&
+  (element.style.fontWeight === "normal" || element.style.fontWeight === 400) &&
   element.style.color === "#6B7280" &&
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
@@ -117,7 +118,7 @@ const isEmotionLabelElement = (
 ): element is Extract<CanvasElement, { type: "text" }> =>
   element.type === "text" &&
   (element.style.fontSize === 14 || element.style.fontSize === 20) &&
-  element.style.fontWeight === "normal" &&
+  (element.style.fontWeight === "normal" || element.style.fontWeight === 400) &&
   element.style.color === "#111827" &&
   element.style.alignX === "center" &&
   element.style.alignY === "middle";
@@ -501,6 +502,7 @@ const addTextElement = ({
     fontWeight: "normal" | "bold";
     alignX?: "left" | "center" | "right";
     alignY?: "top" | "middle" | "bottom";
+    widthMode?: "auto" | "fixed" | "element";
   };
   setPages: Dispatch<SetStateAction<Page[]>>;
   getOrientation: () => "horizontal" | "vertical" | null;
@@ -528,7 +530,7 @@ const addTextElement = ({
     w: textWidth,
     h: textHeight,
     text: preset.text,
-    widthMode: "auto",
+    widthMode: preset.widthMode ?? "element",
     style: {
       fontSize: preset.fontSize,
       fontWeight: preset.fontWeight,
@@ -886,6 +888,48 @@ const MainSection = () => {
     });
     return unsubscribe;
   }, [setActivePage, historyStore, showEmotionInferenceToast]);
+
+  useEffect(() => {
+    const unsubscribe = useFontStore.subscribe((state, prevState) => {
+      if (state.requestId === prevState.requestId) return;
+      const payload = state.request;
+      if (!payload) return;
+      const activePageId = selectedPageIdRef.current;
+      const targetIds = selectedIdsRef.current;
+      if (targetIds.length === 0) return;
+
+      setPages((prevPages) =>
+        prevPages.map((page) => {
+          if (page.id !== activePageId) return page;
+          return {
+            ...page,
+            elements: page.elements.map((element) => {
+              if (
+                element.type !== "text" ||
+                element.locked ||
+                !targetIds.includes(element.id)
+              ) {
+                return element;
+              }
+              return {
+                ...element,
+                style: {
+                  ...element.style,
+                  ...(payload.fontFamily
+                    ? { fontFamily: payload.fontFamily }
+                    : {}),
+                  ...(payload.fontWeight != null
+                    ? { fontWeight: payload.fontWeight }
+                    : {}),
+                },
+              };
+            }),
+          };
+        })
+      );
+    });
+    return unsubscribe;
+  }, [setPages]);
   useEffect(() => {
     const unsubscribe = useElementStore.subscribe((state, prevState) => {
       if (state.requestId === prevState.requestId) return;

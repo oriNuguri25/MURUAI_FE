@@ -15,6 +15,8 @@ interface TextToolBarProps {
   minFontSize: number;
   maxFontSize: number;
   fontSize: number;
+  fontFamily: string;
+  fontLabel: string;
   lineHeight: number;
   letterSpacing: number;
   color: string;
@@ -27,6 +29,7 @@ interface TextToolBarProps {
   onLineHeightChange: (value: number) => void;
   onLetterSpacingChange: (value: number) => void;
   onColorChange: (value: string) => void;
+  onFontFamilyClick: () => void;
   onToggleBold: () => void;
   onToggleUnderline: () => void;
   onAlignChange: (value: "left" | "center" | "right") => void;
@@ -39,6 +42,8 @@ const TextToolBar = ({
   minFontSize,
   maxFontSize,
   fontSize,
+  fontFamily,
+  fontLabel,
   lineHeight,
   letterSpacing,
   color,
@@ -51,6 +56,7 @@ const TextToolBar = ({
   onLineHeightChange,
   onLetterSpacingChange,
   onColorChange,
+  onFontFamilyClick,
   onToggleBold,
   onToggleUnderline,
   onAlignChange,
@@ -131,6 +137,16 @@ const TextToolBar = ({
       className="flex flex-nowrap items-center gap-2 whitespace-nowrap"
       onPointerDown={onPointerDown}
     >
+      <button
+        type="button"
+        onClick={onFontFamilyClick}
+        className="flex items-center gap-2 rounded border border-black-30 px-2 py-1 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+      >
+        <span className="text-black-60">글꼴</span>
+        <span className="text-black-90" style={{ fontFamily }}>
+          {fontLabel}
+        </span>
+      </button>
       <div className="flex items-center text-14-regular text-black-60">
         텍스트 크기
       </div>

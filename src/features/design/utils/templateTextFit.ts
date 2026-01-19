@@ -53,6 +53,7 @@ export const fitTemplateTextElement = <T extends TemplateElement>(element: T) =>
     {
       lineHeight,
       letterSpacing,
+      fontFamily: textElement.style.fontFamily,
       maxWidth: widthMode === "fixed" ? textElement.w : undefined,
     }
   );

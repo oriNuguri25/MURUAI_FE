@@ -17,7 +17,7 @@ type UseTextBoxInteractionProps = {
   richText?: string;
   minWidth: number;
   minHeight: number;
-  widthMode: "auto" | "fixed";
+  widthMode: "auto" | "fixed" | "element";
   isSelected: boolean;
   toolbar?: TextBoxProps["toolbar"];
   onRequestDelete?: TextBoxProps["onRequestDelete"];
@@ -105,8 +105,13 @@ export const useTextBoxInteraction = ({
     const startWidth = startRect.width;
     const aspectRatio = startWidth / startHeight;
 
-    // Switching to fixed width when resizing from corners.
+    // Switching to fixed width when resizing from corners or side handles.
+    // element 모드에서는 사이드 핸들 드래그 시 fixed로 전환
+    const isSideHandle = handle && (handle === "e" || handle === "w");
     if (isCornerHandle && widthMode === "auto") {
+      onWidthModeChange?.("fixed");
+    }
+    if (isSideHandle && widthMode === "element") {
       onWidthModeChange?.("fixed");
     }
 

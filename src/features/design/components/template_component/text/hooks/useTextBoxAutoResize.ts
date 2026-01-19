@@ -1,10 +1,15 @@
-import { useEffect, type MutableRefObject, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  type MutableRefObject,
+  type RefObject,
+} from "react";
 import type { Rect } from "../../../../model/canvasTypes";
 import { computeTextBoxSize } from "../textBoxMeasure";
 
 type UseTextBoxAutoResizeProps = {
   isEditing: boolean;
-  widthMode: "auto" | "fixed";
+  widthMode: "auto" | "fixed" | "element";
   minWidth: number;
   minHeight: number;
   textAlign: "left" | "center" | "right";
@@ -37,6 +42,9 @@ export const useTextBoxAutoResize = ({
   boxRef,
   isResizingRef,
 }: UseTextBoxAutoResizeProps) => {
+  // element 모드에서 캔버스 경계 도달 여부를 추적
+  const hasReachedBoundaryRef = useRef(false);
+
   useEffect(() => {
     if (!onRectChange) return;
     if (isResizingRef.current) return;
@@ -47,6 +55,101 @@ export const useTextBoxAutoResize = ({
     const rectWidth = currentRect.width;
     const rectHeight = currentRect.height;
     const maxWidth = boxRef.current?.parentElement?.clientWidth ?? rectWidth;
+    const canvasPadding = 20;
+    const maxAllowedWidth = maxWidth - canvasPadding;
+
+    // element 모드: 너비 고정, 캔버스 경계 도달 시에만 줄바꿈 계산
+    if (widthMode === "element") {
+      // 단일 라인 너비 측정
+      measure.style.padding = "0";
+      measure.style.border = "none";
+      measure.style.width = "auto";
+      measure.style.whiteSpace = "pre";
+      const htmlContent = isEditing ? editableNode?.innerHTML : richText;
+      if (htmlContent != null && htmlContent !== "") {
+        measure.innerHTML = htmlContent;
+      } else {
+        measure.textContent = text ?? "";
+      }
+      const widthBuffer = 4;
+      const singleLineWidth = Math.ceil(measure.scrollWidth) + widthBuffer;
+
+      // 캔버스 경계에 도달했는지 체크
+      const reachesBoundary = singleLineWidth > maxAllowedWidth;
+
+      if (reachesBoundary && !hasReachedBoundaryRef.current) {
+        // 처음으로 경계에 도달: 줄바꿈 계산 수행
+        hasReachedBoundaryRef.current = true;
+        const { targetHeight } = computeTextBoxSize({
+          measure,
+          htmlContent,
+          text,
+          rect: { ...currentRect, width: maxAllowedWidth },
+          minWidth,
+          minHeight,
+          widthMode: "fixed",
+          maxWidth: maxAllowedWidth,
+        });
+        const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
+        if (heightChanged || rectWidth !== maxAllowedWidth) {
+          const widthDelta = maxAllowedWidth - rectWidth;
+          const newX =
+            textAlign === "right"
+              ? currentRect.x + (rectWidth - maxAllowedWidth)
+              : textAlign === "center"
+              ? currentRect.x - widthDelta / 2
+              : currentRect.x;
+          onRectChange({
+            ...currentRect,
+            x: newX,
+            width: maxAllowedWidth,
+            height: targetHeight,
+          });
+        }
+      } else if (reachesBoundary) {
+        // 이미 경계에 도달한 상태: 높이만 재계산
+        const { targetHeight } = computeTextBoxSize({
+          measure,
+          htmlContent,
+          text,
+          rect: currentRect,
+          minWidth,
+          minHeight,
+          widthMode: "fixed",
+          maxWidth: rectWidth,
+        });
+        const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
+        if (heightChanged) {
+          onRectChange({
+            ...currentRect,
+            height: targetHeight,
+          });
+        }
+      } else {
+        // 경계에 도달하지 않음: 높이만 조정 (너비는 고정 유지)
+        hasReachedBoundaryRef.current = false;
+        const { targetHeight } = computeTextBoxSize({
+          measure,
+          htmlContent,
+          text,
+          rect: currentRect,
+          minWidth,
+          minHeight,
+          widthMode: "fixed",
+          maxWidth: rectWidth,
+        });
+        const heightChanged = Math.abs(targetHeight - rectHeight) > 1;
+        if (heightChanged) {
+          onRectChange({
+            ...currentRect,
+            height: targetHeight,
+          });
+        }
+      }
+      return;
+    }
+
+    // auto/fixed 모드: 기존 로직
     const { targetWidth, targetHeight } = computeTextBoxSize({
       measure,
       htmlContent: isEditing ? editableNode?.innerHTML : richText,
@@ -54,10 +157,10 @@ export const useTextBoxAutoResize = ({
       rect: currentRect,
       minWidth,
       minHeight,
-      widthMode,
+      widthMode: widthMode === "fixed" ? "fixed" : "auto",
       maxWidth,
     });
-    const isAutoWidth = widthMode !== "fixed";
+    const isAutoWidth = widthMode === "auto";
 
     if (isAutoWidth) {
       // Auto mode: keep the center anchored as width changes.
