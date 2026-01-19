@@ -204,5 +204,3 @@ export const DesignPaperContextMenu = ({
     </div>
   );
 };
-
-export type { ContextMenuState, LayerDirection };
