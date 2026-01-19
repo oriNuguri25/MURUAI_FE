@@ -59,8 +59,9 @@ export const DesignPaperContextMenu = ({
 }: DesignPaperContextMenuProps) => {
   if (!contextMenu) return null;
 
-  const isElementMenu = contextMenu.target.type === "element";
-  const elementId = isElementMenu ? contextMenu.target.id : null;
+  const target = contextMenu.target;
+  const isElementMenu = target.type === "element";
+  const elementId = target.type === "element" ? target.id : null;
   const index = isElementMenu
     ? elements.findIndex((element) => element.id === elementId)
     : -1;
@@ -126,9 +127,7 @@ export const DesignPaperContextMenu = ({
         <button
           type="button"
           onClick={() =>
-            onPaste(
-              isElementMenu ? undefined : contextMenu.target.pastePosition
-            )
+            onPaste(target.type === "canvas" ? target.pastePosition : undefined)
           }
           disabled={!canPaste}
           className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
