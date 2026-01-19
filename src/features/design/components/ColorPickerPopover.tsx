@@ -15,6 +15,7 @@ const DEFAULT_SWATCHES = [
   "#F4EBD0",
   "#FFFFFF",
 ];
+const TOOLTIP_WIDTH_CLASS = "w-80";
 
 type ColorPickerPopoverProps = {
   value: string;
@@ -138,25 +139,33 @@ const ColorPickerPopover = ({
             </div>
             <div className="relative group">
               <HelpCircle className="h-4 w-4 text-black-50" />
-              <div className="absolute bottom-full right-0 mb-2 hidden w-80 rounded-lg border border-black-25 bg-white-100 p-3 text-12-regular text-black-70 shadow-lg group-hover:block">
+              <div
+                className={`absolute right-0 top-full mt-2 hidden ${TOOLTIP_WIDTH_CLASS} max-h-[40vh] max-w-[90vw] overflow-auto rounded-lg border border-black-25 bg-white-100 p-3 text-12-regular text-black-70 shadow-lg group-hover:block`}
+                style={{ overscrollBehavior: "contain" }}
+              >
                 <div className="text-12-semibold text-black-90">
                   ASD 색상 팔레트 논문 인용
                 </div>
-                <div className="mt-2 flex flex-col gap-1">
+                <div className="mt-2 flex flex-col gap-1 whitespace-normal break-words leading-snug">
                   <div>
-                    - Franklin et al. (2016) - Journal of Autism and Developmental Disorders
+                    - Franklin et al. (2016) - Journal of Autism and
+                    Developmental Disorders
                   </div>
                   <div>
-                    - Frontiers in Psychiatry (2022) - Built environment case study
+                    - Frontiers in Psychiatry (2022) - Built environment case
+                    study
                   </div>
                   <div>
-                    - Nature Scientific Reports (2023, 2025) - Sensory processing & color impacts
+                    - Nature Scientific Reports (2023, 2025) - Sensory
+                    processing & color impacts
                   </div>
                   <div>
-                    - Frontiers in Psychology (2017) - Color vision discrimination in ASD
+                    - Frontiers in Psychology (2017) - Color vision
+                    discrimination in ASD
                   </div>
                   <div>
-                    - GA Architects & Kingston University (2010) - Design guidelines
+                    - GA Architects & Kingston University (2010) - Design
+                    guidelines
                   </div>
                 </div>
               </div>
