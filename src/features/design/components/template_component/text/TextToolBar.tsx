@@ -8,6 +8,7 @@ import {
   TextAlignEnd,
   Underline,
 } from "lucide-react";
+import ColorPickerPopover from "../../ColorPickerPopover";
 
 interface TextToolBarProps {
   isVisible: boolean;
@@ -264,12 +265,7 @@ const TextToolBar = ({
       </div>
       <label className="flex items-center gap-2">
         <span className="text-14-regular text-black-60">텍스트 색상</span>
-        <input
-          type="color"
-          value={color}
-          onChange={(event) => onColorChange(event.target.value)}
-          className="h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0"
-        />
+        <ColorPickerPopover value={color} onChange={onColorChange} />
       </label>
       <button
         type="button"

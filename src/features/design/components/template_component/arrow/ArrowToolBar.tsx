@@ -1,5 +1,6 @@
 import { RotateCw } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import ColorPickerPopover from "../../ColorPickerPopover";
 import { useNumberInput } from "../../../model/useNumberInput";
 import { clamp } from "../../../utils/domUtils";
 
@@ -77,13 +78,7 @@ const ArrowToolBar = ({
       </div>
       <div className="flex items-center gap-2">
         <span className="text-14-regular text-black-60">색상</span>
-        <input
-          type="color"
-          value={color}
-          onChange={(event) => onColorChange(event.target.value)}
-          className="color-input h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0"
-          style={{ WebkitAppearance: "none", appearance: "none" }}
-        />
+        <ColorPickerPopover value={color} onChange={onColorChange} />
       </div>
     </div>
   );

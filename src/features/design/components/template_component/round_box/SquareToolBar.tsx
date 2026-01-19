@@ -5,6 +5,7 @@ import {
 } from "react";
 import { Ban, Upload } from "lucide-react";
 import { useNumberInput } from "../../../model/useNumberInput";
+import ColorPickerPopover from "../../ColorPickerPopover";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -252,13 +253,7 @@ const SquareToolBar = ({
       )}
       <label className="flex items-center gap-2">
         <span className="text-14-regular text-black-60">박스 색상</span>
-        <input
-          type="color"
-          value={color}
-          onChange={(event) => onColorChange(event.target.value)}
-          className="color-input h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0 overflow-hidden"
-          style={{ WebkitAppearance: "none", appearance: "none" }}
-        />
+        <ColorPickerPopover value={color} onChange={onColorChange} />
       </label>
       <div className="relative">
         <button

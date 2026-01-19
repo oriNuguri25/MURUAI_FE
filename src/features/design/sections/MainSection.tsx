@@ -13,6 +13,7 @@ import DesignPaper from "../components/DesignPaper";
 import SquareToolBar from "../components/template_component/round_box/SquareToolBar";
 import ArrowToolBar from "../components/template_component/arrow/ArrowToolBar";
 import LineToolBar from "../components/template_component/line/LineToolBar";
+import ColorPickerPopover from "../components/ColorPickerPopover";
 import type {
   CanvasElement,
   LineElement,
@@ -1509,12 +1510,10 @@ const MainSection = () => {
               onPointerDown={(event) => event.stopPropagation()}
             >
               <span className="text-14-regular text-black-60">색상</span>
-              <input
-                type="color"
+              <ColorPickerPopover
                 value={multiColorValue}
-                onChange={(event) => {
+                onChange={(nextColor) => {
                   if (!activePage) return;
-                  const nextColor = event.target.value;
                   setPages((prevPages) =>
                     prevPages.map((page) =>
                       page.id === selectedPageId
@@ -1554,7 +1553,6 @@ const MainSection = () => {
                     )
                   );
                 }}
-                className="color-input h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0 overflow-hidden"
               />
               <span className="text-12-regular text-black-70 uppercase">
                 {multiColorValue}
