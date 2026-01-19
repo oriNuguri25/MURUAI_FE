@@ -3257,6 +3257,7 @@ __metadata:
     react-dom: "npm:^19.2.0"
     react-router-dom: "npm:^7.11.0"
     tailwindcss: "npm:^4.1.18"
+    typanion: "npm:^3.14.0"
     typescript: "npm:~5.9.3"
     typescript-eslint: "npm:^8.46.4"
     vite: "npm:^7.2.4"
@@ -3991,7 +3992,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typanion@npm:^3.8.0":
+"typanion@npm:^3.14.0, typanion@npm:^3.8.0":
   version: 3.14.0
   resolution: "typanion@npm:3.14.0"
   checksum: 10c0/8b03b19844e6955bfd906c31dc781bae6d7f1fb3ce4fe24b7501557013d4889ae5cefe671dafe98d87ead0adceb8afcb8bc16df7dc0bd2b7331bac96f3a7cae2

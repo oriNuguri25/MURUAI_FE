@@ -51,6 +51,7 @@ const RAW_RUNTIME_STATE =
           ["react-dom", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:19.2.3"],\
           ["react-router-dom", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.11.0"],\
           ["tailwindcss", "npm:4.1.18"],\
+          ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["typescript-eslint", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:8.50.1"],\
           ["vite", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.3.0"],\
@@ -3906,6 +3907,7 @@ const RAW_RUNTIME_STATE =
           ["react-dom", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:19.2.3"],\
           ["react-router-dom", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.11.0"],\
           ["tailwindcss", "npm:4.1.18"],\
+          ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["typescript-eslint", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:8.50.1"],\
           ["vite", "virtual:a1d7610952882b0f7462a32d2275839b136c60f11259c26cb3b835b0f5f58c9ad1a515ea7907be5d402a2225c5919ccd7993e07c480fc79e5c30b41c59cb2514#npm:7.3.0"],\
