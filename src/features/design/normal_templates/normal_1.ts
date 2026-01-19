@@ -33,7 +33,6 @@ export const normal_1: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(titleHeightMm),
       text: '"○○"에 있었던 일을 떠올려 봅시다.',
-      widthMode: "fixed",
       style: {
         fontSize: 30,
         fontWeight: "bold",
@@ -50,7 +49,6 @@ export const normal_1: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(instructionHeightMm),
       text: '1. "○○"을 떠올리며 가장 기억에 남는 일을 글로 쓰거나 그림으로 표현해 봅시다.',
-      widthMode: "fixed",
       style: {
         fontSize: 20,
         fontWeight: "normal",
@@ -82,7 +80,6 @@ export const normal_1: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(instructionHeightMm),
       text: "2. 그때의 기분은 어땠나요?",
-      widthMode: "fixed",
       style: {
         fontSize: 20,
         fontWeight: "normal",

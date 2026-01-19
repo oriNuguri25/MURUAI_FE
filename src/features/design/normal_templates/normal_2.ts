@@ -73,7 +73,6 @@ export const normal_2: Template = {
       w: mmToPx(60),
       h: mmToPx(headerTextHeightMm),
       text: "번째 감정 어휘",
-      widthMode: "fixed",
       style: {
         fontSize: 25,
         fontWeight: "bold",
@@ -90,7 +89,6 @@ export const normal_2: Template = {
       w: mmToPx(40),
       h: mmToPx(headerTextHeightMm),
       text: "'       '",
-      widthMode: "fixed",
       style: {
         fontSize: 25,
         fontWeight: "bold",
@@ -181,7 +179,6 @@ export const normal_2: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(instructionHeightMm),
       text: "📌 아래 목표 감정 어휘를 사용하여 그림 또는 글로 표현해 보세요!",
-      widthMode: "fixed",
       style: {
         fontSize: 20,
         fontWeight: "normal",
@@ -213,8 +210,6 @@ export const normal_2: Template = {
       w: mmToPx(targetBoxWidthMm),
       h: mmToPx(targetBoxHeightMm),
       text: "목표 감정 어휘: ~~다",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 25,
         fontWeight: "bold",
@@ -231,7 +226,6 @@ export const normal_2: Template = {
       w: mmToPx(contentWidthMm),
       h: mmToPx(questionHeightMm),
       text: "내가 ~~ 때는?",
-      widthMode: "fixed",
       style: {
         fontSize: 25,
         fontWeight: "bold",

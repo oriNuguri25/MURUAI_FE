@@ -38,6 +38,7 @@ export type TextElement = ElementBase & {
   h: number;
   text: string;
   richText?: string;
+  textSource?: "element" | "template";
   widthMode?: "auto" | "fixed";
   lockHeight?: boolean;
   style: {

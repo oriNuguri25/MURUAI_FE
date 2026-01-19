@@ -97,8 +97,6 @@ export const emotionInferencePage1: Template = {
       w: mmToPx(faceTextWidthMm),
       h: mmToPx(faceTextHeightMm),
       text: "'       '",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 30,
         fontWeight: "bold",
@@ -115,8 +113,6 @@ export const emotionInferencePage1: Template = {
       w: mmToPx(mouthWidthMm * 2 + mouthGapMm),
       h: mmToPx(mouthHeightMm),
       text: "(   )",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 16,
         fontWeight: "normal",
@@ -153,8 +149,6 @@ export const emotionInferencePage1: Template = {
       w: mmToPx(indicatorWidthMm),
       h: mmToPx(indicatorHeightMm),
       text: "-  -",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 30,
         fontWeight: "bold",

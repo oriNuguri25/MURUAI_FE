@@ -42,7 +42,6 @@ export const findItemTemplate: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: '"○○"을 찾아봐!',
-      widthMode: "fixed",
       style: {
         fontSize: 42,
         fontWeight: "bold",

@@ -7,6 +7,7 @@ type TextPreset = {
   fontWeight: "normal" | "bold";
   alignX?: "left" | "center" | "right";
   alignY?: "top" | "middle" | "bottom";
+  textSource?: "element" | "template";
 };
 
 interface ElementStore {

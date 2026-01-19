@@ -57,8 +57,6 @@ export const emotionInferencePage2: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: "목차",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 32,
         fontWeight: "bold",

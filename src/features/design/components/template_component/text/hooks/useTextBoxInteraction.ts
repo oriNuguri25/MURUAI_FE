@@ -6,6 +6,7 @@ import type {
 import type { Rect, ResizeHandle } from "../../../../model/canvasTypes";
 import { getScale } from "../../../../utils/domUtils";
 import { DEFAULT_LINE_HEIGHT, isTextEmpty } from "../textContentUtils";
+import { computeTextBoxSize } from "../textBoxMeasure";
 import type { ActiveListeners, TextBoxProps } from "../textBoxTypes";
 
 type UseTextBoxInteractionProps = {
@@ -173,7 +174,7 @@ export const useTextBoxInteraction = ({
           nextY = startRect.y + (startRect.height - nextHeight);
         }
       } else {
-        // Side handles: adjust width and recompute height.
+        // Side handles: adjust width and recompute height in real time.
         if (handle.includes("e")) {
           nextWidth = startRect.width + dx;
         }
@@ -181,20 +182,24 @@ export const useTextBoxInteraction = ({
           nextWidth = startRect.width - dx;
           nextX = startRect.x + dx;
         }
-
-        // Recompute height to avoid overflow.
         const measure = measureRef.current;
         if (measure) {
           const editableNode = editableRef.current;
           const htmlContent = isEditing ? editableNode?.innerHTML : richText;
-          if (htmlContent != null && htmlContent !== "") {
-            measure.innerHTML = htmlContent;
-          } else {
-            measure.textContent = text ?? "";
-          }
-          measure.style.width = `${Math.max(nextWidth, minWidth)}px`;
-          measure.style.whiteSpace = "pre-wrap";
-          nextHeight = Math.max(Math.ceil(measure.scrollHeight), minHeight);
+          const clampedWidth = Math.max(nextWidth, minWidth);
+          const { targetHeight } = computeTextBoxSize({
+            measure,
+            htmlContent,
+            text,
+            rect: { ...startRect, width: clampedWidth },
+            minWidth,
+            minHeight,
+            widthMode: "fixed",
+            maxWidth: clampedWidth,
+          });
+          nextHeight = targetHeight;
+        } else {
+          nextHeight = startHeight;
         }
       }
 

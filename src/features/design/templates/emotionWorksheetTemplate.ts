@@ -88,7 +88,6 @@ export const emotionWorksheetTemplate: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: "제목을 입력하세요",
-      widthMode: "fixed",
       style: {
         fontSize: 26,
         fontWeight: "bold",
@@ -171,8 +170,6 @@ export const emotionWorksheetTemplate: Template = {
         w: mmToPx(segmentWidthMm),
         h: mmToPx(pillHeightMm),
         text: labels[index],
-        widthMode: "fixed" as const,
-        lockHeight: true,
         style: {
           fontSize: 12,
           fontWeight: "normal" as const,
@@ -225,8 +222,6 @@ export const emotionWorksheetTemplate: Template = {
         w: mmToPx(segmentWidthMm),
         h: mmToPx(pillHeightMm),
         text: labels[index],
-        widthMode: "fixed" as const,
-        lockHeight: true,
         style: {
           fontSize: 12,
           fontWeight: "normal" as const,

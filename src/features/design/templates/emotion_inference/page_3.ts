@@ -63,11 +63,6 @@ const goalBoxBottomMm = goalBoxYmm + goalBoxHeightMm;
 const subTextYmm =
   goalBoxBottomMm + (vocabTitleYmm - goalBoxBottomMm - subTextHeightMm) / 2;
 
-const footnoteWidthMm = 90;
-const footnoteHeightMm = 5;
-const footnoteXmm = pageWidthMm - footnoteWidthMm - 10;
-const footnoteYmm = pageHeightMm - 12;
-
 export const emotionInferencePage3: Template = {
   id: "emotionInference_3",
   name: "감정 추론 활동 3",
@@ -88,8 +83,6 @@ export const emotionInferencePage3: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: "[ 치료목표 ]",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 24,
         fontWeight: "bold",
@@ -121,8 +114,6 @@ export const emotionInferencePage3: Template = {
       w: mmToPx(goalTextWidthMm),
       h: mmToPx(goalTextHeightMm),
       text: "치료목표를 입력하세요.",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 30,
         fontWeight: "normal",
@@ -139,8 +130,6 @@ export const emotionInferencePage3: Template = {
       w: mmToPx(subTextWidthMm),
       h: mmToPx(subTextHeightMm),
       text: "내용을 입력하세요.",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 20,
         fontWeight: "normal",
@@ -157,8 +146,6 @@ export const emotionInferencePage3: Template = {
       w: mmToPx(vocabTitleWidthMm),
       h: mmToPx(vocabTitleHeightMm),
       text: "[ 목표 어휘 ]",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 24,
         fontWeight: "bold",
@@ -202,7 +189,6 @@ export const emotionInferencePage3: Template = {
           h: mmToPx(labelHeightMm),
           text: "(감정)",
           widthMode: "auto" as const,
-          lockHeight: true,
           style: {
             fontSize: 14,
             fontWeight: "normal" as const,
@@ -215,23 +201,5 @@ export const emotionInferencePage3: Template = {
         },
       ];
     }),
-    {
-      type: "text",
-      x: mmToPx(footnoteXmm),
-      y: mmToPx(footnoteYmm),
-      w: mmToPx(footnoteWidthMm),
-      h: mmToPx(footnoteHeightMm),
-      text: "*본 자료의 무단 복제•공유•전재를 금합니다.",
-      widthMode: "fixed",
-      lockHeight: true,
-      style: {
-        fontSize: 8,
-        fontWeight: "normal",
-        color: "#111827",
-        underline: false,
-        alignX: "right",
-        alignY: "middle",
-      },
-    },
   ],
 };

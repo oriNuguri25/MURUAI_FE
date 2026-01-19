@@ -83,8 +83,6 @@ export const emotionInferencePage4: Template = {
       w: mmToPx(titleWidthMm),
       h: mmToPx(titleHeightMm),
       text: "제목을 입력하세요",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 35,
         fontWeight: "bold",
@@ -116,8 +114,6 @@ export const emotionInferencePage4: Template = {
       w: mmToPx(questionWidthMm),
       h: mmToPx(questionHeightMm),
       text: "기분이 어떨까요?",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 25,
         fontWeight: "bold",
@@ -197,8 +193,6 @@ export const emotionInferencePage4: Template = {
       w: mmToPx(pillWidthMm),
       h: mmToPx(pillHeightMm),
       text: "아이는 __________",
-      widthMode: "fixed",
-      lockHeight: true,
       style: {
         fontSize: 35,
         fontWeight: "normal",

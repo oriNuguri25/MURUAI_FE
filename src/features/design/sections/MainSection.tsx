@@ -17,6 +17,7 @@ import type {
   CanvasElement,
   LineElement,
   ShapeElement,
+  TextElement,
 } from "../model/canvasTypes";
 import { useCopyPaste } from "../model/useCopyPaste";
 import { useCanvasZoom } from "../model/useCanvasZoom";
@@ -854,38 +855,33 @@ const MainSection = () => {
 
       if (!currentPage) return;
 
-      // Check if current page has elements other than logo
-      const hasNonLogoElements = currentPage.elements.some(
-        (element) => !element.locked
-      );
-
-      if (!hasNonLogoElements) {
-        isApplyingTemplateRef.current = true;
-
-        const result = applyTemplateToCurrentPage({
-          templateId: state.selectedTemplate,
-          currentPageId,
-          fallbackOrientation: orientationRef.current,
-          setPages,
-        });
-        setActivePage(result.id, result.orientation);
-        if (state.selectedTemplate === "emotionInference") {
-          showEmotionInferenceToast();
-        }
-
-        setTimeout(() => {
-          historyStore.record(
-            pagesRef.current,
-            selectedPageIdRef.current,
-            selectedIdsRef.current,
-            "Apply template"
-          );
-          isApplyingTemplateRef.current = false;
-        }, 100);
-      } else {
-        // Show dialog to let user choose
+      if (pagesRef.current.length === 1) {
         setTemplateChoiceDialog({ templateId: state.selectedTemplate });
+        return;
       }
+
+      setTemplateChoiceDialog(null);
+
+      isApplyingTemplateRef.current = true;
+      const result = addTemplatePage({
+        templateId: state.selectedTemplate,
+        fallbackOrientation: orientationRef.current,
+        setPages,
+      });
+      setActivePage(result.id, result.orientation);
+      if (state.selectedTemplate === "emotionInference") {
+        showEmotionInferenceToast();
+      }
+
+      setTimeout(() => {
+        historyStore.record(
+          pagesRef.current,
+          selectedPageIdRef.current,
+          selectedIdsRef.current,
+          "Apply template"
+        );
+        isApplyingTemplateRef.current = false;
+      }, 100);
     });
     return unsubscribe;
   }, [setActivePage, historyStore, showEmotionInferenceToast]);
@@ -1398,18 +1394,34 @@ const MainSection = () => {
         selectedIds.includes(element.id)
       )
     : [];
-  const groupSelectionId =
-    selectedElements.length > 1 ? selectedElements[0]?.groupId ?? null : null;
-  const isGroupedSelection =
-    groupSelectionId != null &&
-    selectedElements.length > 1 &&
-    selectedElements.every((element) => element.groupId === groupSelectionId);
   const activeToolbarElementId =
-    selectedIds.length === 1
-      ? selectedIds[0]
-      : isGroupedSelection
-      ? selectedIds[0]
+    selectedIds.length === 1 ? selectedIds[0] : null;
+  const isColorTarget = (
+    element: CanvasElement
+  ): element is TextElement | ShapeElement =>
+    element.type === "text" ||
+    element.type === "rect" ||
+    element.type === "roundRect" ||
+    element.type === "ellipse";
+  const isMultiColorSelection =
+    selectedElements.length > 1 &&
+    selectedElements.every(isColorTarget);
+  const multiColorSource =
+    isMultiColorSelection
+      ? selectedElements.find((element) => !element.locked) ??
+        selectedElements[0] ??
+        null
       : null;
+  const multiColorValue = (() => {
+    if (!multiColorSource) return "#000000";
+    if (multiColorSource.type === "text") {
+      return multiColorSource.style.color ?? "#000000";
+    }
+    const fill = multiColorSource.fill ?? "#ffffff";
+    const isImageFill =
+      fill.startsWith("url(") || fill.startsWith("data:");
+    return isImageFill ? "#ffffff" : fill;
+  })();
   const selectedElement = activeToolbarElementId
     ? activePage?.elements.find((el) => el.id === activeToolbarElementId)
     : null;
@@ -1489,6 +1501,68 @@ const MainSection = () => {
         id="text-toolbar-root"
         className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none"
       />
+      {isMultiColorSelection && (
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
+          <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
+            <div
+              className="flex items-center gap-2 whitespace-nowrap"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <span className="text-14-regular text-black-60">색상</span>
+              <input
+                type="color"
+                value={multiColorValue}
+                onChange={(event) => {
+                  if (!activePage) return;
+                  const nextColor = event.target.value;
+                  setPages((prevPages) =>
+                    prevPages.map((page) =>
+                      page.id === selectedPageId
+                        ? {
+                            ...page,
+                            elements: page.elements.map((el) => {
+                              if (
+                                !selectedIds.includes(el.id) ||
+                                el.locked
+                              ) {
+                                return el;
+                              }
+                              if (el.type === "text") {
+                                const textElement = el as TextElement;
+                                return {
+                                  ...textElement,
+                                  style: {
+                                    ...textElement.style,
+                                    color: nextColor,
+                                  },
+                                };
+                              }
+                              if (
+                                el.type === "rect" ||
+                                el.type === "roundRect" ||
+                                el.type === "ellipse"
+                              ) {
+                                return {
+                                  ...el,
+                                  fill: nextColor,
+                                };
+                              }
+                              return el;
+                            }),
+                          }
+                        : page
+                    )
+                  );
+                }}
+                className="color-input h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0 overflow-hidden"
+              />
+              <span className="text-12-regular text-black-70 uppercase">
+                {multiColorValue}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* 상단 툴바 영역 */}
       {shapeToolbarData && (
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
@@ -1976,7 +2050,7 @@ const MainSection = () => {
       >
         <div className="flex flex-col gap-4">
           <p className="text-14-regular text-black-70">
-            현재 페이지에 다른 요소가 있습니다. 템플릿을 어디에 적용하시겠습니까?
+            템플릿을 현재 페이지에 적용할까요, 새 페이지로 추가할까요?
           </p>
           <div className="flex flex-col gap-2">
             <button
