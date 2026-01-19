@@ -66,12 +66,41 @@ export const useDesignPaperClipboard = ({
     clearContextMenu();
   }, [elements, selectedIdsRef, setClipboard, clearContextMenu]);
 
-  const pasteElements = useCallback(() => {
+  const pasteElements = useCallback((position?: { x: number; y: number }) => {
     if (readOnly || !onElementsChange) return;
     const clipboard = getClipboard();
     if (!clipboard || clipboard.length === 0) return;
     const meta = getClipboardMeta();
     const offset = meta?.pageId && meta.pageId !== pageId ? 0 : 10;
+    const bounds = position
+      ? clipboard.reduce<{ minX: number; minY: number } | null>(
+          (acc, element) => {
+            const next = acc ?? { minX: Number.POSITIVE_INFINITY, minY: Number.POSITIVE_INFINITY };
+            if (element.type === "line" || element.type === "arrow") {
+              return {
+                minX: Math.min(next.minX, element.start.x, element.end.x),
+                minY: Math.min(next.minY, element.start.y, element.end.y),
+              };
+            }
+            if ("x" in element && "y" in element) {
+              return {
+                minX: Math.min(next.minX, element.x),
+                minY: Math.min(next.minY, element.y),
+              };
+            }
+            return next;
+          },
+          null
+        )
+      : null;
+    const offsetX =
+      position && bounds && Number.isFinite(bounds.minX)
+        ? position.x - bounds.minX
+        : offset;
+    const offsetY =
+      position && bounds && Number.isFinite(bounds.minY)
+        ? position.y - bounds.minY
+        : offset;
     const groupIdMap = new Map<string, string>();
     const nextElements = clipboard.map((element) => {
       const id = crypto.randomUUID();
@@ -90,10 +119,10 @@ export const useDesignPaperClipboard = ({
           id,
           groupId: nextGroupId,
           start: {
-            x: element.start.x + offset,
-            y: element.start.y + offset,
+            x: element.start.x + offsetX,
+            y: element.start.y + offsetY,
           },
-          end: { x: element.end.x + offset, y: element.end.y + offset },
+          end: { x: element.end.x + offsetX, y: element.end.y + offsetY },
         };
       }
       if ("x" in element && "y" in element) {
@@ -115,8 +144,8 @@ export const useDesignPaperClipboard = ({
             ...element,
             id,
             groupId: nextGroupId,
-            x: element.x + offset,
-            y: element.y + offset,
+            x: element.x + offsetX,
+            y: element.y + offsetY,
             w: widthMode === "fixed" ? element.w : Math.max(width, 1),
             h: Math.max(height, 1),
             widthMode,
@@ -126,8 +155,8 @@ export const useDesignPaperClipboard = ({
           ...element,
           id,
           groupId: nextGroupId,
-          x: element.x + offset,
-          y: element.y + offset,
+          x: element.x + offsetX,
+          y: element.y + offsetY,
         };
       }
       return { ...element, id, groupId: nextGroupId };

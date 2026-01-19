@@ -146,7 +146,7 @@ const ColorPickerPopover = ({
                 <div className="text-12-semibold text-black-90">
                   ASD 색상 팔레트 논문 인용
                 </div>
-                <div className="mt-2 flex flex-col gap-1 whitespace-normal break-words leading-snug">
+                <div className="mt-2 flex flex-col gap-1 whitespace-normal wrap-break-words leading-snug">
                   <div>
                     - Franklin et al. (2016) - Journal of Autism and
                     Developmental Disorders

@@ -853,7 +853,43 @@ const DesignPaper = ({
       Math.max(rawY, 8),
       Math.max(8, pageHeight - menuHeight)
     );
-    setContextMenu({ id: elementId, x: clampedX, y: clampedY });
+    setContextMenu({
+      x: clampedX,
+      y: clampedY,
+      target: { type: "element", id: elementId },
+    });
+  };
+
+  const openCanvasContextMenu = (
+    event: ReactMouseEvent<HTMLDivElement>
+  ) => {
+    if (readOnly) return;
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = containerRef.current?.getBoundingClientRect();
+    const rawX = event.clientX - (rect?.left ?? 0);
+    const rawY = event.clientY - (rect?.top ?? 0);
+    const menuWidth = 220;
+    const menuHeight = 36 + 8;
+    const clampedX = Math.min(
+      Math.max(rawX, 8),
+      Math.max(8, pageWidth - menuWidth)
+    );
+    const clampedY = Math.min(
+      Math.max(rawY, 8),
+      Math.max(8, pageHeight - menuHeight)
+    );
+    const scale = getContainerScale();
+    const pastePosition = {
+      x: rawX / scale,
+      y: rawY / scale,
+    };
+    setContextMenu({
+      x: clampedX,
+      y: clampedY,
+      target: { type: "canvas", pastePosition },
+    });
   };
 
   const moveElement = (elementId: string, direction: LayerDirection) => {
@@ -955,7 +991,11 @@ const DesignPaper = ({
       if (editingImageId && allIdsToDelete.has(editingImageId)) {
         setEditingImageId(null);
       }
-      setContextMenu((prev) => (prev?.id && allIdsToDelete.has(prev.id) ? null : prev));
+      setContextMenu((prev) =>
+        prev?.target.type === "element" && allIdsToDelete.has(prev.target.id)
+          ? null
+          : prev
+      );
     },
     [
       readOnly,
@@ -1403,6 +1443,7 @@ const DesignPaper = ({
       onPointerMoveCapture={(event) => {
         lastPointerRef.current = getPointerPosition(event);
       }}
+      onContextMenu={openCanvasContextMenu}
     >
       {elements.map((element) => renderElement(element))}
       <SelectionRectOverlay selectionRect={selectionRect} />
@@ -1420,7 +1461,7 @@ const DesignPaper = ({
         isGroupedSelection={isGroupedSelection}
         canPaste={Boolean(getClipboard())}
         onCopy={copySelectedElements}
-        onPaste={pasteElements}
+        onPaste={(position) => pasteElements(position)}
         onGroup={groupSelectedElements}
         onUngroup={ungroupSelectedElements}
         onDelete={deleteSelectedElements}

@@ -17,10 +17,12 @@ import type { CanvasElement } from "../model/canvasTypes";
 export type LayerDirection = "forward" | "front" | "backward" | "back";
 
 export type ContextMenuState = {
-  id: string;
   x: number;
   y: number;
   activeSubmenu?: "layer";
+  target:
+    | { type: "element"; id: string }
+    | { type: "canvas"; pastePosition: { x: number; y: number } };
 };
 
 type DesignPaperContextMenuProps = {
@@ -31,7 +33,7 @@ type DesignPaperContextMenuProps = {
   isGroupedSelection: boolean;
   canPaste: boolean;
   onCopy: () => void;
-  onPaste: () => void;
+  onPaste: (position?: { x: number; y: number }) => void;
   onGroup: () => void;
   onUngroup: () => void;
   onDelete: () => void;
@@ -57,9 +59,13 @@ export const DesignPaperContextMenu = ({
 }: DesignPaperContextMenuProps) => {
   if (!contextMenu) return null;
 
-  const index = elements.findIndex((element) => element.id === contextMenu.id);
-  const canForward = index < elements.length - 1;
-  const canBackward = index > 0;
+  const isElementMenu = contextMenu.target.type === "element";
+  const elementId = isElementMenu ? contextMenu.target.id : null;
+  const index = isElementMenu
+    ? elements.findIndex((element) => element.id === elementId)
+    : -1;
+  const canForward = isElementMenu && index < elements.length - 1;
+  const canBackward = isElementMenu && index > 0;
 
   const items = [
     {
@@ -67,28 +73,28 @@ export const DesignPaperContextMenu = ({
       label: "앞으로 가져오기",
       Icon: ArrowUpFromLine,
       enabled: canForward,
-      action: () => onMoveLayer(contextMenu.id, "forward"),
+      action: () => elementId && onMoveLayer(elementId, "forward"),
     },
     {
       key: "front",
       label: "맨 앞으로 가져오기",
       Icon: ChevronsUp,
       enabled: canForward,
-      action: () => onMoveLayer(contextMenu.id, "front"),
+      action: () => elementId && onMoveLayer(elementId, "front"),
     },
     {
       key: "backward",
       label: "뒤로 보내기",
       Icon: ArrowUpToLine,
       enabled: canBackward,
-      action: () => onMoveLayer(contextMenu.id, "backward"),
+      action: () => elementId && onMoveLayer(elementId, "backward"),
     },
     {
       key: "back",
       label: "맨 뒤로 보내기",
       Icon: ChevronsDown,
       enabled: canBackward,
-      action: () => onMoveLayer(contextMenu.id, "back"),
+      action: () => elementId && onMoveLayer(elementId, "back"),
     },
   ];
 
@@ -105,19 +111,25 @@ export const DesignPaperContextMenu = ({
       }
     >
       <div className="w-56 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
+        {isElementMenu && (
+          <button
+            type="button"
+            onClick={onCopy}
+            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+          >
+            <span className="flex items-center gap-2">
+              <Copy className="h-4 w-4" />
+              복사
+            </span>
+          </button>
+        )}
         <button
           type="button"
-          onClick={onCopy}
-          className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-        >
-          <span className="flex items-center gap-2">
-            <Copy className="h-4 w-4" />
-            복사
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={onPaste}
+          onClick={() =>
+            onPaste(
+              isElementMenu ? undefined : contextMenu.target.pastePosition
+            )
+          }
           disabled={!canPaste}
           className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
             canPaste ? "text-black-90 hover:bg-black-5" : "text-black-40"
@@ -128,7 +140,7 @@ export const DesignPaperContextMenu = ({
             붙여넣기
           </span>
         </button>
-        {canGroupSelection && (
+        {isElementMenu && canGroupSelection && (
           <button
             type="button"
             onClick={onGroup}
@@ -145,7 +157,7 @@ export const DesignPaperContextMenu = ({
             </span>
           </button>
         )}
-        {canUngroupSelection && (
+        {isElementMenu && canUngroupSelection && (
           <button
             type="button"
             onClick={onUngroup}
@@ -157,33 +169,37 @@ export const DesignPaperContextMenu = ({
             </span>
           </button>
         )}
-        <button
-          type="button"
-          onClick={onDelete}
-          className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-        >
-          <span className="flex items-center gap-2">
-            <Trash2 className="h-4 w-4" />
-            삭제
-          </span>
-        </button>
-        <button
-          type="button"
-          onMouseEnter={() =>
-            setContextMenu((prev) =>
-              prev ? { ...prev, activeSubmenu: "layer" } : prev
-            )
-          }
-          className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
-        >
-          <span className="flex items-center gap-2">
-            <Layers className="h-4 w-4" />
-            레이어
-          </span>
-          <ChevronRight className="h-4 w-4 text-black-50" />
-        </button>
+        {isElementMenu && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+          >
+            <span className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4" />
+              삭제
+            </span>
+          </button>
+        )}
+        {isElementMenu && (
+          <button
+            type="button"
+            onMouseEnter={() =>
+              setContextMenu((prev) =>
+                prev ? { ...prev, activeSubmenu: "layer" } : prev
+              )
+            }
+            className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
+          >
+            <span className="flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              레이어
+            </span>
+            <ChevronRight className="h-4 w-4 text-black-50" />
+          </button>
+        )}
       </div>
-      {contextMenu.activeSubmenu === "layer" && (
+      {isElementMenu && contextMenu.activeSubmenu === "layer" && (
         <div className="absolute left-full top-0 ml-2 w-60 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
           {items.map(({ key, label, Icon, enabled, action }) => (
             <button
