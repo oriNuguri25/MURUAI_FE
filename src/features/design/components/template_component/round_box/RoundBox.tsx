@@ -110,6 +110,7 @@ const RoundBox = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isImageEditingState, setIsImageEditingState] = useState(false);
   const [isTextEditingState, setIsTextEditingState] = useState(false);
+  const [isImageBoxInteracting, setIsImageBoxInteracting] = useState(false);
   const [editingText, setEditingText] = useState(text);
   const textInputRef = useRef<HTMLInputElement>(null);
 
@@ -191,6 +192,9 @@ const RoundBox = ({
     if (!isSelected || event.shiftKey) {
       onSelectChange?.(true, { additive: event.shiftKey });
     }
+    if (type === "imageBoxMove" || type === "imageBoxResize") {
+      setIsImageBoxInteracting(true);
+    }
 
     const scale = getScale(boxRef.current);
     const startRect = rectRef.current;
@@ -254,14 +258,8 @@ const RoundBox = ({
       }
       if (type === "imageBoxMove") {
         if (!onImageBoxChange) return;
-        const nextX = Math.min(
-          Math.max(0, startImageBox.x + dx),
-          rectRef.current.width - startImageBox.w
-        );
-        const nextY = Math.min(
-          Math.max(0, startImageBox.y + dy),
-          rectRef.current.height - startImageBox.h
-        );
+        const nextX = startImageBox.x + dx;
+        const nextY = startImageBox.y + dy;
         const nextBox = {
           x: nextX,
           y: nextY,
@@ -323,20 +321,6 @@ const RoundBox = ({
             nextY = startBox.y + (startBox.h - minSize);
           }
         }
-
-        const maxWidth = rectRef.current.width;
-        const maxHeight = rectRef.current.height;
-        if (nextW > maxWidth) {
-          nextW = maxWidth;
-          nextX = 0;
-        }
-        if (nextH > maxHeight) {
-          nextH = maxHeight;
-          nextY = 0;
-        }
-
-        nextX = Math.min(Math.max(0, nextX), maxWidth - nextW);
-        nextY = Math.min(Math.max(0, nextY), maxHeight - nextH);
 
         const nextBox = { x: nextX, y: nextY, w: nextW, h: nextH };
         imageBoxRef.current = nextBox;
@@ -456,6 +440,7 @@ const RoundBox = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       actionRef.current = null;
+      setIsImageBoxInteracting(false);
       if (hasMoved) {
         if (type === "drag" || type === "resize") {
           onDragStateChange?.(false, rectRef.current, { type });
@@ -584,6 +569,8 @@ const RoundBox = ({
     w: rect.width,
     h: rect.height,
   };
+  const showImageOverflow = isImageFill && isImageEditing;
+  const imageOverflowOpacity = 0.35;
   const showImageCenterX =
     isImageEditing &&
     isImageFill &&
@@ -657,7 +644,9 @@ const RoundBox = ({
       }}
     >
       <div
-        className="absolute inset-0 flex items-center justify-center overflow-hidden"
+        className={`absolute inset-0 flex items-center justify-center ${
+          showImageOverflow ? "overflow-visible" : "overflow-hidden"
+        }`}
         style={{ borderRadius, ...backgroundStyle }}
         onDoubleClick={(event) => {
           if (!isImageFill) return;
@@ -667,35 +656,62 @@ const RoundBox = ({
         }}
       >
         {isImageFill && (
-          <div
-            className="absolute"
-            onPointerDown={
-              isImageEditing
-                ? (event) => {
-                    event.stopPropagation();
-                    startAction(event, "imageBoxMove");
-                  }
-                : undefined
-            }
-            style={{
-              left: renderImageBox.x,
-              top: renderImageBox.y,
-              width: renderImageBox.w,
-              height: renderImageBox.h,
-              cursor: isImageEditing ? "move" : "default",
-            }}
-          >
-            <img
-              src={imageSrc}
-              alt=""
-              className="h-full w-full select-none"
+          <>
+            <div
+              className="absolute"
+              onPointerDown={
+                isImageEditing
+                  ? (event) => {
+                      event.stopPropagation();
+                      startAction(event, "imageBoxMove");
+                    }
+                  : undefined
+              }
               style={{
-                objectFit: "fill",
-                pointerEvents: "none",
+                left: renderImageBox.x,
+                top: renderImageBox.y,
+                width: renderImageBox.w,
+                height: renderImageBox.h,
+                cursor: isImageEditing ? "move" : "default",
+                opacity: showImageOverflow ? imageOverflowOpacity : 1,
               }}
-              draggable={false}
-            />
-          </div>
+            >
+              <img
+                src={imageSrc}
+                alt=""
+                className="h-full w-full select-none"
+                style={{
+                  objectFit: "fill",
+                  pointerEvents: "none",
+                }}
+                draggable={false}
+              />
+            </div>
+            {showImageOverflow && (
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div
+                  className="absolute"
+                  style={{
+                    left: renderImageBox.x,
+                    top: renderImageBox.y,
+                    width: renderImageBox.w,
+                    height: renderImageBox.h,
+                  }}
+                >
+                  <img
+                    src={imageSrc}
+                    alt=""
+                    className="h-full w-full select-none"
+                    style={{
+                      objectFit: "fill",
+                      pointerEvents: "none",
+                    }}
+                    draggable={false}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
         {isImageFill && isImageEditing && (
           <div
