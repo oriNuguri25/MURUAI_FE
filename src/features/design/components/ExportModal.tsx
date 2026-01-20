@@ -183,7 +183,12 @@ const ExportModal = ({
   };
 
   return (
-    <BaseModal isOpen={open} onClose={onClose} title="내보내기">
+    <BaseModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnBackdropClick={false}
+      title="내보내기"
+    >
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <span className="text-14-semibold text-black-90">저장 대상</span>

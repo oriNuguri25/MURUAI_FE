@@ -5,11 +5,19 @@ interface BaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onReset?: () => void;
+  closeOnBackdropClick?: boolean;
   title: string | ReactNode;
   children: ReactNode;
 }
 
-const BaseModal = ({ isOpen, onClose, onReset, title, children }: BaseModalProps) => {
+const BaseModal = ({
+  isOpen,
+  onClose,
+  onReset,
+  closeOnBackdropClick = true,
+  title,
+  children,
+}: BaseModalProps) => {
   useEffect(() => {
     if (isOpen) {
       const scrollbarWidth =
@@ -30,10 +38,15 @@ const BaseModal = ({ isOpen, onClose, onReset, title, children }: BaseModalProps
 
   if (!isOpen) return null;
 
+  const handleBackdropClick = () => {
+    if (!closeOnBackdropClick) return;
+    handleClose();
+  };
+
   return (
     <div
       className="fixed inset-0 z-9999 flex items-center justify-center backdrop-blur-sm overflow-hidden"
-      onClick={handleClose}
+      onClick={handleBackdropClick}
     >
       {/* 모달 배경 */}
       <div className="absolute inset-0" aria-hidden="true" />
