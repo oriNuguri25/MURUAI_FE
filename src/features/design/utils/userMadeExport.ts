@@ -117,10 +117,17 @@ export const assignUserMadeToTarget = async ({
 
 export const generatePdfFromDomPages = async ({
   quality = 2,
+  pageIds,
 }: {
   quality?: number;
+  pageIds?: string[];
 } = {}): Promise<Blob> => {
-  const pages = Array.from(document.querySelectorAll<HTMLElement>(".pdf-page"));
+  const pages = Array.from(document.querySelectorAll<HTMLElement>(".pdf-page"))
+    .filter((page) => {
+      if (!pageIds || pageIds.length === 0) return true;
+      const pageId = page.dataset.pageId;
+      return pageId ? pageIds.includes(pageId) : false;
+    });
   if (pages.length === 0) {
     throw new Error("No .pdf-page elements found");
   }

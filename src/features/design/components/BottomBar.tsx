@@ -42,7 +42,7 @@ const BottomBar = ({
   };
 
   const [hoveredDividerIndex, setHoveredDividerIndex] = useState<number | null>(
-    null
+    null,
   );
   const [contextMenu, setContextMenu] = useState<{
     pageId: string;
@@ -68,12 +68,12 @@ const BottomBar = ({
     <div
       ref={containerRef}
       tabIndex={0}
-      className="relative flex shrink-0 w-full h-32 bg-white border-t border-black-25 items-center px-4 outline-none"
+      className="relative flex shrink-0 w-full h-36 bg-white border-t border-black-25 items-center pt-3 px-4 outline-none"
       onPointerDown={() => setContextMenu(null)}
       onContextMenu={(event) => event.preventDefault()}
     >
       {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
-      <div className="flex flex-1 h-full items-start py-2 gap-2 overflow-x-auto overflow-y-hidden">
+      <div className="flex flex-1 h-full items-start pt-1 pb-3 gap-2 overflow-x-auto overflow-y-hidden">
         {pages.map((page, index) => {
           const isHorizontal = page.orientation === "horizontal";
           const previewBox = isHorizontal
@@ -85,106 +85,112 @@ const BottomBar = ({
           };
           const previewScale = Math.min(
             previewBox.width / pageSize.width,
-            previewBox.height / pageSize.height
+            previewBox.height / pageSize.height,
           );
           const scaledWidth = pageSize.width * previewScale;
           const scaledHeight = pageSize.height * previewScale;
           return (
-          <Fragment key={page.id}>
-            <div
-              draggable
-              onDragStart={(e) => handleDragStart(e, page.id)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, page.id)}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onSelectPage(page.id);
-                const rect = containerRef.current?.getBoundingClientRect();
-                const rawX = event.clientX - (rect?.left ?? 0);
-                const rawY = event.clientY - (rect?.top ?? 0);
-                const menuWidth = 160;
-                const menuHeight = 3 * 36 + 8;
-                const maxX = (rect?.width ?? 0) - menuWidth - 8;
-                const maxY = (rect?.height ?? 0) - menuHeight - 8;
-                const clampedX = Math.min(Math.max(rawX, 8), Math.max(8, maxX));
-                const clampedY = Math.min(Math.max(rawY, 8), Math.max(8, maxY));
-                setContextMenu({ pageId: page.id, x: clampedX, y: clampedY });
-              }}
-              className="flex shrink-0 flex-col items-center gap-2 cursor-move"
-            >
-              <button
-                onClick={() => onSelectPage(page.id)}
-                className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
-                  isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
-                } ${
-                  selectedPageId === page.id
-                    ? "border-primary bg-primary/5"
-                    : "border-black-25 bg-white hover:border-black-40"
-                }`}
-              >
-                <div
-                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                  style={{ borderRadius: "inherit" }}
-                >
-                  <div
-                    className="relative"
-                    style={{
-                      width: `${scaledWidth}px`,
-                      height: `${scaledHeight}px`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${pageSize.width}px`,
-                        height: `${pageSize.height}px`,
-                        transform: `scale(${previewScale})`,
-                        transformOrigin: "top left",
-                        pointerEvents: "none",
-                      }}
-                    >
-                      <DesignPaper
-                        pageId={page.id}
-                        orientation={page.orientation ?? "vertical"}
-                        elements={page.elements}
-                        selectedIds={[]}
-                        editingTextId={null}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                </div>
-              </button>
-              {/* 페이지 번호 */}
-              <span className="text-12-medium text-black-60">
-                {page.pageNumber}
-              </span>
-            </div>
-
-            {/* 페이지 사이 호버 시 추가 버튼 (2개 이상일 때만) */}
-            {pages.length >= 2 && index < pages.length - 1 && (
+            <Fragment key={page.id}>
               <div
-                className="relative flex items-center shrink-0 h-full"
-                onMouseEnter={() => setHoveredDividerIndex(index)}
-                onMouseLeave={() => setHoveredDividerIndex(null)}
+                draggable
+                onDragStart={(e) => handleDragStart(e, page.id)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, page.id)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSelectPage(page.id);
+                  const rect = containerRef.current?.getBoundingClientRect();
+                  const rawX = event.clientX - (rect?.left ?? 0);
+                  const rawY = event.clientY - (rect?.top ?? 0);
+                  const menuWidth = 160;
+                  const menuHeight = 3 * 36 + 8;
+                  const maxX = (rect?.width ?? 0) - menuWidth - 8;
+                  const maxY = (rect?.height ?? 0) - menuHeight - 8;
+                  const clampedX = Math.min(
+                    Math.max(rawX, 8),
+                    Math.max(8, maxX),
+                  );
+                  const clampedY = Math.min(
+                    Math.max(rawY, 8),
+                    Math.max(8, maxY),
+                  );
+                  setContextMenu({ pageId: page.id, x: clampedX, y: clampedY });
+                }}
+                className="flex shrink-0 flex-col items-center gap-2 cursor-move"
               >
-                <div
-                  className={`flex items-center justify-center h-full pb-5 transition-all ${
-                    hoveredDividerIndex === index ? "w-8" : "w-1"
+                <button
+                  onClick={() => onSelectPage(page.id)}
+                  className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
+                    isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
+                  } ${
+                    selectedPageId === page.id
+                      ? "border-primary bg-primary/5"
+                      : "border-black-25 bg-white hover:border-black-40"
                   }`}
                 >
-                  {hoveredDividerIndex === index && (
-                    <button
-                      onClick={() => handleAddPageBetween(index + 1)}
-                      className="flex items-center justify-center w-6 h-6 rounded-full bg-primary hover:bg-primary/90 transition cursor-pointer"
+                  <div
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{ borderRadius: "inherit" }}
+                  >
+                    <div
+                      className="relative"
+                      style={{
+                        width: `${scaledWidth}px`,
+                        height: `${scaledHeight}px`,
+                      }}
                     >
-                      <Plus className="w-4 h-4 text-white" />
-                    </button>
-                  )}
-                </div>
+                      <div
+                        style={{
+                          width: `${pageSize.width}px`,
+                          height: `${pageSize.height}px`,
+                          transform: `scale(${previewScale})`,
+                          transformOrigin: "top left",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <DesignPaper
+                          pageId={page.id}
+                          orientation={page.orientation ?? "vertical"}
+                          elements={page.elements}
+                          selectedIds={[]}
+                          editingTextId={null}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                {/* 페이지 번호 */}
+                <span className="text-12-medium text-black-60">
+                  {page.pageNumber}
+                </span>
               </div>
-            )}
-          </Fragment>
+
+              {/* 페이지 사이 호버 시 추가 버튼 (2개 이상일 때만) */}
+              {pages.length >= 2 && index < pages.length - 1 && (
+                <div
+                  className="relative flex items-center shrink-0 h-full"
+                  onMouseEnter={() => setHoveredDividerIndex(index)}
+                  onMouseLeave={() => setHoveredDividerIndex(null)}
+                >
+                  <div
+                    className={`flex items-center justify-center h-full pb-5 transition-all ${
+                      hoveredDividerIndex === index ? "w-8" : "w-1"
+                    }`}
+                  >
+                    {hoveredDividerIndex === index && (
+                      <button
+                        onClick={() => handleAddPageBetween(index + 1)}
+                        className="flex items-center justify-center w-6 h-6 rounded-full bg-primary hover:bg-primary/90 transition cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4 text-white" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Fragment>
           );
         })}
 

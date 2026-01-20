@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from "react";
 import { useOutletContext } from "react-router-dom";
+import { Ban } from "lucide-react";
 import BottomBar from "../components/BottomBar";
 import type { CanvasDocument, Page } from "../model/pageTypes";
 import DesignPaper from "../components/DesignPaper";
@@ -22,6 +23,7 @@ import type {
 } from "../model/canvasTypes";
 import { useCopyPaste } from "../model/useCopyPaste";
 import { useCanvasZoom } from "../model/useCanvasZoom";
+import { useNumberInput } from "../model/useNumberInput";
 import { useTemplateStore } from "../store/templateStore";
 import { useOrientationStore } from "../store/orientationStore";
 import { useElementStore } from "../store/elementStore";
@@ -52,6 +54,7 @@ import {
 } from "../utils/storySequenceUtils";
 import { updateUserMadeVersion } from "../utils/userMadeExport";
 import { measureTextBoxSize } from "../utils/textMeasure";
+import { getFontLabel, normalizeFontWeight } from "../utils/fontOptions";
 import { supabase } from "@/shared/supabase/supabase";
 import BaseModal from "@/shared/ui/BaseModal";
 
@@ -67,6 +70,8 @@ export interface OutletContext {
   docId?: string;
   docName: string;
 }
+
+type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
 const MM_TO_PX = 3.7795;
 const mmToPx = (mm: number) => mm * MM_TO_PX;
@@ -603,6 +608,7 @@ const MainSection = () => {
     (state) => state.setSelectedTemplate
   );
   const setSideBarMenu = useSideBarStore((state) => state.setSelectedMenu);
+  const setFontPanel = useFontStore((state) => state.setPanelFont);
   const showToast = useToastStore((state) => state.showToast);
   const initialPages = buildInitialPages(loadedDocument, orientation);
   const [pages, setPages] = useState<Page[]>(initialPages);
@@ -623,14 +629,28 @@ const MainSection = () => {
   const isApplyingHistoryRef = useRef(false);
   const isTransactionActiveRef = useRef(false);
   const isApplyingTemplateRef = useRef(false);
+  const [isMultiBorderPanelOpen, setIsMultiBorderPanelOpen] = useState(false);
   const [templateChoiceDialog, setTemplateChoiceDialog] = useState<{
     templateId: TemplateId;
   } | null>(null);
-  const cloneElementsWithNewIds = (elements: CanvasElement[]) =>
-    elements.map((element) => ({
-      ...element,
-      id: crypto.randomUUID(),
-    }));
+  const cloneElementsWithNewIds = (elements: CanvasElement[]) => {
+    const idMap = new Map<string, string>();
+    elements.forEach((element) => {
+      idMap.set(element.id, crypto.randomUUID());
+    });
+    return elements.map((element) => {
+      const nextId = idMap.get(element.id) ?? crypto.randomUUID();
+      const nextLabelId =
+        "labelId" in element && element.labelId
+          ? idMap.get(element.labelId) ?? element.labelId
+          : undefined;
+      return {
+        ...element,
+        id: nextId,
+        labelId: nextLabelId,
+      };
+    });
+  };
 
   const showEmotionInferenceToast = useCallback(() => {
     showToast("자료 제작을 위한 기본세트 페이지 3장이 적용되었습니다.");
@@ -904,25 +924,46 @@ const MainSection = () => {
           return {
             ...page,
             elements: page.elements.map((element) => {
-              if (
-                element.type !== "text" ||
-                element.locked ||
-                !targetIds.includes(element.id)
-              ) {
+              if (element.locked || !targetIds.includes(element.id)) {
                 return element;
               }
-              return {
-                ...element,
-                style: {
-                  ...element.style,
-                  ...(payload.fontFamily
-                    ? { fontFamily: payload.fontFamily }
-                    : {}),
-                  ...(payload.fontWeight != null
-                    ? { fontWeight: payload.fontWeight }
-                    : {}),
-                },
-              };
+              if (element.type === "text") {
+                return {
+                  ...element,
+                  style: {
+                    ...element.style,
+                    ...(payload.fontFamily
+                      ? { fontFamily: payload.fontFamily }
+                      : {}),
+                    ...(payload.fontWeight != null
+                      ? { fontWeight: payload.fontWeight }
+                      : {}),
+                  },
+                };
+              }
+              if (
+                element.type === "rect" ||
+                element.type === "roundRect" ||
+                element.type === "ellipse"
+              ) {
+                const nextWeight =
+                  payload.fontWeight != null
+                    ? payload.fontWeight >= 700
+                      ? "bold"
+                      : "normal"
+                    : undefined;
+                return {
+                  ...element,
+                  textStyle: {
+                    ...element.textStyle,
+                    ...(payload.fontFamily
+                      ? { fontFamily: payload.fontFamily }
+                      : {}),
+                    ...(nextWeight ? { fontWeight: nextWeight } : {}),
+                  },
+                };
+              }
+              return element;
             }),
           };
         })
@@ -1323,6 +1364,7 @@ const MainSection = () => {
   const handleDeletePage = (pageId: string) => {
     if (pages.length <= 1) return;
 
+    const deletedIndex = pages.findIndex((page) => page.id === pageId);
     const updatedPages = pages
       .filter((page) => page.id !== pageId)
       .map((page, index) => ({
@@ -1332,9 +1374,14 @@ const MainSection = () => {
 
     setPages(updatedPages);
 
-    // 삭제된 페이지가 선택되어 있었다면 첫 번째 페이지 선택
+    // 삭제된 페이지가 선택되어 있었다면 왼쪽 페이지(없으면 첫 페이지) 선택
     if (selectedPageId === pageId) {
-      setActivePage(updatedPages[0].id, updatedPages[0].orientation);
+      const targetIndex =
+        deletedIndex > 0 ? deletedIndex - 1 : 0;
+      const nextPage = updatedPages[targetIndex] ?? updatedPages[0];
+      if (nextPage) {
+        setActivePage(nextPage.id, nextPage.orientation);
+      }
     }
   };
 
@@ -1467,6 +1514,160 @@ const MainSection = () => {
       fill.startsWith("url(") || fill.startsWith("data:");
     return isImageFill ? "#ffffff" : fill;
   })();
+  const isFontTarget = (
+    element: CanvasElement
+  ): element is TextElement | ShapeElement =>
+    element.type === "text" ||
+    element.type === "rect" ||
+    element.type === "roundRect" ||
+    element.type === "ellipse";
+  const multiFontTargets = isMultiColorSelection
+    ? selectedElements.filter(isFontTarget)
+    : [];
+  const multiFontSource =
+    multiFontTargets.length > 0
+      ? multiFontTargets.find((element) => !element.locked) ??
+        multiFontTargets[0] ??
+        null
+      : null;
+  const hasMultiFontTargets = multiFontTargets.length > 0;
+  const multiFontFamily =
+    multiFontSource && multiFontSource.type === "text"
+      ? multiFontSource.style.fontFamily ?? "Pretendard"
+      : multiFontSource?.textStyle?.fontFamily ?? "Pretendard";
+  const multiFontLabel = getFontLabel(multiFontFamily);
+  const multiFontWeight = multiFontSource
+    ? multiFontSource.type === "text"
+      ? normalizeFontWeight(multiFontSource.style.fontWeight)
+      : normalizeFontWeight(multiFontSource.textStyle?.fontWeight)
+    : 400;
+  const multiFontSize =
+    multiFontSource && multiFontSource.type === "text"
+      ? multiFontSource.style.fontSize
+      : multiFontSource?.textStyle?.fontSize ?? 16;
+  const minMultiFontSize = 12;
+  const maxMultiFontSize = 120;
+  const applyMultiFontSize = (value: number) => {
+    if (!activePage) return;
+    const nextSize = Math.min(
+      maxMultiFontSize,
+      Math.max(minMultiFontSize, value)
+    );
+    setPages((prevPages) =>
+      prevPages.map((page) =>
+        page.id === selectedPageId
+          ? {
+              ...page,
+              elements: page.elements.map((el) => {
+                if (!selectedIds.includes(el.id) || el.locked) {
+                  return el;
+                }
+                if (el.type === "text") {
+                  return {
+                    ...el,
+                    style: {
+                      ...el.style,
+                      fontSize: nextSize,
+                    },
+                  };
+                }
+                if (
+                  el.type === "rect" ||
+                  el.type === "roundRect" ||
+                  el.type === "ellipse"
+                ) {
+                  return {
+                    ...el,
+                    textStyle: {
+                      ...el.textStyle,
+                      fontSize: nextSize,
+                    },
+                  };
+                }
+                return el;
+              }),
+            }
+          : page
+      )
+    );
+  };
+  const multiFontSizeInput = useNumberInput({
+    value: multiFontSize,
+    min: minMultiFontSize,
+    max: maxMultiFontSize,
+    onChange: applyMultiFontSize,
+  });
+  const isBorderTarget = (
+    element: CanvasElement
+  ): element is ShapeElement =>
+    element.type === "rect" ||
+    element.type === "roundRect" ||
+    element.type === "ellipse";
+  const multiBorderTargets = isMultiColorSelection
+    ? selectedElements.filter(isBorderTarget)
+    : [];
+  const multiBorderSource =
+    multiBorderTargets.length > 0
+      ? multiBorderTargets.find((element) => !element.locked) ??
+        multiBorderTargets[0] ??
+        null
+      : null;
+  const hasMultiBorderTargets = multiBorderTargets.length > 0;
+  const multiBorderEnabled = multiBorderSource?.border?.enabled ?? false;
+  const multiBorderColor = multiBorderSource?.border?.color ?? "#000000";
+  const multiBorderWidth = multiBorderSource?.border?.width ?? 2;
+  const multiBorderStyle =
+    multiBorderSource?.border?.style ?? "solid";
+  const borderStyleOptions: Array<BorderStyle | "none"> = [
+    "none",
+    "solid",
+    "dashed",
+    "double",
+    "dotted",
+  ];
+  const activeBorderStyle = multiBorderEnabled
+    ? multiBorderStyle
+    : "none";
+  const clampBorderWidth = (value: number) =>
+    Math.min(20, Math.max(1, value));
+  const applyMultiBorderPatch = (
+    patch: Partial<ShapeElement["border"]>
+  ) => {
+    if (!activePage) return;
+    setPages((prevPages) =>
+      prevPages.map((page) => {
+        if (page.id !== selectedPageId) return page;
+        return {
+          ...page,
+          elements: page.elements.map((el) => {
+            if (!selectedIds.includes(el.id) || el.locked) {
+              return el;
+            }
+            if (
+              el.type !== "rect" &&
+              el.type !== "roundRect" &&
+              el.type !== "ellipse"
+            ) {
+              return el;
+            }
+            const baseBorder = el.border ?? {
+              enabled: multiBorderEnabled,
+              color: multiBorderColor,
+              width: multiBorderWidth,
+              style: multiBorderStyle,
+            };
+            return {
+              ...el,
+              border: {
+                ...baseBorder,
+                ...patch,
+              },
+            };
+          }),
+        };
+      })
+    );
+  };
   const selectedElement = activeToolbarElementId
     ? activePage?.elements.find((el) => el.id === activeToolbarElementId)
     : null;
@@ -1550,57 +1751,257 @@ const MainSection = () => {
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
           <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
             <div
-              className="flex items-center gap-2 whitespace-nowrap"
+              className="flex flex-wrap items-center gap-3 whitespace-nowrap"
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <span className="text-14-regular text-black-60">색상</span>
-              <ColorPickerPopover
-                value={multiColorValue}
-                onChange={(nextColor) => {
-                  if (!activePage) return;
-                  setPages((prevPages) =>
-                    prevPages.map((page) =>
-                      page.id === selectedPageId
-                        ? {
-                            ...page,
-                            elements: page.elements.map((el) => {
-                              if (
-                                !selectedIds.includes(el.id) ||
-                                el.locked
-                              ) {
+              <div className="flex items-center gap-2">
+                <span className="text-14-regular text-black-60">색상</span>
+                <ColorPickerPopover
+                  value={multiColorValue}
+                  onChange={(nextColor) => {
+                    if (!activePage) return;
+                    setPages((prevPages) =>
+                      prevPages.map((page) =>
+                        page.id === selectedPageId
+                          ? {
+                              ...page,
+                              elements: page.elements.map((el) => {
+                                if (
+                                  !selectedIds.includes(el.id) ||
+                                  el.locked
+                                ) {
+                                  return el;
+                                }
+                                if (el.type === "text") {
+                                  const textElement = el as TextElement;
+                                  return {
+                                    ...textElement,
+                                    style: {
+                                      ...textElement.style,
+                                      color: nextColor,
+                                    },
+                                  };
+                                }
+                                if (
+                                  el.type === "rect" ||
+                                  el.type === "roundRect" ||
+                                  el.type === "ellipse"
+                                ) {
+                                  return {
+                                    ...el,
+                                    fill: nextColor,
+                                  };
+                                }
                                 return el;
-                              }
-                              if (el.type === "text") {
-                                const textElement = el as TextElement;
-                                return {
-                                  ...textElement,
-                                  style: {
-                                    ...textElement.style,
-                                    color: nextColor,
-                                  },
-                                };
-                              }
-                              if (
-                                el.type === "rect" ||
-                                el.type === "roundRect" ||
-                                el.type === "ellipse"
-                              ) {
-                                return {
-                                  ...el,
-                                  fill: nextColor,
-                                };
-                              }
-                              return el;
-                            }),
+                              }),
+                            }
+                          : page
+                      )
+                    );
+                  }}
+                />
+                <span className="text-12-regular text-black-70 uppercase">
+                  {multiColorValue}
+                </span>
+              </div>
+              {hasMultiFontTargets && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSideBarMenu("font");
+                      setFontPanel({
+                        fontFamily: multiFontFamily,
+                        fontWeight: multiFontWeight,
+                      });
+                    }}
+                    className="flex items-center gap-2 rounded border border-black-30 px-2 py-1 text-14-regular text-black-70 hover:border-primary hover:text-primary"
+                  >
+                    <span className="text-black-60">글꼴</span>
+                    <span
+                      className="text-black-90"
+                      style={{ fontFamily: multiFontFamily }}
+                    >
+                      {multiFontLabel}
+                    </span>
+                  </button>
+                  <div className="flex items-center text-14-regular text-black-60">
+                    텍스트 크기
+                  </div>
+                  <div className="flex items-center gap-1 rounded border border-black-30 px-1">
+                    <button
+                      type="button"
+                      onClick={() => multiFontSizeInput.step(-1)}
+                      className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
+                      aria-label="Decrease font size"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={multiFontSizeInput.displayValue}
+                      onChange={(event) =>
+                        multiFontSizeInput.handleChange(event.target.value)
+                      }
+                      onFocus={multiFontSizeInput.handleFocus}
+                      onBlur={multiFontSizeInput.handleBlur}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter") return;
+                        event.preventDefault();
+                        multiFontSizeInput.commit();
+                        event.currentTarget.blur();
+                      }}
+                      className="no-spinner w-12 appearance-none border-x border-black-30 px-1 py-1 text-center text-14-regular text-black-90"
+                      style={{
+                        textAlign: "center",
+                        WebkitAppearance: "none",
+                        MozAppearance: "textfield",
+                        appearance: "textfield",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => multiFontSizeInput.step(1)}
+                      className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
+                      aria-label="Increase font size"
+                    >
+                      +
+                    </button>
+                  </div>
+                </>
+              )}
+              {hasMultiBorderTargets && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsMultiBorderPanelOpen((prev) => !prev)
+                    }
+                    className={`flex h-7 items-center justify-center rounded border px-2 text-14-regular ${
+                      multiBorderEnabled || isMultiBorderPanelOpen
+                        ? "border-primary text-primary"
+                        : "border-black-30 text-black-70"
+                    }`}
+                    aria-label="Border settings"
+                  >
+                    테두리
+                  </button>
+                  {isMultiBorderPanelOpen && (
+                    <div
+                      className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-black-25 bg-white-100 p-3 shadow-lg"
+                      onPointerDown={(event) => event.stopPropagation()}
+                    >
+                      <div className="flex items-center gap-2">
+                        {borderStyleOptions.map((styleOption) => {
+                          const isActive =
+                            activeBorderStyle === styleOption;
+                          const buttonClass = `flex h-12 w-12 items-center justify-center rounded-lg border ${
+                            isActive
+                              ? "border-primary text-primary"
+                              : "border-black-30 text-black-70"
+                          }`;
+                          if (styleOption === "none") {
+                            return (
+                              <button
+                                key={styleOption}
+                                type="button"
+                                onClick={() =>
+                                  applyMultiBorderPatch({ enabled: false })
+                                }
+                                className={buttonClass}
+                                aria-label="No border"
+                              >
+                                <Ban className="h-5 w-5" />
+                              </button>
+                            );
                           }
-                        : page
-                    )
-                  );
-                }}
-              />
-              <span className="text-12-regular text-black-70 uppercase">
-                {multiColorValue}
-              </span>
+                          return (
+                            <button
+                              key={styleOption}
+                              type="button"
+                              onClick={() =>
+                                applyMultiBorderPatch({
+                                  enabled: true,
+                                  style: styleOption as BorderStyle,
+                                })
+                              }
+                              className={buttonClass}
+                              aria-label={`${styleOption} border`}
+                            >
+                              <span
+                                className="block w-6"
+                                style={{
+                                  borderTopWidth: 2,
+                                  borderTopStyle: styleOption,
+                                  borderTopColor: "currentColor",
+                                }}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-4 text-14-regular text-black-70">
+                        스트로크 굵기
+                      </div>
+                      <div className="mt-2 flex items-center gap-3">
+                        <input
+                          type="range"
+                          min={1}
+                          max={20}
+                          value={multiBorderWidth}
+                          disabled={!multiBorderEnabled}
+                          onChange={(event) =>
+                            applyMultiBorderPatch({
+                              width: clampBorderWidth(
+                                Number(event.target.value)
+                              ),
+                            })
+                          }
+                          className="flex-1"
+                        />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={String(multiBorderWidth)}
+                          onChange={(event) => {
+                            const digits =
+                              event.target.value.replace(/[^0-9]/g, "");
+                            if (!digits) return;
+                            applyMultiBorderPatch({
+                              width: clampBorderWidth(Number(digits)),
+                            });
+                          }}
+                          disabled={!multiBorderEnabled}
+                          className="no-spinner w-12 rounded-lg border border-black-30 px-2 py-1 text-center text-14-regular text-black-90 disabled:bg-black-10"
+                        />
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-14-regular text-black-60">
+                          색상
+                        </span>
+                        <input
+                          type="color"
+                          value={multiBorderColor}
+                          onChange={(event) =>
+                            applyMultiBorderPatch({
+                              color: event.target.value,
+                            })
+                          }
+                          disabled={!multiBorderEnabled}
+                          className="color-input h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0 disabled:cursor-not-allowed disabled:opacity-40"
+                          style={{
+                            WebkitAppearance: "none",
+                            appearance: "none",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2069,6 +2470,7 @@ const MainSection = () => {
               key={`pdf-${page.id}`}
               className="pdf-page"
               data-orientation={normalizedOrientation}
+              data-page-id={page.id}
               style={{ display: "inline-block" }}
             >
               <DesignPaper

@@ -40,6 +40,7 @@ interface RoundBoxProps {
   textStyle?: {
     fontSize?: number;
     fontWeight?: "normal" | "bold";
+    fontFamily?: string;
     color?: string;
   };
   children?: React.ReactNode;
@@ -739,6 +740,7 @@ const RoundBox = ({
               style={{
                 fontSize: `${textStyle?.fontSize ?? 16}px`,
                 fontWeight: textStyle?.fontWeight ?? "normal",
+                fontFamily: textStyle?.fontFamily,
                 color: textStyle?.color ?? "#000000",
                 wordBreak: "break-word",
               }}
@@ -770,6 +772,7 @@ const RoundBox = ({
             style={{
               fontSize: `${textStyle?.fontSize ?? 16}px`,
               fontWeight: textStyle?.fontWeight ?? "normal",
+              fontFamily: textStyle?.fontFamily,
               color: textStyle?.color ?? "#000000",
               caretColor: textStyle?.color ?? "#000000",
             }}

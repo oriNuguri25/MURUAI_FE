@@ -82,6 +82,7 @@ export type ShapeElement = ElementBase & {
   textStyle?: {
     fontSize?: number;
     fontWeight?: "normal" | "bold";
+    fontFamily?: string;
     color?: string;
   };
   labelId?: string;

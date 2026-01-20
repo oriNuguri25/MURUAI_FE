@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import BaseModal from "@/shared/ui/BaseModal";
 import { useToastStore } from "../store/toastStore";
 import {
@@ -28,6 +28,40 @@ type ExportModalProps = {
   isLoadingTargets: boolean;
 };
 
+const parsePageRangeInput = (value: string, maxPageNumber: number) => {
+  const sanitized = value.replace(/\s+/g, "");
+  if (!sanitized) return [];
+  const tokens = sanitized.split(",");
+  const pages = new Set<number>();
+  tokens.forEach((token) => {
+    if (!token) return;
+    const rangeDelimiter = token.includes("~")
+      ? "~"
+      : token.includes("-")
+        ? "-"
+        : null;
+    if (rangeDelimiter) {
+      const [startRaw, endRaw] = token.split(rangeDelimiter);
+      if (!startRaw || !endRaw) return;
+      const start = Number(startRaw);
+      const end = Number(endRaw);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+      const from = Math.min(start, end);
+      const to = Math.max(start, end);
+      for (let i = from; i <= to; i += 1) {
+        if (i < 1 || i > maxPageNumber) continue;
+        pages.add(i);
+      }
+      return;
+    }
+    const num = Number(token);
+    if (!Number.isFinite(num)) return;
+    if (num < 1 || num > maxPageNumber) return;
+    pages.add(num);
+  });
+  return Array.from(pages).sort((a, b) => a - b);
+};
+
 const ExportModal = ({
   open,
   onClose,
@@ -45,9 +79,49 @@ const ExportModal = ({
   const [targetId, setTargetId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfPageMode, setPdfPageMode] = useState<"all" | "selected">("all");
+  const [pdfPageRangeInput, setPdfPageRangeInput] = useState("");
 
   const targets = targetType === "child" ? students : groups;
   const name = getName().trim() || "제목 없음";
+  const pageOptions = useMemo(() => {
+    const canvasData = getCanvasData() as {
+      pages?: Array<{ id?: unknown; pageNumber?: number }>;
+    } | null;
+    const pages = Array.isArray(canvasData?.pages) ? canvasData.pages : [];
+    return pages
+      .map((page, index) => ({
+        id: typeof page?.id === "string" ? page.id : null,
+        pageNumber:
+          typeof page?.pageNumber === "number" ? page.pageNumber : index + 1,
+      }))
+      .filter(
+        (page): page is { id: string; pageNumber: number } => !!page.id
+      );
+  }, [getCanvasData, open]);
+  const maxPageNumber = pageOptions.reduce(
+    (max, page) => Math.max(max, page.pageNumber),
+    0
+  );
+  const minPageNumber = pageOptions.reduce(
+    (min, page) => Math.min(min, page.pageNumber),
+    maxPageNumber
+  );
+  const parsedPageNumbers = useMemo(
+    () => parsePageRangeInput(pdfPageRangeInput, maxPageNumber),
+    [pdfPageRangeInput, maxPageNumber]
+  );
+  const parsedPageIds = useMemo(() => {
+    if (parsedPageNumbers.length === 0) return [];
+    const map = new Map(
+      pageOptions.map((page) => [page.pageNumber, page.id])
+    );
+    return parsedPageNumbers
+      .map((pageNumber) => map.get(pageNumber))
+      .filter((id): id is string => Boolean(id));
+  }, [pageOptions, parsedPageNumbers]);
+  const fullRangeLabel =
+    minPageNumber > 0 ? `${minPageNumber}~${maxPageNumber}` : "";
 
   const handleSaveToTarget = async () => {
     if (!userId) {
@@ -85,15 +159,27 @@ const ExportModal = ({
   };
 
   const handleDownloadPdf = async () => {
+    if (pdfPageMode === "selected" && parsedPageIds.length === 0) {
+      showToast("내보낼 페이지를 선택해주세요.");
+      return;
+    }
     setIsDownloading(true);
     try {
-      const blob = await generatePdfFromDomPages({ quality: 6 });
+      const pageIds = pdfPageMode === "selected" ? parsedPageIds : undefined;
+      const blob = await generatePdfFromDomPages({ quality: 6, pageIds });
       downloadBlob(blob, `${name}.pdf`);
     } catch {
       showToast("PDF를 만들지 못했어요.");
     } finally {
       setIsDownloading(false);
     }
+  };
+  const handleSelectAllPdfPages = () => {
+    setPdfPageRangeInput(fullRangeLabel);
+  };
+
+  const handleClearPdfPages = () => {
+    setPdfPageRangeInput("");
   };
 
   return (
@@ -164,6 +250,65 @@ const ExportModal = ({
               </div>
             )}
           </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-14-semibold text-black-90">PDF 페이지</span>
+          <div className="flex gap-2">
+            {(["all", "selected"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setPdfPageMode(mode)}
+                className={`flex-1 rounded-lg border px-3 py-2 text-14-semibold transition ${
+                  pdfPageMode === mode
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-black-25 text-black-70 hover:border-black-40"
+                }`}
+              >
+                {mode === "all" ? "전체" : "선택"}
+              </button>
+            ))}
+          </div>
+          {pdfPageMode === "selected" && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-12-regular text-black-60">
+                  내보낼 페이지 선택
+                </span>
+                <div className="flex gap-2 text-12-regular">
+                  <button
+                    type="button"
+                    onClick={handleSelectAllPdfPages}
+                    className="text-black-60 hover:text-black-90"
+                  >
+                    전체 입력
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearPdfPages}
+                    className="text-black-60 hover:text-black-90"
+                  >
+                    선택 해제
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={pdfPageRangeInput}
+                  onChange={(event) => setPdfPageRangeInput(event.target.value)}
+                  placeholder="예) 1,2 or 1~3"
+                  className="w-full rounded-lg border border-black-25 px-3 py-2 text-14-regular text-black-90 placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
+                />
+                <div className="text-12-regular text-black-60">
+                  {parsedPageNumbers.length > 0
+                    ? `선택된 페이지: ${parsedPageNumbers.join(", ")}`
+                    : "선택된 페이지가 없습니다."}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">

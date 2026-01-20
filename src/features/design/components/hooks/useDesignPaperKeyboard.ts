@@ -54,6 +54,62 @@ export const useDesignPaperKeyboard = ({
       if (editingTextId) return;
       if (isEditableTarget(event.target)) return;
 
+      const currentSelectedIds = selectedIdsRef.current;
+      if (
+        (event.key === "Process" || event.key === "Unidentified") &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
+        if (currentSelectedIds.length === 1) {
+          const selectedId = currentSelectedIds[0];
+          const selectedElement = elements.find(
+            (element) => element.id === selectedId
+          );
+          if (
+            selectedElement &&
+            selectedElement.type === "text" &&
+            !selectedElement.locked
+          ) {
+            onEditingTextIdChange?.(selectedId);
+            return;
+          }
+        }
+      }
+
+      const isPrintableKey =
+        event.key.length === 1 &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.isComposing;
+      if (isPrintableKey) {
+        if (currentSelectedIds.length === 1) {
+          const selectedId = currentSelectedIds[0];
+          const selectedElement = elements.find(
+            (element) => element.id === selectedId
+          );
+          if (
+            selectedElement &&
+            selectedElement.type === "text" &&
+            !selectedElement.locked
+          ) {
+            event.preventDefault();
+            const nextText = event.key;
+            const nextRichText = event.key;
+            onElementsChange(
+              elements.map((element) =>
+                element.id === selectedId
+                  ? { ...element, text: nextText, richText: nextRichText }
+                  : element
+              )
+            );
+            onEditingTextIdChange?.(selectedId);
+            return;
+          }
+        }
+      }
+
       if (event.key === "Escape") {
         selectedIdsRef.current = [];
         onSelectedIdsChange?.([]);
