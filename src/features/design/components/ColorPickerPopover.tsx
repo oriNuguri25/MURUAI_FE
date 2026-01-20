@@ -140,13 +140,20 @@ const ColorPickerPopover = ({
             <div className="relative group">
               <HelpCircle className="h-4 w-4 text-black-50" />
               <div
-                className={`absolute right-0 top-full mt-2 hidden ${TOOLTIP_WIDTH_CLASS} max-h-[40vh] max-w-[90vw] overflow-auto rounded-lg border border-black-25 bg-white-100 p-3 text-12-regular text-black-70 shadow-lg group-hover:block`}
+                className={`absolute right-0 top-full mt-2 hidden ${TOOLTIP_WIDTH_CLASS} max-h-[40vh] w-100 overflow-auto rounded-lg border border-black-25 bg-white-100 p-3 text-12-regular text-black-70 shadow-lg group-hover:block`}
                 style={{ overscrollBehavior: "contain" }}
               >
                 <div className="text-12-semibold text-black-90">
                   ASD 색상 팔레트 논문 인용
                 </div>
-                <div className="mt-2 flex flex-col gap-1 whitespace-normal wrap-break-words leading-snug">
+                <div className="mt-2 text-12-regular text-black-70 whitespace-normal wrap-break-words leading-snug">
+                  감각 과부하를 유발하는 고채도(노란색·빨간색)를 배제하고 심리적
+                  안정을 주는 파란색·녹색 계열의 저자극 자연 색상을
+                  선정했습니다. 또한 시각적 피로도를 낮추기 위해 회색이 섞인
+                  부드러운 톤과 명확한 명도 대비를 적용하여 학습 집중력을
+                  최적화했습니다.
+                </div>
+                <div className="mt-2 flex flex-col gap-1 whitespace-normal wrap-break-words leading-snug text-10-regular text-black-70">
                   <div>
                     - Franklin et al. (2016) - Journal of Autism and
                     Developmental Disorders
