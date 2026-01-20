@@ -110,7 +110,6 @@ const RoundBox = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isImageEditingState, setIsImageEditingState] = useState(false);
   const [isTextEditingState, setIsTextEditingState] = useState(false);
-  const [isImageBoxInteracting, setIsImageBoxInteracting] = useState(false);
   const [editingText, setEditingText] = useState(text);
   const textInputRef = useRef<HTMLInputElement>(null);
 
@@ -191,9 +190,6 @@ const RoundBox = ({
     event.stopPropagation();
     if (!isSelected || event.shiftKey) {
       onSelectChange?.(true, { additive: event.shiftKey });
-    }
-    if (type === "imageBoxMove" || type === "imageBoxResize") {
-      setIsImageBoxInteracting(true);
     }
 
     const scale = getScale(boxRef.current);
@@ -440,7 +436,6 @@ const RoundBox = ({
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       actionRef.current = null;
-      setIsImageBoxInteracting(false);
       if (hasMoved) {
         if (type === "drag" || type === "resize") {
           onDragStateChange?.(false, rectRef.current, { type });
