@@ -263,6 +263,12 @@ export const generatePdfFromDomPages = async ({
         backgroundColor: "#ffffff",
         width,
         height,
+        windowWidth: width,
+        windowHeight: height,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
       });
     } finally {
       restoreLayout();
