@@ -98,7 +98,7 @@ const ExportModal = ({
       .filter(
         (page): page is { id: string; pageNumber: number } => !!page.id
       );
-  }, [getCanvasData, open]);
+  }, [getCanvasData]);
   const maxPageNumber = pageOptions.reduce(
     (max, page) => Math.max(max, page.pageNumber),
     0

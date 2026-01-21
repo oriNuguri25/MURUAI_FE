@@ -217,6 +217,52 @@ export const generatePdfFromDomPages = async ({
     };
   };
 
+  const normalizePdfImageLayout = (root: HTMLElement) => {
+    const restores: Array<() => void> = [];
+
+    // 이미지를 포함하는 절대 위치 요소들을 찾아서 정수 픽셀로 고정
+    const imageContainers = Array.from(
+      root.querySelectorAll<HTMLElement>("img")
+    ).map((img) => img.parentElement).filter((el): el is HTMLElement => el !== null);
+
+    imageContainers.forEach((container) => {
+      const style = getComputedStyle(container);
+      if (style.position !== "absolute") return;
+
+      const prevStyle = {
+        left: container.style.left,
+        top: container.style.top,
+        width: container.style.width,
+        height: container.style.height,
+      };
+
+      // 현재 계산된 값을 정수 픽셀로 고정
+      const rect = container.getBoundingClientRect();
+      const parentRect = container.offsetParent?.getBoundingClientRect() ?? rect;
+
+      const left = Math.round(rect.left - parentRect.left);
+      const top = Math.round(rect.top - parentRect.top);
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+
+      container.style.left = `${left}px`;
+      container.style.top = `${top}px`;
+      container.style.width = `${width}px`;
+      container.style.height = `${height}px`;
+
+      restores.push(() => {
+        container.style.left = prevStyle.left;
+        container.style.top = prevStyle.top;
+        container.style.width = prevStyle.width;
+        container.style.height = prevStyle.height;
+      });
+    });
+
+    return () => {
+      restores.forEach((restore) => restore());
+    };
+  };
+
   await waitForFonts();
   await waitForNextFrame();
   await waitForNextFrame();
@@ -253,7 +299,8 @@ export const generatePdfFromDomPages = async ({
     await waitForImages(pages[i]);
     await waitForNextFrame();
 
-    const restoreLayout = normalizePdfTextLayout(pages[i]);
+    const restoreTextLayout = normalizePdfTextLayout(pages[i]);
+    const restoreImageLayout = normalizePdfImageLayout(pages[i]);
     await waitForNextFrame();
     let canvas: HTMLCanvasElement;
     try {
@@ -271,7 +318,8 @@ export const generatePdfFromDomPages = async ({
         scrollY: 0,
       });
     } finally {
-      restoreLayout();
+      restoreTextLayout();
+      restoreImageLayout();
     }
     const imgData = canvas.toDataURL("image/jpeg", imageQuality);
     const props = pdf.getImageProperties(imgData);
