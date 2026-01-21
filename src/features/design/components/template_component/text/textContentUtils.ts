@@ -18,4 +18,3 @@ export const isTextEmpty = (text?: string, richText?: string) =>
   normalizeTextValue(stripHtml(richText ?? "")) === "";
 
 export const DEFAULT_LINE_HEIGHT = 1.2;
-//실험

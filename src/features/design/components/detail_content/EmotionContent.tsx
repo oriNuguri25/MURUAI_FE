@@ -10,31 +10,9 @@ import { useState, type DragEvent as ReactDragEvent, useMemo } from "react";
 import type { ReactNode } from "react";
 import { useImageFillStore } from "../../store/imageFillStore";
 import { useEmotionPhotos } from "../../hooks/useEmotionPhotos";
-
-// 더미 데이터
-const EMOTIONS = [
-  { id: 1, name: "기쁨", image: "😊" },
-  { id: 2, name: "슬픔", image: "😢" },
-  { id: 3, name: "화남", image: "😠" },
-  { id: 4, name: "놀람", image: "😲" },
-  { id: 5, name: "사랑", image: "😍" },
-  { id: 6, name: "피곤함", image: "😴" },
-  { id: 7, name: "신남", image: "🤗" },
-  { id: 8, name: "걱정", image: "😟" },
-  { id: 9, name: "평온함", image: "😌" },
-  { id: 10, name: "불안함", image: "😰" },
-];
+import { useEmotionEmojis, type EmotionEmoji } from "../../hooks/useEmotionEmojis";
 
 const EMOTION_CARD_SIZE = { width: 200, height: 260 };
-
-const getTwemojiUrl = (emoji: string) => {
-  const codepoints = Array.from(emoji).map((char) => {
-    const code = char.codePointAt(0);
-    return code ? code.toString(16) : "";
-  });
-  const joined = codepoints.filter(Boolean).join("-");
-  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${joined}.png`;
-};
 
 const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
@@ -125,7 +103,7 @@ const SearchInput = ({
 const EmotionList = ({
   emotions,
 }: {
-  emotions: typeof EMOTIONS;
+  emotions: EmotionEmoji[];
 }) => {
   const requestImageFill = useImageFillStore(
     (state) => state.requestImageFill
@@ -135,30 +113,29 @@ const EmotionList = ({
     <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0">
       {emotions.length > 0 ? (
         <div className="grid grid-cols-2 gap-2">
-          {emotions.map((emotion) => {
-            const imageUrl = getTwemojiUrl(emotion.image);
-            return (
-              <button
-                key={emotion.id}
-                draggable
-                onDragStart={(event) => setDragImageData(event, imageUrl)}
-                onClick={() =>
-                  requestImageFill(imageUrl, emotion.name, EMOTION_CARD_SIZE)
-                }
-                className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
-              >
+          {emotions.map((emotion) => (
+            <button
+              key={emotion.id}
+              draggable
+              onDragStart={(event) => setDragImageData(event, emotion.url)}
+              onClick={() =>
+                requestImageFill(emotion.url, emotion.label, EMOTION_CARD_SIZE)
+              }
+              className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
+            >
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">
                 <img
-                  src={imageUrl}
-                  alt={emotion.name}
-                  className="h-10 w-10"
+                  src={emotion.url}
+                  alt={emotion.label}
+                  className="w-full h-full object-contain"
                   loading="lazy"
                 />
-                <span className="text-14-semibold text-black-90 group-hover:text-primary transition-colors">
-                  {emotion.name}
-                </span>
-              </button>
-            );
-          })}
+              </div>
+              <span className="text-14-semibold text-black-90 group-hover:text-primary transition-colors">
+                {emotion.label}
+              </span>
+            </button>
+          ))}
         </div>
       ) : (
         <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
@@ -342,15 +319,25 @@ const PhotoEmotionContent = () => {
 
 const DrawingEmotionContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: allEmotionEmojis, isLoading } = useEmotionEmojis();
 
-  const filteredEmotions = EMOTIONS.filter((emotion) =>
-    emotion.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmotions = useMemo(() => {
+    if (!allEmotionEmojis) return [];
+    return allEmotionEmojis.filter((emotion) =>
+      emotion.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [allEmotionEmojis, searchTerm]);
 
   return (
     <div className="flex flex-col w-full h-full gap-3">
       <SearchInput value={searchTerm} onChange={setSearchTerm} />
-      <EmotionList emotions={filteredEmotions} />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12 text-14-regular text-black-50">
+          불러오는 중입니다
+        </div>
+      ) : (
+        <EmotionList emotions={filteredEmotions} />
+      )}
     </div>
   );
 };
