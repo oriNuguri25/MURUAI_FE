@@ -1,0 +1,59 @@
+name: Auto Sync Fork
+
+on:
+  push:
+    branches: 
+      - main          # 또는 master
+  workflow_dispatch:    # 수동 실행 가능
+
+jobs:
+  sync-fork-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2    # 매우 빠르므로 2분이면 충분
+    
+    steps:
+      - name: Sync Fork with GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.FORK_PAT }}
+        run: |
+          echo "🔄 포크 동기화 시작 ($(date))"
+          echo "📍 ${{ github.repository }} → oriNuguri25/MURUAI_FE"
+          
+          # GitHub CLI로 포크 동기화 (핵심 한 줄!)
+          gh repo sync oriNuguri25/MURUAI_FE \
+            --source ${{ github.repository }} \
+            --branch main \
+            --force
+          
+          echo "✅ 포크 동기화 완료!"
+          echo "🚀 Vercel이 자동으로 변경사항을 감지하여 배포를 시작합니다."
+          
+      - name: Completion Summary
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.FORK_PAT }}
+        run: |
+          # 전체 소요 시간 계산 (워크플로 런 시작 시각 → 현재)
+          RUN_START_ISO=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }} --jq .run_started_at)
+          RUN_START_S=$(date -u -d "$RUN_START_ISO" +%s)
+          NOW_S=$(date -u +%s)
+          ELAPSED=$((NOW_S - RUN_START_S))
+
+          echo "🎉 자동화 완료!"
+          echo "📊 처리된 작업:"
+          echo "   ✅ 업스트림 → 포크 동기화"
+          echo "   ⏳ Vercel 자동 배포 (진행 중)"
+          echo ""
+          echo "⚡ 전체 소요 시간: ${ELAPSED}초"
+          
+      - name: Handle Sync Failure
+        if: failure()
+        run: |  
+          echo "❌ 포크 동기화 실패"
+          echo ""
+          echo "🔍 체크 포인트:"
+          echo "1. FORK_PAT 토큰 유효성 확인"
+          echo "2. 포크 레포지토리명 정확성 확인"
+          echo "3. 토큰의 repo 권한 확인"
+          echo ""
+          echo "📝 설정 위치: 업스트림 레포지토리 → Settings → Secrets → FORK_PAT"
