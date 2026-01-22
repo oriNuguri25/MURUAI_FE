@@ -6,7 +6,6 @@ import {
   Type,
   Upload,
   Grid2X2Icon,
-  Construction,
 } from "lucide-react";
 import UploadContent from "../components/detail_content/UploadContent";
 import AACContent from "../components/detail_content/AACContent";
@@ -15,19 +14,8 @@ import ElementContent from "../components/detail_content/ElementContent";
 import TextContent from "../components/detail_content/TextContent";
 import FontContent from "../components/detail_content/FontContent";
 import TemplateContent from "../components/detail_content/TemplateContent";
+import DesignContent from "../components/detail_content/DesignContent";
 import { useSideBarStore, type SideBarMenu } from "../store/sideBarStore";
-
-const ComingSoon = () => (
-  <div className="flex flex-col items-center justify-center gap-4 py-20">
-    <div className="flex items-center justify-center w-16 h-16 rounded-full bg-black-10">
-      <Construction className="icon-l text-black-50" />
-    </div>
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-16-semibold text-black-90">아직 준비중이에요</span>
-      <span className="text-14-regular text-black-60">곧 만나보실 수 있어요</span>
-    </div>
-  </div>
-);
 
 const SideBar = () => {
   const selectedMenu = useSideBarStore((state) => state.selectedMenu);
@@ -57,7 +45,7 @@ const SideBar = () => {
   const renderContent = () => {
     switch (selectedMenu) {
       case "design":
-        return <ComingSoon />;
+        return <DesignContent />;
       case "template":
         return <TemplateContent />;
       case "emotion":
