@@ -3,6 +3,9 @@ import { AppRouterProvider } from "./app/providers/AppRouterProvider";
 import "@/app/styles/global.css";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
+import { initSentry } from "./shared/lib/initSentry";
+
+initSentry();
 
 createRoot(document.getElementById("root")!).render(
   <>

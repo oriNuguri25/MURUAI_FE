@@ -1,6 +1,18 @@
 import { useEffect } from "react";
+import * as Sentry from "@sentry/react";
 import { supabase } from "@/shared/supabase/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
+
+const setSentryUser = (user: { id: string; email?: string } | null) => {
+  if (user) {
+    Sentry.setUser({
+      id: user.id,
+      email: user.email,
+    });
+  } else {
+    Sentry.setUser(null);
+  }
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { setUser, setLoading, isLoading } = useAuthStore();
@@ -9,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // 현재 세션 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setSentryUser(session?.user ?? null);
       setLoading(false);
     });
 
@@ -17,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setSentryUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
