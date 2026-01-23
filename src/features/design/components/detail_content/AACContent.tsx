@@ -1,4 +1,4 @@
-import { useState, type DragEvent as ReactDragEvent, useMemo } from "react";
+import { useState, type DragEvent as ReactDragEvent } from "react";
 import { Search } from "lucide-react";
 import { useImageFillStore } from "../../store/imageFillStore";
 import { useAacCards } from "../../hooks/useAacCards";
@@ -13,6 +13,36 @@ const CATEGORY_VALUE_MAP: Record<Category, string[]> = {
   clothing: ["clothes"],
   verb: ["verb", "action", "actions"],
 };
+
+const CATEGORIES: Array<{ id: Category; name: string }> = [
+  { id: "food", name: "음식" },
+  { id: "animal", name: "동물" },
+  { id: "clothing", name: "옷" },
+  { id: "verb", name: "동사" },
+];
+
+const CATEGORY_STYLES: Record<Category, { base: string; selected: string }> = {
+  food: {
+    base: "border-[#F59E0B]/40 bg-[#FFF7ED] text-[#B45309]",
+    selected: "border-[#F59E0B] bg-[#FED7AA] text-[#92400E]",
+  },
+  animal: {
+    base: "border-[#10B981]/40 bg-[#ECFDF5] text-[#047857]",
+    selected: "border-[#10B981] bg-[#A7F3D0] text-[#065F46]",
+  },
+  clothing: {
+    base: "border-[#3B82F6]/40 bg-[#EFF6FF] text-[#1D4ED8]",
+    selected: "border-[#3B82F6] bg-[#BFDBFE] text-[#1E40AF]",
+  },
+  verb: {
+    base: "border-[#06B6D4]/40 bg-[#ECFEFF] text-[#0E7490]",
+    selected: "border-[#06B6D4] bg-[#A5F3FC] text-[#155E75]",
+  },
+};
+
+const normalizeQuery = (value: string) => value.trim().toLowerCase();
+const matchesQuery = (label: string, query: string) =>
+  query.length === 0 || label.toLowerCase().includes(query);
 
 const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
@@ -31,47 +61,14 @@ const AACContent = () => {
     (state) => state.requestImageFill
   );
 
-  const categories = [
-    { id: "food" as Category, name: "음식" },
-    { id: "animal" as Category, name: "동물" },
-    { id: "clothing" as Category, name: "옷" },
-    { id: "verb" as Category, name: "동사" },
-  ];
-  const categoryStyles: Record<
-    Category,
-    { base: string; selected: string }
-  > = {
-    food: {
-      base: "border-[#F59E0B]/40 bg-[#FFF7ED] text-[#B45309]",
-      selected: "border-[#F59E0B] bg-[#FED7AA] text-[#92400E]",
-    },
-    animal: {
-      base: "border-[#10B981]/40 bg-[#ECFDF5] text-[#047857]",
-      selected: "border-[#10B981] bg-[#A7F3D0] text-[#065F46]",
-    },
-    clothing: {
-      base: "border-[#3B82F6]/40 bg-[#EFF6FF] text-[#1D4ED8]",
-      selected: "border-[#3B82F6] bg-[#BFDBFE] text-[#1E40AF]",
-    },
-    verb: {
-      base: "border-[#06B6D4]/40 bg-[#ECFEFF] text-[#0E7490]",
-      selected: "border-[#06B6D4] bg-[#A5F3FC] text-[#155E75]",
-    },
-  };
-
-  // 선택된 카테고리로 필터링
-  const categoryImages = useMemo(() => {
-    if (!allCards) return [];
-    const categoryValues = CATEGORY_VALUE_MAP[selectedCategory];
-    return allCards.filter((card) => categoryValues.includes(card.category));
-  }, [allCards, selectedCategory]);
-
-  // 검색어로 필터링
-  const filteredImages = useMemo(() => {
-    return categoryImages.filter((image) =>
-      image.alt.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [categoryImages, searchQuery]);
+  const categoryValues = CATEGORY_VALUE_MAP[selectedCategory];
+  const categoryImages = (allCards ?? []).filter((card) =>
+    categoryValues.includes(card.category)
+  );
+  const query = normalizeQuery(searchQuery);
+  const filteredImages = categoryImages.filter((image) =>
+    matchesQuery(image.alt, query)
+  );
 
   const handleImageError = (
     event: React.SyntheticEvent<HTMLImageElement>,
@@ -98,14 +95,14 @@ const AACContent = () => {
 
       {/* 카테고리 버튼 */}
       <div className="grid grid-cols-4 gap-2">
-        {categories.map((category) => (
+        {CATEGORIES.map((category) => (
           <button
             key={category.id}
             onClick={() => setSelectedCategory(category.id)}
             className={`flex w-full items-center justify-center px-3 py-2.5 border rounded-lg transition-all ${
               selectedCategory === category.id
-                ? categoryStyles[category.id].selected
-                : `${categoryStyles[category.id].base} hover:brightness-95`
+                ? CATEGORY_STYLES[category.id].selected
+                : `${CATEGORY_STYLES[category.id].base} hover:brightness-95`
             }`}
           >
             <span className="text-13-semibold">{category.name}</span>

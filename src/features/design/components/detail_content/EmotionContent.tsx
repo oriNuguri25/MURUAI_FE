@@ -6,13 +6,17 @@ import {
   Search,
   User,
 } from "lucide-react";
-import { useState, type DragEvent as ReactDragEvent, useMemo } from "react";
+import { useState, type DragEvent as ReactDragEvent } from "react";
 import type { ReactNode } from "react";
 import { useImageFillStore } from "../../store/imageFillStore";
 import { useEmotionPhotos } from "../../hooks/useEmotionPhotos";
 import { useEmotionEmojis, type EmotionEmoji } from "../../hooks/useEmotionEmojis";
 
 const EMOTION_CARD_SIZE = { width: 200, height: 260 };
+
+const normalizeQuery = (value: string) => value.trim().toLowerCase();
+const matchesQuery = (label: string, query: string) =>
+  query.length === 0 || label.toLowerCase().includes(query);
 
 const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
@@ -260,18 +264,13 @@ const PhotoEmotionContent = () => {
     (state) => state.requestImageFill
   );
 
-  // 선택된 성별로 필터링
-  const genderEmotions = useMemo(() => {
-    if (!allEmotionPhotos) return [];
-    return allEmotionPhotos.filter((photo) => photo.category === gender);
-  }, [allEmotionPhotos, gender]);
-
-  // 검색어로 필터링
-  const filteredEmotions = useMemo(() => {
-    return genderEmotions.filter((emotion) =>
-      emotion.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [genderEmotions, searchTerm]);
+  const genderEmotions = (allEmotionPhotos ?? []).filter(
+    (photo) => photo.category === gender
+  );
+  const query = normalizeQuery(searchTerm);
+  const filteredEmotions = genderEmotions.filter((emotion) =>
+    matchesQuery(emotion.label, query)
+  );
 
   return (
     <div className="flex flex-col w-full h-full gap-3">
@@ -321,12 +320,10 @@ const DrawingEmotionContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { data: allEmotionEmojis, isLoading } = useEmotionEmojis();
 
-  const filteredEmotions = useMemo(() => {
-    if (!allEmotionEmojis) return [];
-    return allEmotionEmojis.filter((emotion) =>
-      emotion.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [allEmotionEmojis, searchTerm]);
+  const query = normalizeQuery(searchTerm);
+  const filteredEmotions = (allEmotionEmojis ?? []).filter((emotion) =>
+    matchesQuery(emotion.label, query)
+  );
 
   return (
     <div className="flex flex-col w-full h-full gap-3">

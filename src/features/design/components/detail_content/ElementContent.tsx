@@ -8,21 +8,30 @@ import {
 import { useElementStore } from "../../store/elementStore";
 import type { ElementType } from "../../model/canvasTypes";
 
-const ElementContent = () => {
-  const requestElement = useElementStore((state) => state.requestElement);
-  const shapes: Array<{
-    id: number;
-    name: string;
-    icon: typeof Square;
-    type: ElementType;
-  }> = [
-    { id: 1, name: "사각형", icon: Square, type: "rect" },
-    { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
-    { id: 3, name: "원", icon: Circle, type: "ellipse" },
-    { id: 5, name: "선", icon: Minus, type: "line" },
-    { id: 6, name: "화살표", icon: ArrowRight, type: "arrow" },
-  ];
+type ShapeItem = {
+  id: number;
+  name: string;
+  icon: typeof Square;
+  type: ElementType;
+};
 
+const SHAPES: ShapeItem[] = [
+  { id: 1, name: "사각형", icon: Square, type: "rect" },
+  { id: 2, name: "둥근 사각형", icon: RectangleHorizontal, type: "roundRect" },
+  { id: 3, name: "원", icon: Circle, type: "ellipse" },
+  { id: 5, name: "선", icon: Minus, type: "line" },
+  { id: 6, name: "화살표", icon: ArrowRight, type: "arrow" },
+];
+
+type ElementContentViewProps = {
+  shapes: ShapeItem[];
+  onSelectShape: (type: ElementType) => void;
+};
+
+const ElementContentView = ({
+  shapes,
+  onSelectShape,
+}: ElementContentViewProps) => {
   return (
     <div className="flex flex-col w-full gap-6">
       <div className="flex items-center text-start">
@@ -43,9 +52,7 @@ const ElementContent = () => {
             return (
               <button
                 key={shape.id}
-                onClick={() => {
-                  requestElement(shape.type);
-                }}
+                onClick={() => onSelectShape(shape.type)}
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <Icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />
@@ -58,6 +65,14 @@ const ElementContent = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const ElementContent = () => {
+  const requestElement = useElementStore((state) => state.requestElement);
+
+  return (
+    <ElementContentView shapes={SHAPES} onSelectShape={requestElement} />
   );
 };
 
