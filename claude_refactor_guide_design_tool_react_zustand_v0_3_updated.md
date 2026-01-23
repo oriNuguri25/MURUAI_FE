@@ -1,4 +1,4 @@
-# Claude 전용 리팩토링 지침 (React + Zustand) — 디자인 툴(피그마/캔바류) 제품 맥락 반영 v0.3
+# Codex 전용 리팩토링 지침 (React + Zustand) — 디자인 툴(피그마/캔바류) 제품 맥락 반영 v0.3
 
 > 이 문서는 **“디자인 툴(예: Figma/Canva)”** 같은 **캔버스 기반 편집기/협업 툴**을 전제로 한다.  
 > 목표는 **기능 변경 없이** 코드베이스를 “확장 가능한 구조 + 성능 최적화 + React Compiler 친화”로 정리하는 것이다.  
@@ -345,113 +345,26 @@ export function EditorView({ tool, hasSelection, onSelectTool }: Props) {
 ### 2026-01-22
 
 - 작업 범위:
-  - 디자인 사이드바 메뉴 구성 정리 및 AI 이미지 생성 패널 분리
-  - 요소/텍스트/감정/AAC 상세 패널 구조 정리
-  - 업로드/글꼴 패널 view 분리 및 데이터 바인딩 정리
-  - 템플릿 패널의 preview/모달 렌더링 구조 정리
-  - 히스토리 store 구독 범위 축소
-  - MainSection 히스토리 동기화 로직 분리
-  - MainSection 이미지 채우기 구독 로직 분리
-  - MainSection store 구독(템플릿/폰트/요소/방향/보드) 로직 분리
-  - MainSection 선택/툴바 계산 로직 분리
-  - MainSection 페이지 조작 핸들러 분리
-  - MainSection 페이지/요소 생성 유틸 분리
-  - MainSection 자동 저장/캔버스 이벤트 로직 분리
-  - MainSection 템플릿 선택 모달 컴포넌트 분리
-  - MainSection 상단 툴바 렌더 분리
-  - MainSection 캔버스 스테이지 렌더 분리
-  - MainSection PDF 미리보기 렌더 분리
-  - MainSection 다중 선택 툴바 핸들러 분리
-  - MainSection 페이지 복제 로직 유틸 분리
-  - MainSection 템플릿 적용 핸들러 분리
-  - MainSection 활성 페이지 전환 로직 분리
-  - MainSection 캔버스 스테이지 핸들러 분리
-  - MainSection 방향 정규화 유틸 분리
-  - MainSection 선택 해제 핸들러 분리
-  - MainSection 템플릿 알림 로직 분리
-  - MainSection 활성 페이지 상태 계산 분리
-  - MainSection 초기 페이지 상태 분리
-  - useHistorySync 내부 책임 분리
-  - MainSection ref 동기화 로직 분리
-  - MainSection 텍스트 편집 트랜잭션 분리
-  - ref 타입을 읽기 전용으로 정리
-  - MainSection PDF 방향 정규화 책임 이동
+  - MainSection 책임 분리(툴바/캔버스/PDF/템플릿 렌더)
+  - subscription/side-effect 훅 분리 및 정리
+  - 템플릿/보드/요소 생성 유틸 정리
+  - ref 동기화/읽기 전용 ref 타입 정리
 - 변경 요약:
-  - SideBar의 메뉴 메타/콘텐츠 매핑을 상수화해 제목/렌더 분기 단순화
-  - DesignContent를 container/view로 분리하여 훅 로직과 UI 렌더 경계 강화
-  - ElementContent/TextContent를 props 기반 뷰로 분리하고 상수 프리셋 적용
-  - EmotionContent/AACContent 필터링 로직을 단순화하고 불필요한 memo 제거
-  - UploadContent/FontContent를 view로 분리해 store/IO 로직과 렌더 경계를 분리
-  - TemplateContent를 view/logic로 분리하고 미리보기 계산을 헬퍼로 통일
-  - TemplateContent props를 AAC/Story 도메인 단위 객체로 묶어 전달
-  - MainSection에서 history store 전체 구독을 제거하고 selector 기반으로 분리
-  - useHistorySync 훅으로 히스토리 초기화/기록/undo 처리 책임을 분리
-  - useImageFillSubscription 훅으로 이미지 채우기 로직을 분리
-  - useTemplateSubscription/useFontSubscription/useElementSubscription/useOrientationSubscription/useBoardSubscriptions 추가
-  - useSelectionState 훅으로 다중 선택/툴바 계산을 분리
-  - usePageActions 훅으로 페이지 추가/복제/삭제 핸들러를 분리
-  - pageFactory 유틸로 초기 페이지/템플릿/요소 생성 로직을 이동
-  - useAutoSave/useCanvasGetter/useCanvasWheelZoom 훅으로 부수효과 분리
-  - TemplateChoiceDialog 컴포넌트로 템플릿 적용 모달 렌더링 분리
-  - normalizeOrientation 유효성 체크를 인라인으로 복구
-  - cloneElementsWithNewIds 반환 구조 오류 수정
-  - MultiSelectionToolbar/ElementToolbars로 선택/도형/선 툴바 렌더 분리
-  - 다중 선택 테두리 패널 UI 상태를 전용 컴포넌트로 이동
-  - CanvasStage 컴포넌트로 캔버스/DesignPaper 렌더 블록 분리
-  - PdfPreviewContainer 컴포넌트로 PDF 숨김 렌더링 분리
-  - useSelectionToolbarActions 훅으로 다중 선택 색/폰트 패널 핸들러 분리
-  - cloneElementsWithNewIds 유틸을 usePageActions 내부로 이동
-  - useTemplateApplyActions 훅으로 템플릿 적용 핸들러 분리
-  - useActivePageManager 훅으로 활성 페이지 전환/방향 동기화 분리
-  - useCanvasStageHandlers 훅으로 캔버스 상호작용/요소 변경 핸들러 분리
-  - normalizeOrientationValue 유틸을 공통 함수로 분리해 재사용
-  - useSelectionClearer 훅으로 선택 해제 로직 분리
-  - PdfPreviewContainer에서 방향 정규화를 처리하도록 이동
-  - useTemplateNotifications 훅으로 템플릿 적용 토스트 로직 분리
-  - useActivePageState 훅으로 활성 페이지/방향 계산 분리
-  - useInitialPageState 훅으로 초기 페이지/선택 상태 구성 분리
-  - useHistorySync 내부 이펙트를 역할별 훅으로 분리
-  - useSyncedRef 훅으로 ref 동기화 useEffect 제거
-  - useTextEditTransaction 훅으로 텍스트 편집 트랜잭션 분리
-  - ReadonlyRef 타입을 도입해 읽기 전용 ref 파라미터를 명확히 구분
+  - MainSection 렌더 블록을 컴포넌트로 분리해 UI 책임 축소
+  - 템플릿 적용/선택/캔버스 핸들러를 전용 훅으로 분리
+  - 히스토리/이미지 채우기/요소/폰트/방향/보드 구독 훅 분리
+  - 페이지/템플릿/요소 생성 로직을 유틸로 이동
+  - ref 동기화 훅과 읽기 전용 ref 타입을 도입해 파라미터 명확화
 - 이동/추가된 파일:
-  - src/features/design/hooks/useHistorySync.ts
-  - src/features/design/hooks/useImageFillSubscription.ts
-  - src/features/design/utils/imageFillUtils.ts
-  - src/features/design/hooks/useTemplateSubscription.ts
-  - src/features/design/hooks/useFontSubscription.ts
-  - src/features/design/hooks/useElementSubscription.ts
-  - src/features/design/hooks/useOrientationSubscription.ts
-  - src/features/design/hooks/useBoardSubscriptions.ts
-  - src/features/design/hooks/useSelectionState.ts
-  - src/features/design/hooks/usePageActions.ts
-  - src/features/design/utils/pageFactory.ts
-  - src/features/design/hooks/useAutoSave.ts
-  - src/features/design/hooks/useCanvasGetter.ts
-  - src/features/design/hooks/useCanvasWheelZoom.ts
-  - src/features/design/components/TemplateChoiceDialog.tsx
-  - src/features/design/components/MultiSelectionToolbar.tsx
-  - src/features/design/components/ElementToolbars.tsx
-  - src/features/design/components/CanvasStage.tsx
-  - src/features/design/components/PdfPreviewContainer.tsx
-  - src/features/design/hooks/useSelectionToolbarActions.ts
-  - src/features/design/utils/elementClone.ts
-  - src/features/design/hooks/useTemplateApplyActions.ts
-  - src/features/design/hooks/useActivePageManager.ts
-  - src/features/design/hooks/useCanvasStageHandlers.ts
-  - src/features/design/utils/orientationUtils.ts
-  - src/features/design/hooks/useSelectionClearer.ts
-  - src/features/design/hooks/useTemplateNotifications.ts
-  - src/features/design/hooks/useActivePageState.ts
-  - src/features/design/hooks/useInitialPageState.ts
-  - src/features/design/hooks/useSyncedRef.ts
-  - src/features/design/hooks/useTextEditTransaction.ts
+  - src/features/design/components: TemplateChoiceDialog, MultiSelectionToolbar, ElementToolbars, CanvasStage, PdfPreviewContainer
+  - src/features/design/hooks: useHistorySync, useImageFillSubscription, useTemplateSubscription, useFontSubscription, useElementSubscription, useOrientationSubscription, useBoardSubscriptions, useSelectionState, usePageActions, useAutoSave, useCanvasGetter, useCanvasWheelZoom, useTemplateApplyActions, useSelectionToolbarActions, useActivePageManager, useCanvasStageHandlers, useSelectionClearer, useTemplateNotifications, useActivePageState, useInitialPageState, useTextEditTransaction, useSyncedRef
+  - src/features/design/utils: imageFillUtils, pageFactory, elementClone, orientationUtils
   - src/features/design/types/refTypes.ts
 - 제거된 패턴:
-  - switch 기반 콘텐츠 분기 및 메뉴 타이틀 계산 함수
-  - 목록 필터링을 위한 useMemo 남용
+  - MainSection 내 대형 JSX 블록과 인라인 핸들러 밀집
+  - 반복적인 ref 동기화 useEffect
 - 리스크/메모:
-  - 메뉴 라벨/콘텐츠 맵에 새 항목 추가 시 `MENU_ITEMS`와 동기화 필요
+  - PdfPreviewContainer에서 방향 정규화를 처리하도록 이동했으니 렌더링 경로만 확인 필요
 
 ---
 
