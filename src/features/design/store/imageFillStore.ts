@@ -6,10 +6,12 @@ interface ImageFillStore {
   label?: string;
   width?: number;
   height?: number;
+  forceInsert?: boolean;
   requestImageFill: (
     imageUrl: string,
     label?: string,
-    size?: { width: number; height: number }
+    size?: { width: number; height: number },
+    options?: { forceInsert?: boolean }
   ) => void;
 }
 
@@ -19,12 +21,14 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
   label: undefined,
   width: undefined,
   height: undefined,
-  requestImageFill: (imageUrl, label, size) =>
+  forceInsert: false,
+  requestImageFill: (imageUrl, label, size, options) =>
     set((state) => ({
       requestId: state.requestId + 1,
       imageUrl,
       label,
       width: size?.width,
       height: size?.height,
+      forceInsert: options?.forceInsert ?? false,
     })),
 }));

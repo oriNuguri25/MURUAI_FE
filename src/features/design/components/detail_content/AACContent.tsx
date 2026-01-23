@@ -136,7 +136,9 @@ const AACContent = () => {
                 draggable
                 onDragStart={(event) => setDragImageData(event, image.url)}
                 onClick={() =>
-                  requestImageFill(image.url, image.alt, AAC_CARD_SIZE)
+                  requestImageFill(image.url, image.alt, AAC_CARD_SIZE, {
+                    forceInsert: true,
+                  })
                 }
                 className="flex flex-col items-center p-3 rounded-xl border-2 border-black-25 hover:border-primary hover:shadow-md transition-all cursor-pointer group"
               >

@@ -34,8 +34,11 @@ export const useImageFillSubscription = ({
     const unsubscribe = useImageFillStore.subscribe((state, prevState) => {
       if (state.requestId === prevState.requestId) return;
       if (!state.imageUrl) return;
+      const shouldForceInsert = state.forceInsert === true;
       const activePageId = selectedPageIdRef.current;
-      const activeSelectedIds = selectedIdsRef.current;
+      const activeSelectedIds = shouldForceInsert
+        ? []
+        : selectedIdsRef.current;
       const normalizedUrl =
         state.imageUrl.startsWith("url(") || state.imageUrl.startsWith("data:")
           ? state.imageUrl
@@ -76,6 +79,9 @@ export const useImageFillSubscription = ({
         );
 
         setSelectedIds([newElementId]);
+        if (shouldForceInsert) {
+          setEditingTextId(null);
+        }
         return;
       }
 

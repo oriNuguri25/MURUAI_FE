@@ -123,7 +123,9 @@ const EmotionList = ({
               draggable
               onDragStart={(event) => setDragImageData(event, emotion.url)}
               onClick={() =>
-                requestImageFill(emotion.url, emotion.label, EMOTION_CARD_SIZE)
+                requestImageFill(emotion.url, emotion.label, EMOTION_CARD_SIZE, {
+                  forceInsert: true,
+                })
               }
               className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
             >
@@ -289,7 +291,14 @@ const PhotoEmotionContent = () => {
                 draggable
                 onDragStart={(event) => setDragImageData(event, emotion.url)}
                 onClick={() =>
-                  requestImageFill(emotion.url, emotion.label, EMOTION_CARD_SIZE)
+                  requestImageFill(
+                    emotion.url,
+                    emotion.label,
+                    EMOTION_CARD_SIZE,
+                    {
+                      forceInsert: true,
+                    }
+                  )
                 }
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
