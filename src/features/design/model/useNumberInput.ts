@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 
 interface UseNumberInputOptions {
   value: number;
@@ -37,18 +37,15 @@ export const useNumberInput = ({
   const [isEditing, setIsEditing] = useState(false);
 
   // 값 제한
-  const clamp = useCallback(
-    (num: number): number => {
-      let result = num;
-      if (typeof min === "number") result = Math.max(min, result);
-      if (typeof max === "number") result = Math.min(max, result);
-      return result;
-    },
-    [min, max]
-  );
+  const clamp = (num: number): number => {
+    let result = num;
+    if (typeof min === "number") result = Math.max(min, result);
+    if (typeof max === "number") result = Math.min(max, result);
+    return result;
+  };
 
   // 입력값 커밋
-  const commit = useCallback(() => {
+  const commit = () => {
     const digits = inputValue.replace(/[^0-9]/g, "");
     if (!digits) {
       setInputValue(String(Math.round(value)));
@@ -59,42 +56,36 @@ export const useNumberInput = ({
     if (nextValue !== value) {
       onChange(nextValue);
     }
-  }, [inputValue, value, clamp, onChange]);
+  };
 
   // 입력값 변경
-  const handleChange = useCallback((newValue: string) => {
+  const handleChange = (newValue: string) => {
     const digits = newValue.replace(/[^0-9]/g, "");
     setInputValue(digits);
-  }, []);
+  };
 
   // 포커스
-  const handleFocus = useCallback(
-    (event?: React.FocusEvent<HTMLInputElement>) => {
-      setInputValue(String(Math.round(value)));
-      setIsEditing(true);
-      event?.target.select();
-    },
-    [value]
-  );
+  const handleFocus = (event?: React.FocusEvent<HTMLInputElement>) => {
+    setInputValue(String(Math.round(value)));
+    setIsEditing(true);
+    event?.target.select();
+  };
 
   // 블러
-  const handleBlur = useCallback(() => {
+  const handleBlur = () => {
     if (!isEditing) return;
     setIsEditing(false);
     commit();
-  }, [isEditing, commit]);
+  };
 
   // 증감 (+/- 버튼용)
-  const step = useCallback(
-    (delta: number) => {
-      const nextValue = clamp(value + delta);
-      onChange(nextValue);
-      if (isEditing) {
-        setInputValue(String(Math.round(nextValue)));
-      }
-    },
-    [value, clamp, onChange, isEditing]
-  );
+  const step = (delta: number) => {
+    const nextValue = clamp(value + delta);
+    onChange(nextValue);
+    if (isEditing) {
+      setInputValue(String(Math.round(nextValue)));
+    }
+  };
 
   return {
     displayValue: isEditing ? inputValue : String(Math.round(value)),

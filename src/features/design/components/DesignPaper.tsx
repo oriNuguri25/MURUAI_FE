@@ -151,25 +151,24 @@ const DesignPaper = ({
     setContextMenu(null);
   }, []);
 
-  const getContainerScale = useCallback(() => {
+  const getContainerScale = () => {
     const node = containerRef.current;
     if (!node) return 1;
     const rect = node.getBoundingClientRect();
     return node.offsetWidth ? rect.width / node.offsetWidth : 1;
-  }, []);
+  };
 
-  const getPointerPosition = useCallback(
-    (event: PointerEvent | ReactPointerEvent<HTMLElement>) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return { x: 0, y: 0 };
-      const scale = getContainerScale();
-      return {
-        x: (event.clientX - rect.left) / scale,
-        y: (event.clientY - rect.top) / scale,
-      };
-    },
-    [getContainerScale]
-  );
+  const getPointerPosition = (
+    event: PointerEvent | ReactPointerEvent<HTMLElement>
+  ) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    const scale = getContainerScale();
+    return {
+      x: (event.clientX - rect.left) / scale,
+      y: (event.clientY - rect.top) / scale,
+    };
+  };
 
   const updateElement = useCallback((id: string, patch: ElementPatch) => {
     if (readOnly || !onElementsChange) return;
@@ -956,61 +955,46 @@ const DesignPaper = ({
   };
 
   // 연결된 labelId를 포함한 삭제 대상 ID 수집
-  const getLinkedIdsToDelete = useCallback(
-    (idsToDelete: string[]) => {
-      const linkedIds = new Set<string>();
-      elements.forEach((element) => {
-        if (idsToDelete.includes(element.id)) {
-          if (
-            (element.type === "rect" ||
-              element.type === "roundRect" ||
-              element.type === "ellipse") &&
-            element.labelId
-          ) {
-            linkedIds.add(element.labelId);
-          }
+  const getLinkedIdsToDelete = (idsToDelete: string[]) => {
+    const linkedIds = new Set<string>();
+    elements.forEach((element) => {
+      if (idsToDelete.includes(element.id)) {
+        if (
+          (element.type === "rect" ||
+            element.type === "roundRect" ||
+            element.type === "ellipse") &&
+          element.labelId
+        ) {
+          linkedIds.add(element.labelId);
         }
-      });
-      return new Set([...idsToDelete, ...linkedIds]);
-    },
-    [elements]
-  );
+      }
+    });
+    return new Set([...idsToDelete, ...linkedIds]);
+  };
 
-  const deleteElementById = useCallback(
-    (id: string) => {
-      if (readOnly || !onElementsChange) return;
-      const allIdsToDelete = getLinkedIdsToDelete([id]);
-      onElementsChange(
-        elements.filter((element) => !allIdsToDelete.has(element.id))
-      );
-      const nextSelected = selectedIdsRef.current.filter(
-        (selectedId) => !allIdsToDelete.has(selectedId)
-      );
-      selectedIdsRef.current = nextSelected;
-      onSelectedIdsChange?.(nextSelected);
-      if (editingTextId && allIdsToDelete.has(editingTextId)) {
-        onEditingTextIdChange?.(null);
-      }
-      if (editingImageId && allIdsToDelete.has(editingImageId)) {
-        setEditingImageId(null);
-      }
-      setContextMenu((prev) =>
-        prev?.target.type === "element" && allIdsToDelete.has(prev.target.id)
-          ? null
-          : prev
-      );
-    },
-    [
-      readOnly,
-      onElementsChange,
-      elements,
-      onSelectedIdsChange,
-      onEditingTextIdChange,
-      editingTextId,
-      editingImageId,
-      getLinkedIdsToDelete,
-    ]
-  );
+  const deleteElementById = (id: string) => {
+    if (readOnly || !onElementsChange) return;
+    const allIdsToDelete = getLinkedIdsToDelete([id]);
+    onElementsChange(
+      elements.filter((element) => !allIdsToDelete.has(element.id))
+    );
+    const nextSelected = selectedIdsRef.current.filter(
+      (selectedId) => !allIdsToDelete.has(selectedId)
+    );
+    selectedIdsRef.current = nextSelected;
+    onSelectedIdsChange?.(nextSelected);
+    if (editingTextId && allIdsToDelete.has(editingTextId)) {
+      onEditingTextIdChange?.(null);
+    }
+    if (editingImageId && allIdsToDelete.has(editingImageId)) {
+      setEditingImageId(null);
+    }
+    setContextMenu((prev) =>
+      prev?.target.type === "element" && allIdsToDelete.has(prev.target.id)
+        ? null
+        : prev
+    );
+  };
 
   const deleteSelectedElements = () => {
     if (readOnly || !onElementsChange) return;

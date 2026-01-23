@@ -351,6 +351,7 @@ export function EditorView({ tool, hasSelection, onSelectTool }: Props) {
   - ref 동기화/읽기 전용 ref 타입 정리
   - AacToolBar React Compiler 친화 정리
   - ExportModal/ActivePageState memo 정리
+  - DesignPaper/useNumberInput React Compiler 친화 정리
 - 변경 요약:
   - MainSection 렌더 블록을 컴포넌트로 분리해 UI 책임 축소
   - 템플릿 적용/선택/캔버스 핸들러를 전용 훅으로 분리
@@ -359,6 +360,7 @@ export function EditorView({ tool, hasSelection, onSelectTool }: Props) {
   - ref 동기화 훅과 읽기 전용 ref 타입을 도입해 파라미터 명확화
   - AacToolBar에서 불필요한 memo/useCallback 제거
   - ExportModal/ActivePageState에서 불필요한 useMemo 제거
+  - DesignPaper/useNumberInput에서 불필요한 useCallback 제거
 - 이동/추가된 파일:
   - src/features/design/components: TemplateChoiceDialog, MultiSelectionToolbar, ElementToolbars, CanvasStage, PdfPreviewContainer
   - src/features/design/hooks: useHistorySync, useImageFillSubscription, useTemplateSubscription, useFontSubscription, useElementSubscription, useOrientationSubscription, useBoardSubscriptions, useSelectionState, usePageActions, useAutoSave, useCanvasGetter, useCanvasWheelZoom, useTemplateApplyActions, useSelectionToolbarActions, useActivePageManager, useCanvasStageHandlers, useSelectionClearer, useTemplateNotifications, useActivePageState, useInitialPageState, useTextEditTransaction, useSyncedRef
