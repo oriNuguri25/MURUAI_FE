@@ -44,7 +44,7 @@ const setDragImageData = (
 type UploadedFileItem = UploadedFile & { url: string };
 
 type UploadContentViewProps = {
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: RefObject<HTMLInputElement | null>;
   isLoading: boolean;
   isFetching: boolean;
   files: UploadedFileItem[];
