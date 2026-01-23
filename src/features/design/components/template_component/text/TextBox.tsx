@@ -155,6 +155,8 @@ const TextBox = ({
     handleCompositionEnd,
     handleToggleBold,
     handleToggleUnderline,
+    handleToggleItalic,
+    handleToggleStrikethrough,
     handleColorChange,
     handleFontSizeChange,
   } = useTextBoxEditingHandlers({
@@ -381,6 +383,8 @@ const TextBox = ({
                 color={toolbar.color}
                 isBold={toolbar.isBold}
                 isUnderline={toolbar.isUnderline}
+                isItalic={toolbar.isItalic}
+                isStrikethrough={toolbar.isStrikethrough}
                 align={toolbar.align}
                 alignY={toolbar.alignY}
                 onFontSizeChange={handleFontSizeChange}
@@ -393,6 +397,8 @@ const TextBox = ({
                 onFontFamilyClick={toolbar.onFontFamilyClick}
                 onToggleBold={handleToggleBold}
                 onToggleUnderline={handleToggleUnderline}
+                onToggleItalic={handleToggleItalic}
+                onToggleStrikethrough={handleToggleStrikethrough}
                 onAlignChange={toolbar.onAlignChange}
                 onAlignYChange={toolbar.onAlignYChange}
                 onPointerDown={(event) => event.stopPropagation()}
@@ -414,6 +420,8 @@ const TextBox = ({
               color={toolbar.color}
               isBold={toolbar.isBold}
               isUnderline={toolbar.isUnderline}
+              isItalic={toolbar.isItalic}
+              isStrikethrough={toolbar.isStrikethrough}
               align={toolbar.align}
               alignY={toolbar.alignY}
               onFontSizeChange={handleFontSizeChange}
@@ -426,6 +434,8 @@ const TextBox = ({
               onFontFamilyClick={toolbar.onFontFamilyClick}
               onToggleBold={handleToggleBold}
               onToggleUnderline={handleToggleUnderline}
+              onToggleItalic={handleToggleItalic}
+              onToggleStrikethrough={handleToggleStrikethrough}
               onAlignChange={toolbar.onAlignChange}
               onAlignYChange={toolbar.onAlignYChange}
               onPointerDown={(event) => event.stopPropagation()}

@@ -1157,8 +1157,14 @@ const DesignPaper = ({
           fontSize: `${element.style.fontSize}px`,
           fontWeight,
           fontFamily: element.style.fontFamily,
+          fontStyle: element.style.italic ? "italic" : "normal",
           color: element.style.color,
-          textDecoration: element.style.underline ? "underline" : "none",
+          textDecoration: [
+            element.style.underline ? "underline" : null,
+            element.style.strikethrough ? "line-through" : null,
+          ]
+            .filter(Boolean)
+            .join(" ") || "none",
           lineHeight,
           letterSpacing,
         }}
@@ -1182,6 +1188,8 @@ const DesignPaper = ({
             (typeof element.style.fontWeight === "number" &&
               element.style.fontWeight >= 700),
           isUnderline: Boolean(element.style.underline),
+          isItalic: Boolean(element.style.italic),
+          isStrikethrough: Boolean(element.style.strikethrough),
           align: element.style.alignX,
           alignY: element.style.alignY,
           fontFamily: element.style.fontFamily ?? "Pretendard",
@@ -1225,6 +1233,14 @@ const DesignPaper = ({
           onToggleUnderline: () =>
             updateElement(element.id, {
               style: { underline: !element.style.underline },
+            }),
+          onToggleItalic: () =>
+            updateElement(element.id, {
+              style: { italic: !element.style.italic },
+            }),
+          onToggleStrikethrough: () =>
+            updateElement(element.id, {
+              style: { strikethrough: !element.style.strikethrough },
             }),
           onAlignChange: (align) =>
             updateElement(element.id, { style: { alignX: align } }),

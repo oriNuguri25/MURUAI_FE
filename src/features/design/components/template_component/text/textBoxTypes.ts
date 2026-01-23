@@ -16,6 +16,8 @@ type TextBoxToolbar = {
   color: string;
   isBold: boolean;
   isUnderline: boolean;
+  isItalic: boolean;
+  isStrikethrough: boolean;
   align: TextAlign;
   alignY: TextAlignY;
   onFontSizeChange: (value: number) => void;
@@ -26,6 +28,8 @@ type TextBoxToolbar = {
   onFontFamilyClick: () => void;
   onToggleBold: () => void;
   onToggleUnderline: () => void;
+  onToggleItalic: () => void;
+  onToggleStrikethrough: () => void;
   onAlignChange: (value: TextAlign) => void;
   onAlignYChange: (value: TextAlignY) => void;
 };

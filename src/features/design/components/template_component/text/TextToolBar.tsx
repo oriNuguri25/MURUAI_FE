@@ -3,6 +3,8 @@ import {
   AlignCenterVertical,
   AlignEndHorizontal,
   AlignStartHorizontal,
+  Italic,
+  Strikethrough,
   TextAlignCenter,
   TextAlignStart,
   TextAlignEnd,
@@ -22,6 +24,8 @@ interface TextToolBarProps {
   color: string;
   isBold: boolean;
   isUnderline: boolean;
+  isItalic: boolean;
+  isStrikethrough: boolean;
   align: "left" | "center" | "right";
   alignY: "top" | "middle" | "bottom";
   onFontSizeChange: (value: number) => void;
@@ -32,6 +36,8 @@ interface TextToolBarProps {
   onFontFamilyClick: () => void;
   onToggleBold: () => void;
   onToggleUnderline: () => void;
+  onToggleItalic: () => void;
+  onToggleStrikethrough: () => void;
   onAlignChange: (value: "left" | "center" | "right") => void;
   onAlignYChange: (value: "top" | "middle" | "bottom") => void;
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -49,6 +55,8 @@ const TextToolBar = ({
   color,
   isBold,
   isUnderline,
+  isItalic,
+  isStrikethrough,
   align,
   alignY,
   onFontSizeChange,
@@ -59,6 +67,8 @@ const TextToolBar = ({
   onFontFamilyClick,
   onToggleBold,
   onToggleUnderline,
+  onToggleItalic,
+  onToggleStrikethrough,
   onAlignChange,
   onAlignYChange,
   onPointerDown,
@@ -286,40 +296,76 @@ const TextToolBar = ({
       <button
         type="button"
         onClick={onToggleBold}
-        className={`flex h-7 w-7 items-center justify-center rounded border text-14-semibold ${
+        className={`group relative flex h-7 w-7 items-center justify-center rounded border text-14-semibold ${
           isBold
             ? "border-primary text-primary"
             : "border-black-30 text-black-70"
         }`}
-        aria-label="Bold"
+        aria-label="굵게"
       >
         B
+        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+          굵게
+        </span>
       </button>
       <button
         type="button"
         onClick={onToggleUnderline}
-        className={`flex h-7 w-7 items-center justify-center rounded border ${
+        className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
           isUnderline
             ? "border-primary text-primary"
             : "border-black-30 text-black-70"
         }`}
-        aria-label="Underline"
+        aria-label="밑줄"
       >
         <Underline className="h-4 w-4" />
+        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+          밑줄
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onToggleItalic}
+        className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
+          isItalic
+            ? "border-primary text-primary"
+            : "border-black-30 text-black-70"
+        }`}
+        aria-label="기울임꼴"
+      >
+        <Italic className="h-4 w-4" />
+        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+          기울임꼴
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onToggleStrikethrough}
+        className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
+          isStrikethrough
+            ? "border-primary text-primary"
+            : "border-black-30 text-black-70"
+        }`}
+        aria-label="취소선"
+      >
+        <Strikethrough className="h-4 w-4" />
+        <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+          취소선
+        </span>
       </button>
       <div className="flex items-center gap-1">
         {(
           [
-            { key: "left", Icon: TextAlignStart, label: "Align left" },
-            { key: "center", Icon: TextAlignCenter, label: "Align center" },
-            { key: "right", Icon: TextAlignEnd, label: "Align right" },
+            { key: "left", Icon: TextAlignStart, label: "좌측 정렬" },
+            { key: "center", Icon: TextAlignCenter, label: "가운데 정렬" },
+            { key: "right", Icon: TextAlignEnd, label: "우측 정렬" },
           ] as const
         ).map(({ key, Icon, label }) => (
           <button
             key={key}
             type="button"
             onClick={() => onAlignChange(key)}
-            className={`flex h-7 w-7 items-center justify-center rounded border ${
+            className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
               align === key
                 ? "border-primary text-primary"
                 : "border-black-30 text-black-70"
@@ -327,22 +373,29 @@ const TextToolBar = ({
             aria-label={label}
           >
             <Icon className="h-4 w-4" />
+            <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+              {label}
+            </span>
           </button>
         ))}
       </div>
       <div className="flex items-center gap-1">
         {(
           [
-            { key: "top", label: "Align top", Icon: AlignStartHorizontal },
-            { key: "middle", label: "Align middle", Icon: AlignCenterVertical },
-            { key: "bottom", label: "Align bottom", Icon: AlignEndHorizontal },
+            { key: "top", label: "상단 정렬", Icon: AlignStartHorizontal },
+            {
+              key: "middle",
+              label: "중앙 정렬",
+              Icon: AlignCenterVertical,
+            },
+            { key: "bottom", label: "하단 정렬", Icon: AlignEndHorizontal },
           ] as const
         ).map(({ key, label, Icon }) => (
           <button
             key={key}
             type="button"
             onClick={() => onAlignYChange(key)}
-            className={`flex h-7 w-7 items-center justify-center rounded border text-12-medium ${
+            className={`group relative flex h-7 w-7 items-center justify-center rounded border text-12-medium ${
               alignY === key
                 ? "border-primary text-primary"
                 : "border-black-30 text-black-70"
@@ -350,6 +403,9 @@ const TextToolBar = ({
             aria-label={label}
           >
             <Icon className="h-4 w-4" />
+            <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-black-90 px-2 py-0.5 text-12-medium text-white-100 opacity-0 group-hover:opacity-100">
+              {label}
+            </span>
           </button>
         ))}
       </div>

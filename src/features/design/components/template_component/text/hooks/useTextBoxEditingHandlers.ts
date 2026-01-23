@@ -98,6 +98,22 @@ export const useTextBoxEditingHandlers = ({
     }
   };
 
+  const handleToggleItalic = () => {
+    if (isEditing) {
+      applyStyleToSelection("italic");
+    } else {
+      toolbar?.onToggleItalic();
+    }
+  };
+
+  const handleToggleStrikethrough = () => {
+    if (isEditing) {
+      applyStyleToSelection("strikeThrough");
+    } else {
+      toolbar?.onToggleStrikethrough();
+    }
+  };
+
   const handleColorChange = (color: string) => {
     if (isEditing) {
       applyStyleToSelection("foreColor", color);
@@ -232,6 +248,8 @@ export const useTextBoxEditingHandlers = ({
     handleCompositionEnd,
     handleToggleBold,
     handleToggleUnderline,
+    handleToggleItalic,
+    handleToggleStrikethrough,
     handleColorChange,
     handleFontSizeChange,
   };

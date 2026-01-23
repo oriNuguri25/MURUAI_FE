@@ -46,6 +46,8 @@ export type TextElement = ElementBase & {
     fontFamily?: string;
     color: string;
     underline?: boolean;
+    italic?: boolean;
+    strikethrough?: boolean;
     alignX: "left" | "center" | "right";
     alignY: "top" | "middle" | "bottom";
     lineHeight?: number;
