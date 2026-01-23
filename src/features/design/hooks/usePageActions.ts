@@ -232,6 +232,29 @@ export const usePageActions = ({
     [setEditingTextId, setPages, setSelectedIds]
   );
 
+  const handleMovePage = useCallback(
+    (pageId: string, direction: "left" | "right") => {
+      const currentIndex = pages.findIndex((page) => page.id === pageId);
+      if (currentIndex === -1) return;
+
+      const targetIndex =
+        direction === "left" ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex >= pages.length) return;
+
+      const newPages = [...pages];
+      const [movedPage] = newPages.splice(currentIndex, 1);
+      newPages.splice(targetIndex, 0, movedPage);
+
+      const reorderedPages = newPages.map((page, index) => ({
+        ...page,
+        pageNumber: index + 1,
+      }));
+
+      setPages(reorderedPages);
+    },
+    [pages, setPages]
+  );
+
   return {
     handleAddPage,
     handleAddPageAtIndex,
@@ -243,5 +266,6 @@ export const usePageActions = ({
     handleDeletePage,
     handleDeleteElements,
     handleClearPage,
+    handleMovePage,
   };
 };

@@ -349,12 +349,16 @@ export function EditorView({ tool, hasSelection, onSelectTool }: Props) {
   - subscription/side-effect 훅 분리 및 정리
   - 템플릿/보드/요소 생성 유틸 정리
   - ref 동기화/읽기 전용 ref 타입 정리
+  - AacToolBar React Compiler 친화 정리
+  - ExportModal/ActivePageState memo 정리
 - 변경 요약:
   - MainSection 렌더 블록을 컴포넌트로 분리해 UI 책임 축소
   - 템플릿 적용/선택/캔버스 핸들러를 전용 훅으로 분리
   - 히스토리/이미지 채우기/요소/폰트/방향/보드 구독 훅 분리
   - 페이지/템플릿/요소 생성 로직을 유틸로 이동
   - ref 동기화 훅과 읽기 전용 ref 타입을 도입해 파라미터 명확화
+  - AacToolBar에서 불필요한 memo/useCallback 제거
+  - ExportModal/ActivePageState에서 불필요한 useMemo 제거
 - 이동/추가된 파일:
   - src/features/design/components: TemplateChoiceDialog, MultiSelectionToolbar, ElementToolbars, CanvasStage, PdfPreviewContainer
   - src/features/design/hooks: useHistorySync, useImageFillSubscription, useTemplateSubscription, useFontSubscription, useElementSubscription, useOrientationSubscription, useBoardSubscriptions, useSelectionState, usePageActions, useAutoSave, useCanvasGetter, useCanvasWheelZoom, useTemplateApplyActions, useSelectionToolbarActions, useActivePageManager, useCanvasStageHandlers, useSelectionClearer, useTemplateNotifications, useActivePageState, useInitialPageState, useTextEditTransaction, useSyncedRef
@@ -363,6 +367,7 @@ export function EditorView({ tool, hasSelection, onSelectTool }: Props) {
 - 제거된 패턴:
   - MainSection 내 대형 JSX 블록과 인라인 핸들러 밀집
   - 반복적인 ref 동기화 useEffect
+  - 불필요한 memo/useCallback 사용
 - 리스크/메모:
   - PdfPreviewContainer에서 방향 정규화를 처리하도록 이동했으니 렌더링 경로만 확인 필요
 

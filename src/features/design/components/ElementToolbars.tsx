@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { lazy, Suspense, type Dispatch, type SetStateAction } from "react";
 import SquareToolBar from "./template_component/round_box/SquareToolBar";
 import ArrowToolBar from "./template_component/arrow/ArrowToolBar";
 import LineToolBar from "./template_component/line/LineToolBar";
@@ -8,6 +8,9 @@ import type {
   ShapeElement,
 } from "../model/canvasTypes";
 import type { Page } from "../model/pageTypes";
+import type { AacLabelPosition } from "../utils/aacBoardUtils";
+
+const AacToolBar = lazy(() => import("./AacToolBar"));
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -30,18 +33,27 @@ type ShapeToolbarData = {
   borderStyle: BorderStyle;
 };
 
+type AacToolbarData = {
+  labelPosition: AacLabelPosition;
+  cardCount: number;
+};
+
 type ElementToolbarsProps = {
   shapeToolbarData: ShapeToolbarData | null;
   lineToolbarData: LineToolbarData | null;
+  aacToolbarData: AacToolbarData | null;
   selectedPageId: string;
   setPages: Dispatch<SetStateAction<Page[]>>;
+  onAacLabelPositionChange?: (position: AacLabelPosition) => void;
 };
 
 const ElementToolbars = ({
   shapeToolbarData,
   lineToolbarData,
+  aacToolbarData,
   selectedPageId,
   setPages,
+  onAacLabelPositionChange,
 }: ElementToolbarsProps) => {
   const updateSelectedPageElement = (
     elementId: string,
@@ -61,9 +73,12 @@ const ElementToolbars = ({
     );
   };
 
+  // AAC 카드도 기본 shapeToolbar를 표시하고, 추가로 aacToolbar도 함께 표시
+  const showShapeToolbar = !!shapeToolbarData;
+
   return (
     <>
-      {shapeToolbarData && (
+      {showShapeToolbar && (
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
           <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
             <SquareToolBar
@@ -266,6 +281,21 @@ const ElementToolbars = ({
               }
               onPointerDown={(event) => event.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {aacToolbarData && onAacLabelPositionChange && (
+        <div className="absolute top-12 left-0 right-0 z-10 flex items-center justify-center w-full pointer-events-none">
+          <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
+            <Suspense fallback={null}>
+              <AacToolBar
+                isVisible
+                labelPosition={aacToolbarData.labelPosition}
+                onLabelPositionChange={onAacLabelPositionChange}
+                onPointerDown={(event) => event.stopPropagation()}
+              />
+            </Suspense>
           </div>
         </div>
       )}

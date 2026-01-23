@@ -1,4 +1,11 @@
-import { Clipboard, Copy, Plus, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clipboard,
+  Copy,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Fragment, useRef, useState } from "react";
 import { useDragAndDrop } from "../model/useDragAndDrop";
 import type { Page } from "../model/pageTypes";
@@ -14,6 +21,8 @@ interface BottomBarProps {
   onReorderPages: (pages: Page[]) => void;
   onDeletePage: (pageId: string) => void;
   onAddPageAtIndex?: (index: number) => void;
+  onMovePage?: (pageId: string, direction: "left" | "right") => void;
+  onDuplicatePage?: (pageId: string) => void;
 }
 
 const BottomBar = ({
@@ -26,6 +35,8 @@ const BottomBar = ({
   onReorderPages,
   onDeletePage,
   onAddPageAtIndex,
+  onMovePage,
+  onDuplicatePage,
 }: BottomBarProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { handleDragStart, handleDragOver, handleDrop } = useDragAndDrop({
@@ -44,6 +55,7 @@ const BottomBar = ({
   const [hoveredDividerIndex, setHoveredDividerIndex] = useState<number | null>(
     null,
   );
+  const [hoveredPageId, setHoveredPageId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     pageId: string;
     x: number;
@@ -96,6 +108,8 @@ const BottomBar = ({
                 onDragStart={(e) => handleDragStart(e, page.id)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, page.id)}
+                onMouseEnter={() => setHoveredPageId(page.id)}
+                onMouseLeave={() => setHoveredPageId(null)}
                 onContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -117,54 +131,113 @@ const BottomBar = ({
                   );
                   setContextMenu({ pageId: page.id, x: clampedX, y: clampedY });
                 }}
-                className="flex shrink-0 flex-col items-center gap-2 cursor-move"
+                className="flex shrink-0 flex-col items-center gap-1 cursor-move"
               >
-                <button
-                  onClick={() => onSelectPage(page.id)}
-                  className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
-                    isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
-                  } ${
-                    selectedPageId === page.id
-                      ? "border-primary bg-primary/5"
-                      : "border-black-25 bg-white hover:border-black-40"
-                  }`}
-                >
-                  <div
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    style={{ borderRadius: "inherit" }}
+                <div className="relative">
+                  <button
+                    onClick={() => onSelectPage(page.id)}
+                    className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
+                      isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
+                    } ${
+                      selectedPageId === page.id
+                        ? "border-primary bg-primary/5"
+                        : "border-black-25 bg-white hover:border-black-40"
+                    }`}
                   >
                     <div
-                      className="relative"
-                      style={{
-                        width: `${scaledWidth}px`,
-                        height: `${scaledHeight}px`,
-                      }}
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                      style={{ borderRadius: "inherit" }}
                     >
                       <div
+                        className="relative"
                         style={{
-                          width: `${pageSize.width}px`,
-                          height: `${pageSize.height}px`,
-                          transform: `scale(${previewScale})`,
-                          transformOrigin: "top left",
-                          pointerEvents: "none",
+                          width: `${scaledWidth}px`,
+                          height: `${scaledHeight}px`,
                         }}
                       >
-                        <DesignPaper
-                          pageId={page.id}
-                          orientation={page.orientation ?? "vertical"}
-                          elements={page.elements}
-                          selectedIds={[]}
-                          editingTextId={null}
-                          readOnly
-                        />
+                        <div
+                          style={{
+                            width: `${pageSize.width}px`,
+                            height: `${pageSize.height}px`,
+                            transform: `scale(${previewScale})`,
+                            transformOrigin: "top left",
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <DesignPaper
+                            pageId={page.id}
+                            orientation={page.orientation ?? "vertical"}
+                            elements={page.elements}
+                            selectedIds={[]}
+                            editingTextId={null}
+                            readOnly
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </button>
-                {/* 페이지 번호 */}
-                <span className="text-12-medium text-black-60">
-                  {page.pageNumber}
-                </span>
+                    {/* 페이지 번호 - 썸네일 하단 우측 */}
+                    <span
+                      className="absolute bottom-1 right-1 text-black-50 bg-white/80 px-1 rounded"
+                      style={{ fontSize: "10px", fontWeight: 500 }}
+                    >
+                      {page.pageNumber}
+                    </span>
+                  </button>
+                  {/* 좌우 이동 버튼 */}
+                  {hoveredPageId === page.id && pages.length > 1 && (
+                    <>
+                      {index > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMovePage?.(page.id, "left");
+                          }}
+                          className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 hover:bg-black-90 transition"
+                        >
+                          <ChevronLeft className="w-3 h-3 text-white" />
+                        </button>
+                      )}
+                      {index < pages.length - 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMovePage?.(page.id, "right");
+                          }}
+                          className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 hover:bg-black-90 transition"
+                        >
+                          <ChevronRight className="w-3 h-3 text-white" />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+                {/* 호버 시 복제/삭제 버튼, 아닐 때 빈 공간 유지 */}
+                <div className="flex items-center justify-center gap-1 h-5">
+                  {hoveredPageId === page.id ? (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDuplicatePage?.(page.id);
+                        }}
+                        className="flex items-center justify-center w-5 h-5 rounded bg-black-10 hover:bg-black-20 transition"
+                        title="복제"
+                      >
+                        <Copy className="w-3 h-3 text-black-60" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeletePage(page.id);
+                        }}
+                        className="flex items-center justify-center w-5 h-5 rounded bg-black-10 hover:bg-red-100 hover:text-white transition"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-3 h-3 text-black-60 hover:text-white" />
+                      </button>
+                    </>
+                  ) : null}
+                </div>
               </div>
 
               {/* 페이지 사이 호버 시 추가 버튼 (2개 이상일 때만) */}

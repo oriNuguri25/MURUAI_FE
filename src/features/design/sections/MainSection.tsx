@@ -141,6 +141,7 @@ const MainSection = () => {
     handleDeletePage,
     handleDeleteElements,
     handleClearPage,
+    handleMovePage,
   } = usePageActions({
     pages,
     selectedPageId,
@@ -250,6 +251,8 @@ const MainSection = () => {
     applyMultiBorderPatch,
     lineToolbarData,
     shapeToolbarData,
+    aacToolbarData,
+    applyAacLabelPosition,
   } = useSelectionState({
     pages,
     selectedPageId,
@@ -324,8 +327,10 @@ const MainSection = () => {
       <ElementToolbars
         shapeToolbarData={shapeToolbarData}
         lineToolbarData={lineToolbarData}
+        aacToolbarData={aacToolbarData}
         selectedPageId={selectedPageId}
         setPages={setPages}
+        onAacLabelPositionChange={applyAacLabelPosition}
       />
 
       <CanvasStage
@@ -355,6 +360,8 @@ const MainSection = () => {
         onReorderPages={handleReorderPages}
         onDeletePage={handleDeletePage}
         onAddPageAtIndex={handleAddPageAtIndex}
+        onMovePage={handleMovePage}
+        onDuplicatePage={handleDuplicatePage}
       />
       <PdfPreviewContainer
         pages={pages}

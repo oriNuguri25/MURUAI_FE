@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import BaseModal from "@/shared/ui/BaseModal";
 import { useToastStore } from "../store/toastStore";
 import {
@@ -84,21 +84,17 @@ const ExportModal = ({
 
   const targets = targetType === "child" ? students : groups;
   const name = getName().trim() || "제목 없음";
-  const pageOptions = useMemo(() => {
-    const canvasData = getCanvasData() as {
-      pages?: Array<{ id?: unknown; pageNumber?: number }>;
-    } | null;
-    const pages = Array.isArray(canvasData?.pages) ? canvasData.pages : [];
-    return pages
-      .map((page, index) => ({
-        id: typeof page?.id === "string" ? page.id : null,
-        pageNumber:
-          typeof page?.pageNumber === "number" ? page.pageNumber : index + 1,
-      }))
-      .filter(
-        (page): page is { id: string; pageNumber: number } => !!page.id
-      );
-  }, [getCanvasData]);
+  const canvasData = getCanvasData() as {
+    pages?: Array<{ id?: unknown; pageNumber?: number }>;
+  } | null;
+  const canvasPages = Array.isArray(canvasData?.pages) ? canvasData.pages : [];
+  const pageOptions = canvasPages
+    .map((page, index) => ({
+      id: typeof page?.id === "string" ? page.id : null,
+      pageNumber:
+        typeof page?.pageNumber === "number" ? page.pageNumber : index + 1,
+    }))
+    .filter((page): page is { id: string; pageNumber: number } => !!page.id);
   const maxPageNumber = pageOptions.reduce(
     (max, page) => Math.max(max, page.pageNumber),
     0
@@ -107,11 +103,11 @@ const ExportModal = ({
     (min, page) => Math.min(min, page.pageNumber),
     maxPageNumber
   );
-  const parsedPageNumbers = useMemo(
-    () => parsePageRangeInput(pdfPageRangeInput, maxPageNumber),
-    [pdfPageRangeInput, maxPageNumber]
+  const parsedPageNumbers = parsePageRangeInput(
+    pdfPageRangeInput,
+    maxPageNumber
   );
-  const parsedPageIds = useMemo(() => {
+  const parsedPageIds = (() => {
     if (parsedPageNumbers.length === 0) return [];
     const map = new Map(
       pageOptions.map((page) => [page.pageNumber, page.id])
@@ -119,7 +115,7 @@ const ExportModal = ({
     return parsedPageNumbers
       .map((pageNumber) => map.get(pageNumber))
       .filter((id): id is string => Boolean(id));
-  }, [pageOptions, parsedPageNumbers]);
+  })();
   const fullRangeLabel =
     minPageNumber > 0 ? `${minPageNumber}~${maxPageNumber}` : "";
 

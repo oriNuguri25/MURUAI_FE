@@ -292,7 +292,7 @@ const TextBox = ({
         overflow: clipOverflow ? "hidden" : "visible",
         touchAction: "none",
         pointerEvents: locked ? "none" : "auto",
-        cursor: editable ? "text" : "default",
+        cursor: isSelected && !isEditing ? "move" : editable ? "text" : "default",
       }}
     >
       {showOutline && (

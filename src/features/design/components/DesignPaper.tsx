@@ -1383,6 +1383,7 @@ const DesignPaper = ({
   };
 
   const renderElement = (element: CanvasElement) => {
+    if (element.visible === false) return null;
     switch (element.type) {
       case "text":
         return renderTextElement(element);
