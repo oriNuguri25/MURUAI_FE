@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   useCallback,
+  type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
   type MouseEvent as ReactMouseEvent,
 } from "react";
@@ -20,7 +21,7 @@ import {
   type ContextMenuState,
   type LayerDirection,
 } from "./DesignPaperContextMenu";
-import { GroupSelectionOverlay, SelectionRectOverlay } from "./DesignPaperOverlays";
+import { GroupSelectionOverlay } from "./DesignPaperOverlays";
 import { useSmartGuides } from "../model/useSmartGuides";
 import Arrow from "./template_component/arrow/Arrow";
 import CircleBox from "./template_component/circle/CircleBox";
@@ -34,7 +35,6 @@ import { useDesignPaperClipboard } from "./hooks/useDesignPaperClipboard";
 import { useDesignPaperGroupDrag } from "./hooks/useDesignPaperGroupDrag";
 import { useDesignPaperKeyboard } from "./hooks/useDesignPaperKeyboard";
 import { useDesignPaperPaste } from "./hooks/useDesignPaperPaste";
-import { useDesignPaperSelection } from "./hooks/useDesignPaperSelection";
 import { useEmotionSlotBindings } from "./hooks/useEmotionSlotBindings";
 import {
   DEFAULT_STROKE,
@@ -44,12 +44,19 @@ import {
   type Rect,
 } from "./designPaperUtils";
 
+export type DesignPaperStageActions = {
+  clearContextMenu: () => void;
+  setEditingImageId: (id: string | null) => void;
+  setEditingShapeTextId: (id: string | null) => void;
+};
+
 interface DesignPaperProps {
   pageId: string;
   orientation: "horizontal" | "vertical";
   elements: CanvasElement[];
   selectedIds?: string[];
   editingTextId?: string | null;
+  stageActionsRef?: MutableRefObject<DesignPaperStageActions | null>;
   onElementsChange?: (elements: CanvasElement[]) => void;
   onSelectedIdsChange?: (ids: string[]) => void;
   onEditingTextIdChange?: (id: string | null) => void;
@@ -95,6 +102,7 @@ const DesignPaper = ({
   elements,
   selectedIds = [],
   editingTextId = null,
+  stageActionsRef,
   onElementsChange,
   onSelectedIdsChange,
   onEditingTextIdChange,
@@ -150,6 +158,18 @@ const DesignPaper = ({
   const clearContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
+
+  useEffect(() => {
+    if (!stageActionsRef) return;
+    stageActionsRef.current = {
+      clearContextMenu: () => setContextMenu(null),
+      setEditingImageId,
+      setEditingShapeTextId,
+    };
+    return () => {
+      stageActionsRef.current = null;
+    };
+  }, [stageActionsRef, setEditingImageId, setEditingShapeTextId]);
 
   const getContainerScale = () => {
     const node = containerRef.current;
@@ -274,19 +294,6 @@ const DesignPaper = ({
     findEmotionPlaceholderId,
     findEmotionLabelId,
   });
-
-  const { selectionRect, handleBackgroundPointerDown } =
-    useDesignPaperSelection({
-      readOnly,
-      elements,
-      selectedIdsRef,
-      onSelectedIdsChange,
-      onEditingTextIdChange,
-      clearContextMenu,
-      setEditingImageId,
-      setEditingShapeTextId,
-      getPointerPosition,
-    });
 
   useDesignPaperKeyboard({
     readOnly,
@@ -1444,9 +1451,6 @@ const DesignPaper = ({
             container.focus();
           }
         }
-        if (!readOnly && handleBackgroundPointerDown) {
-          handleBackgroundPointerDown(event);
-        }
       }}
       onPointerDownCapture={(event) => {
         if (!readOnly) {
@@ -1462,7 +1466,6 @@ const DesignPaper = ({
       onContextMenu={openCanvasContextMenu}
     >
       {elements.map((element) => renderElement(element))}
-      <SelectionRectOverlay selectionRect={selectionRect} />
       <GroupSelectionOverlay
         isGroupedSelection={isGroupedSelection}
         readOnly={readOnly}
