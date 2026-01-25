@@ -431,6 +431,7 @@ export function EditorView({ tool, hasSelection, onSelectTool }: Props) {
 
 - 2026-01-25: 드래그 선택 로직을 CanvasStage 전용 훅으로 분리하고, DesignPaper는 오버레이/편집 상태 노출로 단순화. `features/design`를 `features/editor`로 이동하고 라우팅/외부 import 경로를 갱신함.
 - 2026-01-25: editor UI 구조를 가이드에 맞게 `ui/parts`, `ui/sections`로 재배치하고 내부/외부 import 경로를 정리함.
+- 2026-01-25: DesignPaper 파생 선택 로직을 utils로 이동하고, line/arrow 공통 드래그 훅 및 detail_content store 접근을 전용 hooks로 분리함.
 
 ---
 

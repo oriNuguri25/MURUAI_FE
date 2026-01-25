@@ -1,7 +1,6 @@
-import { useState, type DragEvent as ReactDragEvent } from "react";
+import { type DragEvent as ReactDragEvent } from "react";
 import { Search } from "lucide-react";
-import { useImageFillStore } from "../../../store/imageFillStore";
-import { useAacCards } from "../../../hooks/useAacCards";
+import { useAacContentState } from "../../../hooks/useAacContentState";
 
 type Category = "food" | "animal" | "clothing" | "verb";
 
@@ -40,10 +39,6 @@ const CATEGORY_STYLES: Record<Category, { base: string; selected: string }> = {
   },
 };
 
-const normalizeQuery = (value: string) => value.trim().toLowerCase();
-const matchesQuery = (label: string, query: string) =>
-  query.length === 0 || label.toLowerCase().includes(query);
-
 const setDragImageData = (
   event: ReactDragEvent<HTMLElement>,
   imageUrl: string
@@ -54,21 +49,19 @@ const setDragImageData = (
 };
 
 const AACContent = () => {
-  const [selectedCategory, setSelectedCategory] = useState<Category>("food");
-  const [searchQuery, setSearchQuery] = useState("");
-  const { data: allCards, isLoading } = useAacCards();
-  const requestImageFill = useImageFillStore(
-    (state) => state.requestImageFill
-  );
-
-  const categoryValues = CATEGORY_VALUE_MAP[selectedCategory];
-  const categoryImages = (allCards ?? []).filter((card) =>
-    categoryValues.includes(card.category)
-  );
-  const query = normalizeQuery(searchQuery);
-  const filteredImages = categoryImages.filter((image) =>
-    matchesQuery(image.alt, query)
-  );
+  const {
+    selectedCategory,
+    searchQuery,
+    filteredImages,
+    isLoading,
+    onSelectCategory,
+    onSearchChange,
+    onSelectImage,
+  } = useAacContentState({
+    initialCategory: "food",
+    categoryValueMap: CATEGORY_VALUE_MAP,
+    cardSize: AAC_CARD_SIZE,
+  });
 
   const handleImageError = (
     event: React.SyntheticEvent<HTMLImageElement>,
@@ -98,7 +91,7 @@ const AACContent = () => {
         {CATEGORIES.map((category) => (
           <button
             key={category.id}
-            onClick={() => setSelectedCategory(category.id)}
+            onClick={() => onSelectCategory(category.id)}
             className={`flex w-full items-center justify-center px-3 py-2.5 border rounded-lg transition-all ${
               selectedCategory === category.id
                 ? CATEGORY_STYLES[category.id].selected
@@ -116,8 +109,8 @@ const AACContent = () => {
         <input
           type="text"
           placeholder="검색..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
           className="w-full pl-10 pr-4 py-3 border border-black-25 rounded-lg text-14-regular placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
         />
       </div>
@@ -135,11 +128,7 @@ const AACContent = () => {
                 key={image.id}
                 draggable
                 onDragStart={(event) => setDragImageData(event, image.url)}
-                onClick={() =>
-                  requestImageFill(image.url, image.alt, AAC_CARD_SIZE, {
-                    forceInsert: true,
-                  })
-                }
+                onClick={() => onSelectImage(image.url, image.alt)}
                 className="flex flex-col items-center p-3 rounded-xl border-2 border-black-25 hover:border-primary hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-xl bg-white overflow-hidden">

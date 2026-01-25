@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { useTemplateStore } from "../../../store/templateStore";
+import { useTemplateContentState } from "../../../hooks/useTemplateContentState";
 import {
   TEMPLATE_REGISTRY,
   type TemplateId,
@@ -20,8 +20,6 @@ import type {
   TemplateElement,
 } from "../../../model/canvasTypes";
 import DesignPaper from "../DesignPaper";
-import { useAacBoardStore } from "../../../store/aacBoardStore";
-import { useStoryBoardStore } from "../../../store/storyBoardStore";
 import {
   buildAacBoardElements,
   type AacLabelPosition,
@@ -239,7 +237,7 @@ const TemplateCarousel = ({
   iconColor?: string;
   templates: { id: string; title: string }[];
 }) => {
-  const requestTemplate = useTemplateStore((state) => state.requestTemplate);
+  const { requestTemplate } = useTemplateContentState();
   const [pageIndex, setPageIndex] = useState(0);
   const itemsPerPage = 4;
   const totalPages = Math.max(1, Math.ceil(templates.length / itemsPerPage));
@@ -734,8 +732,7 @@ const TemplateContent = () => {
     "vertical" | "horizontal"
   >("vertical");
   const [storyRatio, setStoryRatio] = useState<StoryCardRatio>("4:3");
-  const requestAacBoard = useAacBoardStore((state) => state.requestBoard);
-  const requestStoryBoard = useStoryBoardStore((state) => state.requestBoard);
+  const { requestAacBoard, requestStoryBoard } = useTemplateContentState();
   const previewElements = withLogoTemplateElements(
     buildAacBoardElements({
       rows: aacRows,

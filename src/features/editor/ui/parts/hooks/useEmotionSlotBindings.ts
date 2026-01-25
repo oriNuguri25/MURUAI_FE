@@ -8,7 +8,7 @@ import {
   isEmotionSlotShape,
   isSameRect,
   type Rect,
-} from "../designPaperUtils";
+} from "../../../utils/designPaperUtils";
 
 const EMOTION_LABEL_TOLERANCE = 8;
 const EMOTION_PLACEHOLDER_TOLERANCE = 8;

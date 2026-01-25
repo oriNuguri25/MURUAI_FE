@@ -6,13 +6,13 @@ import {
   type RefObject,
 } from "react";
 import type { Page } from "../model/pageTypes";
-import type { DesignPaperStageActions } from "../ui/parts/DesignPaper";
+import type { DesignPaperStageActions } from "../types/stageActions";
 import {
   getElementBoundsForSelection,
   normalizeSelectionRect,
   rectsIntersect,
   type SelectionRect,
-} from "../ui/parts/designPaperUtils";
+} from "../utils/designPaperUtils";
 
 type UseCanvasStageSelectionParams = {
   canvasRef: RefObject<HTMLCanvasElement | null>;

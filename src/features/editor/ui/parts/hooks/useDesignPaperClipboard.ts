@@ -1,7 +1,7 @@
 import { useCallback, type MutableRefObject } from "react";
 import type { CanvasElement } from "../../../model/canvasTypes";
 import { measureTextBoxSize } from "../../../utils/textMeasure";
-import { DEFAULT_TEXT_LINE_HEIGHT } from "../designPaperUtils";
+import { DEFAULT_TEXT_LINE_HEIGHT } from "../../../utils/designPaperUtils";
 
 type UseDesignPaperClipboardProps = {
   pageId: string;

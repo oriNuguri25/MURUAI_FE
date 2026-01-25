@@ -35,6 +35,7 @@ import { useDesignPaperClipboard } from "./hooks/useDesignPaperClipboard";
 import { useDesignPaperGroupDrag } from "./hooks/useDesignPaperGroupDrag";
 import { useDesignPaperKeyboard } from "./hooks/useDesignPaperKeyboard";
 import { useDesignPaperPaste } from "./hooks/useDesignPaperPaste";
+import { useDesignPaperStageActions } from "./hooks/useDesignPaperStageActions";
 import { useEmotionSlotBindings } from "./hooks/useEmotionSlotBindings";
 import {
   DEFAULT_STROKE,
@@ -43,13 +44,9 @@ import {
   isEmotionSlotShape,
   type SelectionRect,
   type Rect,
-} from "./designPaperUtils";
-
-export type DesignPaperStageActions = {
-  clearContextMenu: () => void;
-  setEditingImageId: (id: string | null) => void;
-  setEditingShapeTextId: (id: string | null) => void;
-};
+} from "../../utils/designPaperUtils";
+import type { DesignPaperStageActions } from "../../types/stageActions";
+import { getSelectionRenderState } from "../../utils/selectionState";
 
 interface DesignPaperProps {
   pageId: string;
@@ -163,18 +160,12 @@ const DesignPaper = ({
   const clearContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
-
-  useEffect(() => {
-    if (!stageActionsRef) return;
-    stageActionsRef.current = {
-      clearContextMenu: () => setContextMenu(null),
-      setEditingImageId,
-      setEditingShapeTextId,
-    };
-    return () => {
-      stageActionsRef.current = null;
-    };
-  }, [stageActionsRef, setEditingImageId, setEditingShapeTextId]);
+  useDesignPaperStageActions({
+    stageActionsRef,
+    clearContextMenu,
+    setEditingImageId,
+    setEditingShapeTextId,
+  });
 
   const getContainerScale = () => {
     const node = containerRef.current;
@@ -1021,46 +1012,16 @@ const DesignPaper = ({
     setContextMenu(null);
   };
 
-  const renderSelectedIds =
-    previewSelectedIds && previewSelectedIds.length > 0
-      ? previewSelectedIds
-      : selectedIds;
-
-  const selectedGroupId =
-    selectedIds.length > 1
-      ? elements.find((element) => element.id === selectedIds[0])?.groupId ??
-        null
-      : null;
-  const isGroupedSelection =
-    selectedGroupId != null &&
-    selectedIds.length > 1 &&
-    selectedIds.every(
-      (id) =>
-        elements.find((element) => element.id === id)?.groupId ===
-        selectedGroupId
-    );
-  const canGroupSelection = selectedIds.length > 1;
-  const canUngroupSelection = elements.some(
-    (element) => selectedIds.includes(element.id) && element.groupId
-  );
-
-  const renderGroupId =
-    renderSelectedIds.length > 1
-      ? elements.find((element) => element.id === renderSelectedIds[0])
-          ?.groupId ?? null
-      : null;
-  const isRenderGroupedSelection =
-    renderGroupId != null &&
-    renderSelectedIds.length > 1 &&
-    renderSelectedIds.every(
-      (id) =>
-        elements.find((element) => element.id === id)?.groupId === renderGroupId
-    );
-
-  // 요소 렌더 헬퍼로 메인 맵을 간결하게 유지한다.
-  const shouldShowIndividualBorder = (elementId: string) =>
-    renderSelectedIds.includes(elementId) &&
-    (!isRenderGroupedSelection || renderSelectedIds.length === 1);
+  const {
+    isGroupedSelection,
+    canGroupSelection,
+    canUngroupSelection,
+    shouldShowIndividualBorder,
+  } = getSelectionRenderState({
+    elements,
+    selectedIds,
+    previewSelectedIds,
+  });
 
   const handleSelectChange = (
     elementId: string,

@@ -4,7 +4,7 @@ import {
   getRectFromElement,
   isEmotionSlotShape,
   type Rect,
-} from "../designPaperUtils";
+} from "../../../utils/designPaperUtils";
 
 type Point = LineElement["start"];
 

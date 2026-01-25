@@ -5,7 +5,7 @@ import {
   isEditableTarget,
   isEmotionSlotShape,
   type Rect,
-} from "../designPaperUtils";
+} from "../../../utils/designPaperUtils";
 
 type SmartGuideController = {
   compute: (args: { activeRect: Rect; otherRects: Rect[] }) => void;

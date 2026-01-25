@@ -1,4 +1,4 @@
-import { useElementStore } from "../../../store/elementStore";
+import { useTextContentState } from "../../../hooks/useTextContentState";
 
 type TextPreset = {
   text: string;
@@ -86,10 +86,10 @@ const TextContentView = ({ presets, onSelectPreset }: TextContentViewProps) => {
 };
 
 const TextContent = () => {
-  const requestText = useElementStore((state) => state.requestText);
+  const { onSelectPreset } = useTextContentState();
 
   return (
-    <TextContentView presets={TEXT_PRESETS} onSelectPreset={requestText} />
+    <TextContentView presets={TEXT_PRESETS} onSelectPreset={onSelectPreset} />
   );
 };
 

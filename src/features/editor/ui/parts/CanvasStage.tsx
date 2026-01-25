@@ -2,7 +2,7 @@ import { useRef, type RefObject } from "react";
 import type { CanvasElement } from "../../model/canvasTypes";
 import type { Page } from "../../model/pageTypes";
 import DesignPaper from "./DesignPaper";
-import type { DesignPaperStageActions } from "./DesignPaper";
+import type { DesignPaperStageActions } from "../../types/stageActions";
 import { useCanvasStageSelection } from "../../hooks/useCanvasStageSelection";
 
 type CanvasStageProps = {

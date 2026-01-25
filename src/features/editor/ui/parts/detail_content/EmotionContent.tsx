@@ -8,11 +8,9 @@ import {
 } from "lucide-react";
 import { useState, type DragEvent as ReactDragEvent } from "react";
 import type { ReactNode } from "react";
-import { useImageFillStore } from "../../../store/imageFillStore";
 import { useEmotionPhotos } from "../../../hooks/useEmotionPhotos";
 import { useEmotionEmojis, type EmotionEmoji } from "../../../hooks/useEmotionEmojis";
-
-const EMOTION_CARD_SIZE = { width: 200, height: 260 };
+import { useEmotionContentState } from "../../../hooks/useEmotionContentState";
 
 const normalizeQuery = (value: string) => value.trim().toLowerCase();
 const matchesQuery = (label: string, query: string) =>
@@ -106,13 +104,11 @@ const SearchInput = ({
 
 const EmotionList = ({
   emotions,
+  onSelectEmotion,
 }: {
   emotions: EmotionEmoji[];
+  onSelectEmotion: (url: string, label: string) => void;
 }) => {
-  const requestImageFill = useImageFillStore(
-    (state) => state.requestImageFill
-  );
-
   return (
     <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1 min-h-0">
       {emotions.length > 0 ? (
@@ -122,11 +118,7 @@ const EmotionList = ({
               key={emotion.id}
               draggable
               onDragStart={(event) => setDragImageData(event, emotion.url)}
-              onClick={() =>
-                requestImageFill(emotion.url, emotion.label, EMOTION_CARD_SIZE, {
-                  forceInsert: true,
-                })
-              }
+              onClick={() => onSelectEmotion(emotion.url, emotion.label)}
               className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
             >
               <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">
@@ -188,6 +180,7 @@ const GenderToggle = ({
 // 메인 컴포넌트
 const EmotionContent = () => {
   const [selectedMode, setSelectedMode] = useState<"basic" | "ai">("basic");
+  const { onSelectEmotion } = useEmotionContentState();
 
   return (
     <div className="flex flex-col w-full h-full gap-6">
@@ -214,14 +207,22 @@ const EmotionContent = () => {
         </div>
 
         <div className="flex flex-col flex-1 gap-2 min-h-0">
-          {selectedMode === "basic" ? <EmotionContentArea /> : <ComingSoon />}
+          {selectedMode === "basic" ? (
+            <EmotionContentArea onSelectEmotion={onSelectEmotion} />
+          ) : (
+            <ComingSoon />
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-const EmotionContentArea = () => {
+const EmotionContentArea = ({
+  onSelectEmotion,
+}: {
+  onSelectEmotion: (url: string, label: string) => void;
+}) => {
   const [selectedType, setSelectedType] = useState<
     "photo" | "drawing" | "line"
   >("photo");
@@ -250,21 +251,26 @@ const EmotionContentArea = () => {
       </div>
 
       <div className="flex flex-col flex-1 gap-2 min-h-0">
-        {selectedType === "photo" && <PhotoEmotionContent />}
-        {selectedType === "drawing" && <DrawingEmotionContent />}
+        {selectedType === "photo" && (
+          <PhotoEmotionContent onSelectEmotion={onSelectEmotion} />
+        )}
+        {selectedType === "drawing" && (
+          <DrawingEmotionContent onSelectEmotion={onSelectEmotion} />
+        )}
         {selectedType === "line" && <ComingSoon />}
       </div>
     </div>
   );
 };
 
-const PhotoEmotionContent = () => {
+const PhotoEmotionContent = ({
+  onSelectEmotion,
+}: {
+  onSelectEmotion: (url: string, label: string) => void;
+}) => {
   const [gender, setGender] = useState<"boy" | "girl">("boy");
   const [searchTerm, setSearchTerm] = useState("");
   const { data: allEmotionPhotos, isLoading } = useEmotionPhotos();
-  const requestImageFill = useImageFillStore(
-    (state) => state.requestImageFill
-  );
 
   const genderEmotions = (allEmotionPhotos ?? []).filter(
     (photo) => photo.category === gender
@@ -290,16 +296,7 @@ const PhotoEmotionContent = () => {
                 key={emotion.id}
                 draggable
                 onDragStart={(event) => setDragImageData(event, emotion.url)}
-                onClick={() =>
-                  requestImageFill(
-                    emotion.url,
-                    emotion.label,
-                    EMOTION_CARD_SIZE,
-                    {
-                      forceInsert: true,
-                    }
-                  )
-                }
+                onClick={() => onSelectEmotion(emotion.url, emotion.label)}
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">
@@ -325,7 +322,11 @@ const PhotoEmotionContent = () => {
   );
 };
 
-const DrawingEmotionContent = () => {
+const DrawingEmotionContent = ({
+  onSelectEmotion,
+}: {
+  onSelectEmotion: (url: string, label: string) => void;
+}) => {
   const [searchTerm, setSearchTerm] = useState("");
   const { data: allEmotionEmojis, isLoading } = useEmotionEmojis();
 
@@ -342,7 +343,10 @@ const DrawingEmotionContent = () => {
           불러오는 중입니다
         </div>
       ) : (
-        <EmotionList emotions={filteredEmotions} />
+        <EmotionList
+          emotions={filteredEmotions}
+          onSelectEmotion={onSelectEmotion}
+        />
       )}
     </div>
   );

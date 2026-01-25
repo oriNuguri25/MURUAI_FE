@@ -8,7 +8,7 @@ import { measureTextBoxSize } from "../../../utils/textMeasure";
 import {
   DEFAULT_TEXT_LINE_HEIGHT,
   isEditableTarget,
-} from "../designPaperUtils";
+} from "../../../utils/designPaperUtils";
 
 const DEFAULT_TEXT_FONT_SIZE = 24;
 const PASTE_TEXT_WIDTH = 400;

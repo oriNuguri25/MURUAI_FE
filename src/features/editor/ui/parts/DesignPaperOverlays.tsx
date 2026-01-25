@@ -1,5 +1,5 @@
 import type { CanvasElement } from "../../model/canvasTypes";
-import { getRectFromElement, type Rect, type SelectionRect } from "./designPaperUtils";
+import { getRectFromElement, type Rect, type SelectionRect } from "../../utils/designPaperUtils";
 
 type SelectionRectOverlayProps = {
   selectionRect: SelectionRect | null;
