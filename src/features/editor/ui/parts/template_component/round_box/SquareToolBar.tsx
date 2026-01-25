@@ -3,9 +3,11 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { Ban, Upload } from "lucide-react";
+import { Ban, Loader2, Upload } from "lucide-react";
 import { useNumberInput } from "../../../../model/useNumberInput";
 import ColorPickerPopover from "../../ColorPickerPopover";
+import { useImageUploadToCloudinary } from "../../../../hooks/useImageUploadToCloudinary";
+import { useUploadListStore } from "../../../../store/useUploadListStore";
 
 type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
@@ -62,6 +64,8 @@ const SquareToolBar = ({
 }: SquareToolBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isBorderPanelOpen, setIsBorderPanelOpen] = useState(false);
+  const { uploadImage, isUploading } = useImageUploadToCloudinary();
+  const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
 
   // Width input management
   const widthInputHook = useNumberInput({
@@ -102,26 +106,22 @@ const SquareToolBar = ({
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    // 이미지 파일인지 확인
-    if (!file.type.startsWith("image/")) {
-      alert("이미지 파일만 업로드할 수 있습니다.");
-      return;
-    }
-
-    // FileReader로 이미지를 Data URL로 변환
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
-      onImageUpload(imageUrl);
-    };
-    reader.readAsDataURL(file);
-
-    // input 초기화 (같은 파일 다시 선택 가능하도록)
     event.target.value = "";
+
+    const imageUrl = await uploadImage(file);
+    if (imageUrl) {
+      const fill =
+        imageUrl.startsWith("url(") || imageUrl.startsWith("data:")
+          ? imageUrl
+          : `url(${imageUrl})`;
+      onImageUpload(fill);
+      triggerRefetch();
+    }
   };
 
   if (!isVisible) return null;
@@ -363,17 +363,22 @@ const SquareToolBar = ({
       </div>
       <button
         type="button"
-        onClick={() => fileInputRef.current?.click()}
-        className="flex h-7 items-center gap-1.5 rounded border border-black-30 px-2 text-black-70 hover:border-primary hover:text-primary transition-colors"
+        onClick={() => !isUploading && fileInputRef.current?.click()}
+        disabled={isUploading}
+        className="flex h-7 items-center gap-1.5 rounded border border-black-30 px-2 text-black-70 hover:border-primary hover:text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         aria-label="Upload image"
       >
-        <Upload className="h-4 w-4" />
+        {isUploading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Upload className="h-4 w-4" />
+        )}
         <span className="text-14-regular">이미지</span>
       </button>
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png"
         onChange={handleImageUpload}
         className="hidden"
       />

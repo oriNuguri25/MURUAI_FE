@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import {
   Ban,
+  Loader2,
   Upload,
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -10,6 +11,8 @@ import {
   TextAlignEnd,
   Underline,
 } from "lucide-react";
+import { useImageUploadToCloudinary } from "../../../hooks/useImageUploadToCloudinary";
+import { useUploadListStore } from "../../../store/useUploadListStore";
 import type {
   CanvasElement,
   ShapeElement,
@@ -80,6 +83,8 @@ const ShapeProperties = ({
   onUpdateElement: (elementId: string, updates: Partial<CanvasElement>) => void;
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadImage, isUploading } = useImageUploadToCloudinary();
+  const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
   const [widthInput, setWidthInput] = useState(() =>
     String(Math.round(element.w))
   );
@@ -153,26 +158,25 @@ const ShapeProperties = ({
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    event.target.value = "";
 
-    if (!file.type.startsWith("image/")) {
-      alert("이미지 파일만 업로드할 수 있습니다.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
-      const finalUrl = imageUrl.startsWith("url(") ? imageUrl : `url(${imageUrl})`;
+    const imageUrl = await uploadImage(file);
+    if (imageUrl) {
+      const finalUrl =
+        imageUrl.startsWith("url(") || imageUrl.startsWith("data:")
+          ? imageUrl
+          : `url(${imageUrl})`;
       onUpdateElement(element.id, {
         fill: finalUrl,
         imageBox: { x: 0, y: 0, w: rect.width, h: rect.height },
       });
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
+      triggerRefetch();
+    }
   };
 
   const borderStyleOptions: Array<BorderStyle | "none"> = [
@@ -346,16 +350,21 @@ const ShapeProperties = ({
         <div className="text-14-semibold text-black-90">이미지</div>
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors"
+          onClick={() => !isUploading && fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <Upload className="h-4 w-4" />
+          {isUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="h-4 w-4" />
+          )}
           <span className="text-14-regular">이미지 업로드</span>
         </button>
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png"
           onChange={handleImageUpload}
           className="hidden"
         />

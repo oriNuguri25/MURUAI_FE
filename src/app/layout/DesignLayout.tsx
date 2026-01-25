@@ -10,6 +10,10 @@ import {
   Plus,
   Minus,
   RotateCcw,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -39,6 +43,10 @@ const DesignLayout = () => {
   const [docName, setDocName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingNewDoc, setIsCreatingNewDoc] = useState(false);
+  const [autoSaveState, setAutoSaveState] = useState<
+    "saving" | "saved" | "error" | null
+  >(null);
+  const retryAutoSaveRef = useRef<(() => void) | null>(null);
   const { docId } = useParams<{ docId?: string }>();
   const [loadedDocument, setLoadedDocument] = useState<CanvasDocument | null>(
     null,
@@ -314,7 +322,7 @@ const DesignLayout = () => {
               />
             </div>
 
-            <div className="flex h-full items-center justify-center pr-3">
+            <div className="flex h-full items-center justify-center gap-2 pr-3">
               <button
                 type="button"
                 onClick={handleSave}
@@ -324,6 +332,41 @@ const DesignLayout = () => {
               >
                 <Save className="w-6 h-6 text-black-60" />
               </button>
+              {docId && autoSaveState && (
+                <div className="flex items-center gap-2">
+                  {autoSaveState === "saving" && (
+                    <div className="flex items-center gap-1.5 text-12-regular text-black-60">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>저장 중...</span>
+                    </div>
+                  )}
+                  {autoSaveState === "saved" && (
+                    <div className="flex items-center gap-1.5 text-12-regular text-green-600">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>저장됨</span>
+                    </div>
+                  )}
+                  {autoSaveState === "error" && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-12-regular text-red-600">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <span>저장 안 됨</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          retryAutoSaveRef.current?.();
+                        }}
+                        className="flex h-8 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 text-12-regular text-red-600 transition hover:bg-red-100"
+                        aria-label="재시도"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        <span>재시도</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="h-8 w-px bg-black-25" />
@@ -510,6 +553,10 @@ const DesignLayout = () => {
             loadedDocumentId,
             docId,
             docName,
+            setAutoSaveState,
+            setRetryAutoSave: (retryFn: () => void) => {
+              retryAutoSaveRef.current = retryFn;
+            },
           }}
         />
       </main>

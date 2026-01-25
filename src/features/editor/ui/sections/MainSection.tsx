@@ -1,4 +1,4 @@
-import { useState, useRef, type Dispatch, type SetStateAction } from "react";
+import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from "react";
 import { useOutletContext } from "react-router-dom";
 import BottomBar from "../parts/BottomBar";
 import type { CanvasDocument } from "../../model/pageTypes";
@@ -56,6 +56,8 @@ export interface OutletContext {
   loadedDocumentId: string | null;
   docId?: string;
   docName: string;
+  setAutoSaveState: (state: "saving" | "saved" | "error" | null) => void;
+  setRetryAutoSave: (retryFn: () => void) => void;
 }
 
 const MainSection = () => {
@@ -68,6 +70,8 @@ const MainSection = () => {
     loadedDocument,
     docId,
     docName,
+    setAutoSaveState,
+    setRetryAutoSave,
   } = useOutletContext<OutletContext>();
   const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
   const setSelectedTemplate = useTemplateStore(
@@ -117,7 +121,16 @@ const MainSection = () => {
   useSyncedRef(selectedPageIdRef, selectedPageId);
   useSyncedRef(selectedIdsRef, selectedIds);
 
-  useAutoSave({ pages, docId, docName });
+  const { retrySave } = useAutoSave({
+    pages,
+    docId,
+    docName,
+    onSaveStateChange: setAutoSaveState,
+  });
+
+  useEffect(() => {
+    setRetryAutoSave(retrySave);
+  }, [retrySave, setRetryAutoSave]);
   useCanvasGetter({ registerCanvasGetter, pagesRef });
 
   const setActivePage = useActivePageManager({
