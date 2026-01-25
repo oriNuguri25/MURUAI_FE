@@ -22,13 +22,23 @@ export default defineConfig({
       authToken: env.VITE_SENTRY_AUTH_TOKEN,
       org: "stayready",
       project: "muruai",
-
+      release: {
+        name:
+          env.SENTRY_RELEASE ??
+          env.VERCEL_GIT_COMMIT_SHA ??
+          env.VITE_SENTRY_RELEASE,
+      },
       sourcemaps: {
         assets: "./dist/**",
         filesToDeleteAfterUpload: "./dist/**/*.map",
       },
     }),
   ],
+  define: {
+    __SENTRY_RELEASE__: JSON.stringify(
+      env.SENTRY_RELEASE ?? env.VERCEL_GIT_COMMIT_SHA ?? env.VITE_SENTRY_RELEASE ?? null
+    ),
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
