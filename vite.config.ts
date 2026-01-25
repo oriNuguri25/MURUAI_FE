@@ -6,10 +6,13 @@ import path from "path";
 import { env } from "process";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   cacheDir: ".vite",
   build: {
     sourcemap: true,
+    esbuild: {
+      drop: mode === "production" ? ["console", "debugger"] : [],
+    },
   },
   plugins: [
     react({
@@ -36,7 +39,10 @@ export default defineConfig({
   ],
   define: {
     __SENTRY_RELEASE__: JSON.stringify(
-      env.SENTRY_RELEASE ?? env.VERCEL_GIT_COMMIT_SHA ?? env.VITE_SENTRY_RELEASE ?? null
+      env.SENTRY_RELEASE ??
+        env.VERCEL_GIT_COMMIT_SHA ??
+        env.VITE_SENTRY_RELEASE ??
+        null
     ),
   },
   resolve: {
@@ -44,4 +50,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-});
+}));
