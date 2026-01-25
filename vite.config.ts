@@ -8,6 +8,9 @@ import { env } from "process";
 // https://vite.dev/config/
 export default defineConfig({
   cacheDir: ".vite",
+  build: {
+    sourcemap: true,
+  },
   plugins: [
     react({
       babel: {
