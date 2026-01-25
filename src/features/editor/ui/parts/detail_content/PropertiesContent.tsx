@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   Ban,
   Loader2,
@@ -82,7 +82,6 @@ const ShapeProperties = ({
   element: ShapeElement;
   onUpdateElement: (elementId: string, updates: Partial<CanvasElement>) => void;
 }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadImage, isUploading } = useImageUploadToCloudinary();
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
   const [widthInput, setWidthInput] = useState(() =>
@@ -348,11 +347,9 @@ const ShapeProperties = ({
       {/* 이미지 업로드 */}
       <div className="flex flex-col gap-2">
         <div className="text-14-semibold text-black-90">이미지</div>
-        <button
-          type="button"
-          onClick={() => !isUploading && fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        <label
+          className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-black-30 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
+          aria-disabled={isUploading}
         >
           {isUploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -360,14 +357,14 @@ const ShapeProperties = ({
             <Upload className="h-4 w-4" />
           )}
           <span className="text-14-regular">이미지 업로드</span>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png"
-          onChange={handleImageUpload}
-          className="hidden"
-        />
+          <input
+            type="file"
+            accept="image/jpeg,image/png"
+            onChange={handleImageUpload}
+            disabled={isUploading}
+            className="hidden"
+          />
+        </label>
       </div>
 
       {/* 테두리 */}

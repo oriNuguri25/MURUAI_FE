@@ -1,5 +1,4 @@
 import {
-  useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -62,7 +61,6 @@ const SquareToolBar = ({
   onSizeChange,
   onPointerDown,
 }: SquareToolBarProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isBorderPanelOpen, setIsBorderPanelOpen] = useState(false);
   const { uploadImage, isUploading } = useImageUploadToCloudinary();
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
@@ -361,11 +359,8 @@ const SquareToolBar = ({
           </div>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => !isUploading && fileInputRef.current?.click()}
-        disabled={isUploading}
-        className="flex h-7 items-center gap-1.5 rounded border border-black-30 px-2 text-black-70 hover:border-primary hover:text-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      <label className="flex h-7 items-center gap-1.5 rounded border border-black-30 px-2 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
+        aria-disabled={isUploading}
         aria-label="Upload image"
       >
         {isUploading ? (
@@ -374,14 +369,14 @@ const SquareToolBar = ({
           <Upload className="h-4 w-4" />
         )}
         <span className="text-14-regular">이미지</span>
-      </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
+        <input
+          type="file"
+          accept="image/jpeg,image/png"
+          onChange={handleImageUpload}
+          disabled={isUploading}
+          className="hidden"
+        />
+      </label>
     </div>
   );
 };
