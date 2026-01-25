@@ -5,7 +5,7 @@ export const EXCLUDED_USER_IDS = new Set([
   "ac78fa14-651a-493e-bc8a-bd0849d52e21",
   "aa7bdcdd-76c7-4bb5-bbb6-1e59df247940",
   "384cbd1f-7fd8-4e3c-89f5-cba96b01cecb",
-  "faf78983-1657-4357-a7bc-5d5005972479",
+  // "faf78983-1657-4357-a7bc-5d5005972479",
 ]);
 
 export const EXCLUDED_USER_ID_LIST = Array.from(EXCLUDED_USER_IDS);
