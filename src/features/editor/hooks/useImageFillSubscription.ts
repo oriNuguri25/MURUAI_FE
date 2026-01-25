@@ -12,6 +12,7 @@ import {
   isEmotionInferenceCard,
   isEmotionLabelElement,
 } from "../utils/imageFillUtils";
+import { isEmotionSlotShape } from "../utils/designPaperUtils";
 
 type ImageFillSubscriptionParams = {
   pagesRef: ReadonlyRef<Page[]>;
@@ -36,9 +37,24 @@ export const useImageFillSubscription = ({
       if (!state.imageUrl) return;
       const shouldForceInsert = state.forceInsert === true;
       const activePageId = selectedPageIdRef.current;
-      const activeSelectedIds = shouldForceInsert
-        ? []
-        : selectedIdsRef.current;
+      const activePage = pagesRef.current.find(
+        (page) => page.id === activePageId
+      );
+      const baseSelectedIds = selectedIdsRef.current;
+      const hasFillableSelection =
+        shouldForceInsert &&
+        activePage &&
+        baseSelectedIds.some((id) => {
+          const element = activePage.elements.find((item) => item.id === id);
+          if (!element) return false;
+          return (
+            isEmotionInferenceCard(element) ||
+            isEmotionSlotShape(element) ||
+            isAacCardElement(activePage.elements, element)
+          );
+        });
+      const activeSelectedIds =
+        shouldForceInsert && !hasFillableSelection ? [] : baseSelectedIds;
       const normalizedUrl =
         state.imageUrl.startsWith("url(") || state.imageUrl.startsWith("data:")
           ? state.imageUrl
@@ -151,10 +167,15 @@ export const useImageFillSubscription = ({
                     ),
                   }
                 : baseImageBox;
+            const shouldClearPlaceholder =
+              isEmotionSlotShape(element) &&
+              typeof element.text === "string" &&
+              element.text.trim() === "감정을 선택해주세요";
             return {
               ...element,
               fill: normalizedUrl,
               imageBox: nextImageBox,
+              text: shouldClearPlaceholder ? "" : element.text,
             };
           });
           if (labelUpdates.size === 0) {

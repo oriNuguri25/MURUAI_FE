@@ -212,6 +212,7 @@ export const useEmotionSlotBindings = ({
             ...element,
             fill: "#FFFFFF",
             imageBox: undefined,
+            text: "감정을 선택해주세요",
           };
         }
         if (
