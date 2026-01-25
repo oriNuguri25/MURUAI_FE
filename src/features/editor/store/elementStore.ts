@@ -23,15 +23,15 @@ export const useElementStore = create<ElementStore>((set) => ({
   requestedType: null,
   requestedText: null,
   requestElement: (type) =>
-    set((state) => ({
+    { set((state) => ({
       requestId: state.requestId + 1,
       requestedType: type,
       requestedText: null,
-    })),
+    })); },
   requestText: (preset) =>
-    set((state) => ({
+    { set((state) => ({
       requestId: state.requestId + 1,
       requestedType: "text",
       requestedText: preset,
-    })),
+    })); },
 }));

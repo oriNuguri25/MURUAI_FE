@@ -9,5 +9,5 @@ interface OrientationStore {
 
 export const useOrientationStore = create<OrientationStore>((set) => ({
   orientation: "vertical",
-  setOrientation: (orientation) => set({ orientation }),
+  setOrientation: (orientation) => { set({ orientation }); },
 }));

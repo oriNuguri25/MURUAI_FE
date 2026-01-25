@@ -370,7 +370,7 @@ const MainSection = () => {
 
       <TemplateChoiceDialog
         open={!!templateChoiceDialog}
-        onClose={() => setTemplateChoiceDialog(null)}
+        onClose={() => { setTemplateChoiceDialog(null); }}
         onApplyCurrent={handleApplyTemplateToCurrent}
         onApplyNew={handleApplyTemplateToNew}
       />

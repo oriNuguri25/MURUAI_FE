@@ -230,7 +230,7 @@ const ExportModal = ({
                     <button
                       key={target.id}
                       type="button"
-                      onClick={() => setTargetId(target.id)}
+                      onClick={() => { setTargetId(target.id); }}
                       className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-14-regular transition ${
                         isSelected
                           ? "border-primary bg-primary/5 text-primary"
@@ -260,7 +260,7 @@ const ExportModal = ({
               <button
                 key={mode}
                 type="button"
-                onClick={() => setPdfPageMode(mode)}
+                onClick={() => { setPdfPageMode(mode); }}
                 className={`flex-1 rounded-lg border px-3 py-2 text-14-semibold transition ${
                   pdfPageMode === mode
                     ? "border-primary bg-primary/5 text-primary"
@@ -298,7 +298,7 @@ const ExportModal = ({
                 <input
                   type="text"
                   value={pdfPageRangeInput}
-                  onChange={(event) => setPdfPageRangeInput(event.target.value)}
+                  onChange={(event) => { setPdfPageRangeInput(event.target.value); }}
                   placeholder="예) 1,2 or 1~3"
                   className="w-full rounded-lg border border-black-25 px-3 py-2 text-14-regular text-black-90 placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
                 />

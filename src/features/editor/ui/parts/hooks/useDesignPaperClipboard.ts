@@ -109,7 +109,7 @@ export const useDesignPaperClipboard = ({
           ? groupIdMap.get(element.groupId) ??
             (() => {
               const newId = crypto.randomUUID();
-              groupIdMap.set(element.groupId as string, newId);
+              groupIdMap.set(element.groupId, newId);
               return newId;
             })()
           : undefined;

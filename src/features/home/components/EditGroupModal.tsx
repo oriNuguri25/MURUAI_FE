@@ -101,7 +101,7 @@ const EditGroupModalContent = ({
       {!isEditing && (
         <button
           type="button"
-          onClick={() => setIsEditing(true)}
+          onClick={() => { setIsEditing(true); }}
           className="rounded-lg p-2 text-black-70 transition hover:bg-black-10 hover:text-primary"
           aria-label="수정 모드 활성화"
         >
@@ -139,7 +139,7 @@ const EditGroupModalContent = ({
             <input
               type="text"
               value={groupName}
-              onChange={(event) => setGroupName(event.target.value)}
+              onChange={(event) => { setGroupName(event.target.value); }}
               className="rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none"
               placeholder="그룹 이름을 입력하세요"
               required
@@ -158,7 +158,7 @@ const EditGroupModalContent = ({
           {isEditing ? (
             <textarea
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              onChange={(event) => { setDescription(event.target.value); }}
               className="min-h-24 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none resize-none"
               placeholder="그룹 설명을 입력하세요"
             />
@@ -195,7 +195,7 @@ const EditGroupModalContent = ({
                           <input
                             type="checkbox"
                             checked={isSelected}
-                            onChange={() => handleMemberToggle(memberId)}
+                            onChange={() => { handleMemberToggle(memberId); }}
                             className="h-5 w-5 rounded border-black-30 text-primary focus:ring-0 focus:ring-offset-0"
                           />
                           <div className="flex-1 text-15-medium text-black-100">

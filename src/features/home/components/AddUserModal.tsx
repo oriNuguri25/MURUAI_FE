@@ -88,7 +88,7 @@ const AddUserModal = () => {
             type="text"
             id="name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); }}
             className="rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none"
             placeholder="이름을 입력하세요"
             required
@@ -126,7 +126,7 @@ const AddUserModal = () => {
           <textarea
             id="notes"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => { setNotes(e.target.value); }}
             className="min-h-24 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none resize-none"
             placeholder="특이사항을 입력하세요"
           />
@@ -143,7 +143,7 @@ const AddUserModal = () => {
           <textarea
             id="learningGoals"
             value={learningGoals}
-            onChange={(e) => setLearningGoals(e.target.value)}
+            onChange={(e) => { setLearningGoals(e.target.value); }}
             className="min-h-24 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none resize-none"
             placeholder="학습 목표를 입력하세요"
           />

@@ -70,7 +70,7 @@ export const ResizeHandles = ({
       {HANDLE_CONFIGS.map(({ handle, cursor, position }) => (
         <div
           key={handle}
-          onPointerDown={(event) => onResizeStart(event, handle)}
+          onPointerDown={(event) => { onResizeStart(event, handle); }}
           data-capture-handle="true"
           className="absolute rounded-sm border bg-white-100"
           style={{

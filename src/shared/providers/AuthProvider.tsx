@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSentryUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { subscription.unsubscribe(); };
   }, [setUser, setLoading]);
 
   // 로딩 중일 때는 빈 화면 또는 로딩 스피너 표시

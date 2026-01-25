@@ -20,15 +20,15 @@ export const useFontStore = create<FontStore>((set) => ({
   panelFontFamily: "Pretendard",
   panelFontWeight: 400,
   setPanelFont: (payload) =>
-    set({
+    { set({
       panelFontFamily: payload.fontFamily,
       panelFontWeight: payload.fontWeight,
-    }),
+    }); },
   applyFont: (payload) =>
-    set((state) => ({
+    { set((state) => ({
       requestId: state.requestId + 1,
       request: payload,
       panelFontFamily: payload.fontFamily ?? state.panelFontFamily,
       panelFontWeight: payload.fontWeight ?? state.panelFontWeight,
-    })),
+    })); },
 }));

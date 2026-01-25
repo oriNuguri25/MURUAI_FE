@@ -164,7 +164,7 @@ const Arrow = ({
               top: startRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => startResize(event, "start")}
+            onPointerDown={(event) => { startResize(event, "start"); }}
           />
           <div
             className="absolute rounded-full border border-primary bg-white-100"
@@ -175,7 +175,7 @@ const Arrow = ({
               top: endRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => startResize(event, "end")}
+            onPointerDown={(event) => { startResize(event, "end"); }}
           />
         </>
       )}

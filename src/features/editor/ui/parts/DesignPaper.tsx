@@ -154,7 +154,7 @@ const DesignPaper = ({
     const frame = requestAnimationFrame(() => {
       containerRef.current?.focus();
     });
-    return () => cancelAnimationFrame(frame);
+    return () => { cancelAnimationFrame(frame); };
   }, [editingTextId, readOnly, selectedIds]);
 
   const clearContextMenu = useCallback(() => {
@@ -192,11 +192,11 @@ const DesignPaper = ({
       if (element.id !== id) return element;
       if (element.type === "text" && "style" in patch) {
         const nextStyle = {
-          ...(element as TextElement).style,
+          ...(element).style,
           ...(patch as TextElementPatch).style,
         };
         return {
-          ...(element as TextElement),
+          ...(element),
           ...patch,
           style: nextStyle,
         };
@@ -221,7 +221,7 @@ const DesignPaper = ({
             }
           : element.border;
         return {
-          ...(element as ShapeElement),
+          ...(element),
           ...patch,
           border: nextBorder,
         };
@@ -230,7 +230,7 @@ const DesignPaper = ({
         (element.type === "line" || element.type === "arrow") &&
         "stroke" in patch
       ) {
-        const baseStroke = (element as LineElement).stroke ?? DEFAULT_STROKE;
+        const baseStroke = (element).stroke ?? DEFAULT_STROKE;
         const patchStroke = (patch as LineElementPatch).stroke;
         const nextStroke = patchStroke
           ? {
@@ -239,7 +239,7 @@ const DesignPaper = ({
             }
           : baseStroke;
         return {
-          ...(element as LineElement),
+          ...(element),
           ...patch,
           stroke: nextStroke,
         };
@@ -1177,74 +1177,74 @@ const DesignPaper = ({
             });
           },
           onFontSizeChange: (value) =>
-            updateElement(element.id, {
+            { updateElement(element.id, {
               style: { fontSize: clampFontSize(value) },
-            }),
+            }); },
           onFontSizeStep: (delta) =>
-            updateElement(element.id, {
+            { updateElement(element.id, {
               style: {
                 fontSize: clampFontSize(
                   element.style.fontSize + delta
                 ),
               },
-            }),
+            }); },
           onLineHeightChange: (value) =>
-            updateElement(element.id, { style: { lineHeight: value } }),
+            { updateElement(element.id, { style: { lineHeight: value } }); },
           onLetterSpacingChange: (value) =>
-            updateElement(element.id, {
+            { updateElement(element.id, {
               style: { letterSpacing: value },
-            }),
+            }); },
           onColorChange: (color) =>
-            updateElement(element.id, { style: { color } }),
+            { updateElement(element.id, { style: { color } }); },
           onToggleBold: () =>
-            updateElement(element.id, {
+            { updateElement(element.id, {
               style: {
                 fontWeight:
                   element.style.fontWeight === "bold"
                     ? "normal"
                     : "bold",
               },
-            }),
+            }); },
           onToggleUnderline: () =>
-            updateElement(element.id, {
+            { updateElement(element.id, {
               style: { underline: !element.style.underline },
-            }),
+            }); },
           onToggleItalic: () =>
-            updateElement(element.id, {
+            { updateElement(element.id, {
               style: { italic: !element.style.italic },
-            }),
+            }); },
           onToggleStrikethrough: () =>
-            updateElement(element.id, {
+            { updateElement(element.id, {
               style: { strikethrough: !element.style.strikethrough },
-            }),
+            }); },
           onAlignChange: (align) =>
-            updateElement(element.id, { style: { alignX: align } }),
+            { updateElement(element.id, { style: { alignX: align } }); },
           onAlignYChange: (alignY) =>
-            updateElement(element.id, { style: { alignY } }),
+            { updateElement(element.id, { style: { alignY } }); },
         }}
         onTextChange={(nextText, nextRichText) =>
-          updateElement(element.id, { text: nextText, richText: nextRichText })
+          { updateElement(element.id, { text: nextText, richText: nextRichText }); }
         }
         onRectChange={
           isEmotionSlotText
             ? undefined
-            : (nextRect) => handleRectChange(element.id, nextRect)
+            : (nextRect) => { handleRectChange(element.id, nextRect); }
         }
         onWidthModeChange={(mode) =>
-          updateElement(element.id, { widthMode: mode })
+          { updateElement(element.id, { widthMode: mode }); }
         }
         onDragStateChange={(isDragging, finalRect, context) =>
-          handleDragStateChange(element.id, isDragging, finalRect, context)
+          { handleDragStateChange(element.id, isDragging, finalRect, context); }
         }
         onSelectChange={(isSelected, options) =>
-          handleSelectChange(element.id, isSelected, options)
+          { handleSelectChange(element.id, isSelected, options); }
         }
-        onContextMenu={(event) => openContextMenu(event, element.id)}
+        onContextMenu={(event) => { openContextMenu(event, element.id); }}
         onStartEditing={() =>
           onEditingTextIdChange?.(element.id)
         }
         onFinishEditing={() => onEditingTextIdChange?.(null)}
-        onRequestDelete={() => deleteElementById(element.id)}
+        onRequestDelete={() => { deleteElementById(element.id); }}
         transformRect={(nextRect, context) =>
           transformElementRect(element.id, nextRect, context)
         }
@@ -1275,7 +1275,7 @@ const DesignPaper = ({
       readOnly || element.locked || !isImageFill
         ? undefined
         : (value: { x: number; y: number; w: number; h: number }) =>
-            updateElement(element.id, { imageBox: value });
+            { updateElement(element.id, { imageBox: value }); };
 
     const isShapeTextEditing = editingShapeTextId === element.id;
 
@@ -1297,20 +1297,20 @@ const DesignPaper = ({
         locked={readOnly || element.locked}
         selectable={element.selectable !== false && !element.locked}
         onImageEditingChange={(isEditing: boolean) =>
-          setEditingImageId(isEditing ? element.id : null)
+          { setEditingImageId(isEditing ? element.id : null); }
         }
         onTextEditingChange={(isEditing: boolean) =>
-          setEditingShapeTextId(isEditing ? element.id : null)
+          { setEditingShapeTextId(isEditing ? element.id : null); }
         }
         onTextChange={(text: string) =>
-          updateElement(element.id, { text })
+          { updateElement(element.id, { text }); }
         }
         onImageBoxChange={handleImageBoxChange}
         onImageDrop={
           readOnly || element.locked
             ? undefined
             : (imageUrl) =>
-                updateElement(element.id, {
+                { updateElement(element.id, {
                   fill: imageUrl.startsWith("url(")
                     ? imageUrl
                     : `url(${imageUrl})`,
@@ -1320,18 +1320,18 @@ const DesignPaper = ({
                     w: rect.width,
                     h: rect.height,
                   },
-                })
+                }); }
         }
         onRectChange={(nextRect) =>
-          handleRectChange(element.id, nextRect)
+          { handleRectChange(element.id, nextRect); }
         }
         onDragStateChange={(isDragging, finalRect, context) =>
-          handleDragStateChange(element.id, isDragging, finalRect, context)
+          { handleDragStateChange(element.id, isDragging, finalRect, context); }
         }
         onSelectChange={(isSelected, options) =>
-          handleSelectChange(element.id, isSelected, options)
+          { handleSelectChange(element.id, isSelected, options); }
         }
-        onContextMenu={(event) => openContextMenu(event, element.id)}
+        onContextMenu={(event) => { openContextMenu(event, element.id); }}
         transformRect={(nextRect, context) =>
           transformElementRect(element.id, nextRect, context)
         }
@@ -1349,22 +1349,22 @@ const DesignPaper = ({
       isSelected: shouldShowIndividualBorder(element.id),
       locked: readOnly || element.locked,
       onLineChange: (nextLine: { start: Point; end: Point }) =>
-        handleLineChange(element.id, nextLine),
+        { handleLineChange(element.id, nextLine); },
       onDragStateChange: (
         isDragging: boolean,
         nextLine?: { start: Point; end: Point },
         context?: { type: "drag" | "resize" }
       ) =>
-        handleLineDragStateChange(
+        { handleLineDragStateChange(
           element.id,
           isDragging,
           nextLine,
           context
-        ),
+        ); },
       onSelectChange: (isSelected: boolean, options?: { keepContextMenu?: boolean; additive?: boolean }) =>
-        handleSelectChange(element.id, isSelected, options),
+        { handleSelectChange(element.id, isSelected, options); },
       onContextMenu: (event: ReactMouseEvent<HTMLElement>) =>
-        openContextMenu(event, element.id),
+        { openContextMenu(event, element.id); },
     };
     return element.type === "line" ? (
       <Line key={element.id} {...sharedProps} />
@@ -1402,7 +1402,7 @@ const DesignPaper = ({
       style={{ width: pageWidth, height: pageHeight }}
       data-page-id={pageId}
       onFocus={() => !readOnly && setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
+      onBlur={() => { setIsFocused(false); }}
       onKeyDown={(event) => {
         // 하단 바가 캔버스 키보드 이벤트를 처리하지 않도록 전파를 막는다.
         if (!readOnly) {
@@ -1465,7 +1465,7 @@ const DesignPaper = ({
         isGroupedSelection={isGroupedSelection}
         canPaste={Boolean(getClipboard())}
         onCopy={copySelectedElements}
-        onPaste={(position) => pasteElements(position)}
+        onPaste={(position) => { pasteElements(position); }}
         onGroup={groupSelectedElements}
         onUngroup={ungroupSelectedElements}
         onDelete={deleteSelectedElements}

@@ -97,16 +97,16 @@ const ElementToolbars = ({
               minWidth={1}
               minHeight={1}
               onBorderRadiusChange={(value: number) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
                     radius: shapeToolbarData.clampRadius(value),
                   })
-                )
+                ); }
               }
               onBorderRadiusStep={(delta: number) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -114,16 +114,16 @@ const ElementToolbars = ({
                       shapeToolbarData.radius + delta
                     ),
                   })
-                )
+                ); }
               }
               onColorChange={(color: string) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({ ...el, fill: color })
-                )
+                ); }
               }
               onImageUpload={(imageUrl: string) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -135,10 +135,10 @@ const ElementToolbars = ({
                       h: shapeToolbarData.rect.height,
                     },
                   })
-                )
+                ); }
               }
               onBorderEnabledChange={(enabled: boolean) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -149,10 +149,10 @@ const ElementToolbars = ({
                       style: shapeToolbarData.borderStyle,
                     },
                   })
-                )
+                ); }
               }
               onBorderStyleChange={(style: BorderStyle) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -163,10 +163,10 @@ const ElementToolbars = ({
                       style,
                     },
                   })
-                )
+                ); }
               }
               onBorderColorChange={(color: string) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) =>
                     ({
@@ -178,10 +178,10 @@ const ElementToolbars = ({
                           shapeToolbarData.element.border?.enabled ?? false,
                       },
                     } as CanvasElement)
-                )
+                ); }
               }
               onBorderWidthChange={(value: number) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) =>
                     ({
@@ -193,19 +193,19 @@ const ElementToolbars = ({
                           shapeToolbarData.element.border?.enabled ?? false,
                       },
                     } as CanvasElement)
-                )
+                ); }
               }
               onSizeChange={(width: number, height: number) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   shapeToolbarData.element.id,
                   (el) => ({
                     ...el,
                     w: width,
                     h: height,
                   })
-                )
+                ); }
               }
-              onPointerDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => { event.stopPropagation(); }}
             />
           </div>
         </div>
@@ -219,7 +219,7 @@ const ElementToolbars = ({
               color={lineToolbarData.stroke.color}
               width={lineToolbarData.stroke.width}
               onColorChange={(color: string) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   lineToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -228,10 +228,10 @@ const ElementToolbars = ({
                       color,
                     },
                   })
-                )
+                ); }
               }
               onWidthChange={(width: number) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   lineToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -240,9 +240,9 @@ const ElementToolbars = ({
                       width,
                     },
                   })
-                )
+                ); }
               }
-              onPointerDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => { event.stopPropagation(); }}
             />
           </div>
         </div>
@@ -256,7 +256,7 @@ const ElementToolbars = ({
               color={lineToolbarData.stroke.color}
               width={lineToolbarData.stroke.width}
               onColorChange={(color: string) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   lineToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -265,10 +265,10 @@ const ElementToolbars = ({
                       color,
                     },
                   })
-                )
+                ); }
               }
               onWidthChange={(width: number) =>
-                updateSelectedPageElement(
+                { updateSelectedPageElement(
                   lineToolbarData.element.id,
                   (el) => ({
                     ...el,
@@ -277,9 +277,9 @@ const ElementToolbars = ({
                       width,
                     },
                   })
-                )
+                ); }
               }
-              onPointerDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => { event.stopPropagation(); }}
             />
           </div>
         </div>
@@ -293,7 +293,7 @@ const ElementToolbars = ({
                 isVisible
                 labelPosition={aacToolbarData.labelPosition}
                 onLabelPositionChange={onAacLabelPositionChange}
-                onPointerDown={(event) => event.stopPropagation()}
+                onPointerDown={(event) => { event.stopPropagation(); }}
               />
             </Suspense>
           </div>

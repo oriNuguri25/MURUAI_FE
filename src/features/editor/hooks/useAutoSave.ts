@@ -28,6 +28,6 @@ export const useAutoSave = ({ pages, docId, docName }: AutoSaveParams) => {
       }
     }, 1000);
 
-    return () => clearTimeout(autoSaveTimeout);
+    return () => { clearTimeout(autoSaveTimeout); };
   }, [pages, docId, docName]);
 };

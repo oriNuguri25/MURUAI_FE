@@ -54,7 +54,7 @@ const BaseModal = ({
       {/* 모달 콘텐츠 */}
       <div
         className="relative z-10 w-full max-w-md rounded-2xl bg-white-100 p-6 shadow-xl max-h-[90vh] overflow-y-auto"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) => { event.stopPropagation(); }}
       >
         {/* 닫기 버튼 */}
         <button

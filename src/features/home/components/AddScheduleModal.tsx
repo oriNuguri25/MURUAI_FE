@@ -178,7 +178,7 @@ const AddScheduleModal = () => {
             type="text"
             id="title"
             value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            onChange={(e) => { setFormData({ ...formData, title: e.target.value }); }}
             className="rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none"
             placeholder="제목을 입력하세요"
             required
@@ -197,13 +197,13 @@ const AddScheduleModal = () => {
             <input
               type="date"
               value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              onChange={(e) => { setFormData({ ...formData, startDate: e.target.value }); }}
               className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none"
               required
             />
             <select
               value={formData.startTime}
-              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+              onChange={(e) => { setFormData({ ...formData, startTime: e.target.value }); }}
               className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 tabular-nums transition focus:border-primary focus:outline-none"
               required
             >
@@ -222,14 +222,14 @@ const AddScheduleModal = () => {
             <input
               type="date"
               value={formData.endDate}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              onChange={(e) => { setFormData({ ...formData, endDate: e.target.value }); }}
               min={formData.startDate}
               className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none"
               required
             />
             <select
               value={formData.endTime}
-              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+              onChange={(e) => { setFormData({ ...formData, endTime: e.target.value }); }}
               className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 tabular-nums transition focus:border-primary focus:outline-none"
               disabled={!formData.startTime || !formData.startDate || !formData.endDate}
               required
@@ -268,7 +268,7 @@ const AddScheduleModal = () => {
               <input
                 type="date"
                 value={formData.repeatEndDate}
-                onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
+                onChange={(e) => { setFormData({ ...formData, repeatEndDate: e.target.value }); }}
                 min={formData.startDate}
                 className="flex-1 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none"
                 required={formData.isRepeating}
@@ -324,7 +324,7 @@ const AddScheduleModal = () => {
           {/* 대상 선택 드롭다운 */}
           <select
             value={formData.selectedTarget}
-            onChange={(e) => setFormData({ ...formData, selectedTarget: e.target.value })}
+            onChange={(e) => { setFormData({ ...formData, selectedTarget: e.target.value }); }}
             className="rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none disabled:bg-black-5 disabled:text-black-60 disabled:cursor-not-allowed"
             disabled={targetList.length === 0}
             required

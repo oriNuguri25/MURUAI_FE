@@ -163,7 +163,7 @@ const TextToolBar = ({
       <div className="flex items-center gap-1 rounded border border-black-30 px-1">
         <button
           type="button"
-          onClick={() => onFontSizeStep(-1)}
+          onClick={() => { onFontSizeStep(-1); }}
           className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
           aria-label="Decrease font size"
         >
@@ -204,7 +204,7 @@ const TextToolBar = ({
         />
         <button
           type="button"
-          onClick={() => onFontSizeStep(1)}
+          onClick={() => { onFontSizeStep(1); }}
           className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
           aria-label="Increase font size"
         >
@@ -364,7 +364,7 @@ const TextToolBar = ({
           <button
             key={key}
             type="button"
-            onClick={() => onAlignChange(key)}
+            onClick={() => { onAlignChange(key); }}
             className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
               align === key
                 ? "border-primary text-primary"
@@ -394,7 +394,7 @@ const TextToolBar = ({
           <button
             key={key}
             type="button"
-            onClick={() => onAlignYChange(key)}
+            onClick={() => { onAlignYChange(key); }}
             className={`group relative flex h-7 w-7 items-center justify-center rounded border text-12-medium ${
               alignY === key
                 ? "border-primary text-primary"

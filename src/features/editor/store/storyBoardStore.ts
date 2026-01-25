@@ -11,8 +11,8 @@ export const useStoryBoardStore = create<StoryBoardStore>((set) => ({
   requestId: 0,
   config: null,
   requestBoard: (config) =>
-    set((state) => ({
+    { set((state) => ({
       requestId: state.requestId + 1,
       config,
-    })),
+    })); },
 }));

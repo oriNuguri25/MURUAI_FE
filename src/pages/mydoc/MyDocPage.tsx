@@ -382,7 +382,7 @@ const MyDocPage = () => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black-40" />
             <input
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => { setSearchTerm(event.target.value); }}
               placeholder="내 보관함 검색"
               className="h-11 w-full rounded-xl border border-black-20 bg-black-5 pl-10 pr-4 text-14-regular text-black-90 placeholder:text-black-50 focus:border-primary focus:outline-none"
             />
@@ -424,11 +424,11 @@ const MyDocPage = () => {
                   role="button"
                   tabIndex={0}
                   onClick={() =>
-                    setSelectedTarget((prev) =>
+                    { setSelectedTarget((prev) =>
                       prev?.type === "child" && prev.id === target.id
                         ? null
                         : { type: "child", id: target.id, name: target.name }
-                    )
+                    ); }
                   }
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -467,7 +467,7 @@ const MyDocPage = () => {
               Array.from({ length: totalChildPages }).map((_, index) => (
                 <button
                   key={`child-page-${index}`}
-                  onClick={() => setCurrentChildPage(index)}
+                  onClick={() => { setCurrentChildPage(index); }}
                   className={`h-2 w-2 rounded-full transition-all ${
                     index === safeChildPage
                       ? "w-6 bg-primary"
@@ -503,11 +503,11 @@ const MyDocPage = () => {
                   role="button"
                   tabIndex={0}
                   onClick={() =>
-                    setSelectedTarget((prev) =>
+                    { setSelectedTarget((prev) =>
                       prev?.type === "group" && prev.id === target.id
                         ? null
                         : { type: "group", id: target.id, name: target.name }
-                    )
+                    ); }
                   }
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -546,7 +546,7 @@ const MyDocPage = () => {
               Array.from({ length: totalGroupPages }).map((_, index) => (
                 <button
                   key={`group-page-${index}`}
-                  onClick={() => setCurrentGroupPage(index)}
+                  onClick={() => { setCurrentGroupPage(index); }}
                   className={`h-2 w-2 rounded-full transition-all ${
                     index === safeGroupPage
                       ? "w-6 bg-primary"

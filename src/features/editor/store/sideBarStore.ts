@@ -19,9 +19,9 @@ interface SideBarStore {
 
 export const useSideBarStore = create<SideBarStore>((set) => ({
   selectedMenu: null,
-  setSelectedMenu: (menu) => set({ selectedMenu: menu }),
+  setSelectedMenu: (menu) => { set({ selectedMenu: menu }); },
   toggleMenu: (menu) =>
-    set((state) => ({
+    { set((state) => ({
       selectedMenu: state.selectedMenu === menu ? null : menu,
-    })),
+    })); },
 }));

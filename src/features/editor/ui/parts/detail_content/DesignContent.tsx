@@ -68,7 +68,7 @@ const GeneratedImageGrid = ({
         {images.map((image) => (
           <button
             key={image.id}
-            onClick={() => onImageClick(image.url)}
+            onClick={() => { onImageClick(image.url); }}
             className="flex items-center justify-center p-2 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
           >
             <img
@@ -126,7 +126,7 @@ const DesignContentView = ({
             <StyleButton
               key={option.id}
               isActive={selectedStyle === option.id}
-              onClick={() => onSelectStyle(option.id)}
+              onClick={() => { onSelectStyle(option.id); }}
               icon={STYLE_ICONS[option.id]}
               label={option.label}
             />
@@ -139,7 +139,7 @@ const DesignContentView = ({
         <span className="text-14-semibold text-black-90">요구사항</span>
         <textarea
           value={prompt}
-          onChange={(e) => onPromptChange(e.target.value)}
+          onChange={(e) => { onPromptChange(e.target.value); }}
           placeholder="생성하고 싶은 이미지를 설명해주세요.&#10;예: 웃고 있는 아이가 공원에서 놀고 있는 모습"
           className="w-full h-32 px-4 py-3 border border-black-25 rounded-xl text-14-regular text-black-90 placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors resize-none"
         />

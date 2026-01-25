@@ -309,7 +309,7 @@ const DesignLayout = () => {
               <input
                 placeholder="제목을 입력해주세요"
                 value={docName}
-                onChange={(event) => setDocName(event.target.value)}
+                onChange={(event) => { setDocName(event.target.value); }}
                 className="flex w-72 h-10 border border-transparent rounded-xl px-2 placeholder:text-black-50 focus:border-[#5500ff] focus:outline-none text-ellipsis overflow-hidden whitespace-nowrap"
               />
             </div>
@@ -363,7 +363,7 @@ const DesignLayout = () => {
               <div className="flex h-10 rounded-xl bg-black-10 p-1 gap-1">
                 <button
                   type="button"
-                  onClick={() => handleOrientationChange("horizontal")}
+                  onClick={() => { handleOrientationChange("horizontal"); }}
                   className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition ${
                     effectiveOrientation === "horizontal"
                       ? "bg-white-100 shadow-sm cursor-pointer"
@@ -397,7 +397,7 @@ const DesignLayout = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleOrientationChange("vertical")}
+                  onClick={() => { handleOrientationChange("vertical"); }}
                   className={`flex h-8 px-3 rounded-lg items-center justify-center gap-1.5 transition ${
                     effectiveOrientation === "vertical"
                       ? "bg-white-100 shadow-sm cursor-pointer"
@@ -516,7 +516,7 @@ const DesignLayout = () => {
       <ExportModal
         key={exportModalKey}
         open={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
+        onClose={() => { setIsExportModalOpen(false); }}
         userId={exportUserId}
         getCanvasData={getCanvasData}
         getName={getName}

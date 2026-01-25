@@ -148,7 +148,7 @@ export const generatePdfFromDomPages = async ({
           await img.decode();
         } catch {
           await new Promise<void>((resolve) => {
-            const done = () => resolve();
+            const done = () => { resolve(); };
             img.addEventListener("load", done, { once: true });
             img.addEventListener("error", done, { once: true });
           });
@@ -158,7 +158,7 @@ export const generatePdfFromDomPages = async ({
   };
 
   const waitForNextFrame = () =>
-    new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    new Promise<void>((resolve) => requestAnimationFrame(() => { resolve(); }));
 
   const normalizePdfTextLayout = (root: HTMLElement) => {
     const pdfTextYOffset = -10;
@@ -213,7 +213,7 @@ export const generatePdfFromDomPages = async ({
       });
     });
     return () => {
-      restores.forEach((restore) => restore());
+      restores.forEach((restore) => { restore(); });
     };
   };
 
@@ -259,7 +259,7 @@ export const generatePdfFromDomPages = async ({
     });
 
     return () => {
-      restores.forEach((restore) => restore());
+      restores.forEach((restore) => { restore(); });
     };
   };
 

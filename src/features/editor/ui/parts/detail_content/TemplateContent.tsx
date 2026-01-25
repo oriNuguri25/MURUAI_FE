@@ -314,7 +314,7 @@ const TemplateCarousel = ({
               <div
                 key={template.id}
                 className="flex flex-col w-full gap-2 cursor-pointer"
-                onClick={() => handleTemplateClick(template.id)}
+                onClick={() => { handleTemplateClick(template.id); }}
               >
                 <div className="w-full aspect-[1/1.414] bg-white-100 border border-black-25 rounded-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
                   {templateData ? (
@@ -493,7 +493,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <input
                     type="number"
                     value={aac.rows}
-                    onChange={(event) => aac.onChangeRows(event.target.value)}
+                    onChange={(event) => { aac.onChangeRows(event.target.value); }}
                     className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
                     min={1}
                     max={5}
@@ -502,7 +502,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <input
                     type="number"
                     value={aac.columns}
-                    onChange={(event) => aac.onChangeColumns(event.target.value)}
+                    onChange={(event) => { aac.onChangeColumns(event.target.value); }}
                     className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
                     min={1}
                     max={5}
@@ -520,7 +520,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => aac.onSelectOrientation(value)}
+                      onClick={() => { aac.onSelectOrientation(value); }}
                       className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
                         aac.orientation === value
                           ? "border-primary bg-primary/5 text-primary"
@@ -546,7 +546,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => aac.onSelectLabelPosition(option.value)}
+                    onClick={() => { aac.onSelectLabelPosition(option.value); }}
                     className={`rounded-lg border px-3 py-2 text-14-semibold transition ${
                       aac.labelPosition === option.value
                         ? "border-primary bg-primary/5 text-primary"
@@ -608,7 +608,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <input
                     type="number"
                     value={story.count}
-                    onChange={(event) => story.onChangeCount(event.target.value)}
+                    onChange={(event) => { story.onChangeCount(event.target.value); }}
                     className="w-16 rounded-lg border border-black-25 px-3 py-2 text-center text-14-regular text-black-90"
                     min={1}
                     max={8}
@@ -633,7 +633,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => story.onSelectDirection(option.value)}
+                    onClick={() => { story.onSelectDirection(option.value); }}
                     className={`rounded-lg border px-3 py-2 text-14-semibold transition ${
                       story.direction === option.value
                         ? "border-primary bg-primary/5 text-primary"
@@ -658,7 +658,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => story.onSelectRatio(option.value)}
+                    onClick={() => { story.onSelectRatio(option.value); }}
                     className={`rounded-lg border px-3 py-2 text-14-semibold transition ${
                       story.ratio === option.value
                         ? "border-primary bg-primary/5 text-primary"
@@ -678,7 +678,7 @@ const TemplateContentView = ({ aac, story }: TemplateContentViewProps) => (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => story.onSelectOrientation(value)}
+                      onClick={() => { story.onSelectOrientation(value); }}
                       className={`flex-1 rounded-lg border px-4 py-2 text-14-semibold transition ${
                         story.orientation === value
                           ? "border-primary bg-primary/5 text-primary"
@@ -798,10 +798,10 @@ const TemplateContent = () => {
           elements: previewElements,
           metrics: aacPreviewMetrics,
         },
-        onOpen: () => setIsAacModalOpen(true),
-        onClose: () => setIsAacModalOpen(false),
-        onChangeRows: (value) => handleCountChange(value, setAacRows),
-        onChangeColumns: (value) => handleCountChange(value, setAacColumns),
+        onOpen: () => { setIsAacModalOpen(true); },
+        onClose: () => { setIsAacModalOpen(false); },
+        onChangeRows: (value) => { handleCountChange(value, setAacRows); },
+        onChangeColumns: (value) => { handleCountChange(value, setAacColumns); },
         onSelectOrientation: setAacOrientation,
         onSelectLabelPosition: setAacLabelPosition,
         onApply: handleApplyAacBoard,
@@ -816,8 +816,8 @@ const TemplateContent = () => {
           elements: storyPreviewElements,
           metrics: storyPreviewMetrics,
         },
-        onOpen: () => setIsStoryModalOpen(true),
-        onClose: () => setIsStoryModalOpen(false),
+        onOpen: () => { setIsStoryModalOpen(true); },
+        onClose: () => { setIsStoryModalOpen(false); },
         onChangeCount: handleStoryCountChange,
         onSelectDirection: setStoryDirection,
         onSelectRatio: setStoryRatio,

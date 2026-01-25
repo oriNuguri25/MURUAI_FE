@@ -36,10 +36,12 @@ const getAlignedOffsetY = (
   return 0;
 };
 
-export const fitTemplateTextElement = <T extends TemplateElement>(element: T) => {
+export const fitTemplateTextElement = (
+  element: TemplateElement
+): TemplateElement => {
   if (element.type !== "text") return element;
 
-  const textElement = element as Extract<TemplateElement, { type: "text" }>;
+  const textElement = element as Omit<TextElement, "id">;
   const rawText = textElement.richText ?? textElement.text ?? "";
   const textValue = toPlainText(rawText);
   const lineHeight =
@@ -78,7 +80,7 @@ export const fitTemplateTextElement = <T extends TemplateElement>(element: T) =>
     w: nextWidth,
     h: nextHeight,
     widthMode,
-  } as T;
+  };
 };
 
 export const fitTemplateTextElements = (elements: TemplateElement[]) =>

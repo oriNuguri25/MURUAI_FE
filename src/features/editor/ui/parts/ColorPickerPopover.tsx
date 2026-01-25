@@ -90,21 +90,21 @@ const ColorPickerPopover = ({
       <button
         type="button"
         aria-label={ariaLabel}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => { setIsOpen((prev) => !prev); }}
         className={`${buttonClassName} flex items-center justify-center rounded-full border border-black-30 bg-white-100 p-0`}
         style={{ backgroundColor: value }}
       />
       {isOpen && (
         <div
           className="absolute left-0 top-full mt-2 w-56 rounded-lg border border-black-25 bg-white-100 p-3 shadow-lg z-50"
-          onPointerDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => { event.stopPropagation(); }}
         >
           <div className="grid grid-cols-5 gap-2">
             {swatches.map((color) => (
               <button
                 key={color}
                 type="button"
-                onClick={() => handleSwatchClick(color)}
+                onClick={() => { handleSwatchClick(color); }}
                 className="h-8 w-8 rounded-full border border-black-30"
                 style={{ backgroundColor: color }}
                 aria-label={`색상 ${color}`}
@@ -116,7 +116,7 @@ const ColorPickerPopover = ({
               <input
                 type="color"
                 value={value}
-                onChange={(event) => onChange(event.target.value.toUpperCase())}
+                onChange={(event) => { onChange(event.target.value.toUpperCase()); }}
                 className="color-input h-8 w-8 cursor-pointer rounded border border-black-30 bg-white-100 p-0 overflow-hidden"
                 style={{ WebkitAppearance: "none", appearance: "none" }}
               />
@@ -124,7 +124,7 @@ const ColorPickerPopover = ({
                 type="text"
                 inputMode="text"
                 value={hexInput}
-                onChange={(event) => setHexInput(event.target.value)}
+                onChange={(event) => { setHexInput(event.target.value); }}
                 onBlur={commitHexInput}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {

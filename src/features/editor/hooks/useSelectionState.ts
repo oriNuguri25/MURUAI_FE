@@ -3,7 +3,6 @@ import { useNumberInput } from "../model/useNumberInput";
 import { getFontLabel, normalizeFontWeight } from "../utils/fontOptions";
 import type {
   CanvasElement,
-  LineElement,
   ShapeElement,
   TextElement,
 } from "../model/canvasTypes";
@@ -307,7 +306,7 @@ export const useSelectionState = ({
       return null;
     }
 
-    const element = selectedElement as LineElement;
+    const element = selectedElement;
     const stroke = element.stroke ?? { color: "#000000", width: 2 };
     return {
       element,
@@ -326,7 +325,7 @@ export const useSelectionState = ({
       return null;
     }
 
-    const element = selectedElement as ShapeElement;
+    const element = selectedElement;
     const rect = {
       x: element.x,
       y: element.y,
@@ -535,7 +534,7 @@ export const useSelectionState = ({
                   el.type === "roundRect" ||
                   el.type === "ellipse")
               ) {
-                const card = el as ShapeElement;
+                const card = el;
                 let nextCard: ShapeElement = card;
                 const nextLabelId = labelIdByCardId.get(card.id);
                 if (nextLabelId && card.labelId !== nextLabelId) {

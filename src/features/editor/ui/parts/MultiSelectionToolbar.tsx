@@ -66,7 +66,7 @@ const MultiSelectionToolbar = ({
       <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
         <div
           className="flex flex-wrap items-center gap-3 whitespace-nowrap"
-          onPointerDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => { event.stopPropagation(); }}
         >
           <div className="flex items-center gap-2">
             <span className="text-14-regular text-black-60">색상</span>
@@ -99,7 +99,7 @@ const MultiSelectionToolbar = ({
               <div className="flex items-center gap-1 rounded border border-black-30 px-1">
                 <button
                   type="button"
-                  onClick={() => multiFontSizeInput.step(-1)}
+                  onClick={() => { multiFontSizeInput.step(-1); }}
                   className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
                   aria-label="Decrease font size"
                 >
@@ -111,7 +111,7 @@ const MultiSelectionToolbar = ({
                   pattern="[0-9]*"
                   value={multiFontSizeInput.displayValue}
                   onChange={(event) =>
-                    multiFontSizeInput.handleChange(event.target.value)
+                    { multiFontSizeInput.handleChange(event.target.value); }
                   }
                   onFocus={multiFontSizeInput.handleFocus}
                   onBlur={multiFontSizeInput.handleBlur}
@@ -131,7 +131,7 @@ const MultiSelectionToolbar = ({
                 />
                 <button
                   type="button"
-                  onClick={() => multiFontSizeInput.step(1)}
+                  onClick={() => { multiFontSizeInput.step(1); }}
                   className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
                   aria-label="Increase font size"
                 >
@@ -144,7 +144,7 @@ const MultiSelectionToolbar = ({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setIsMultiBorderPanelOpen((prev) => !prev)}
+                onClick={() => { setIsMultiBorderPanelOpen((prev) => !prev); }}
                 className={`flex h-7 items-center justify-center rounded border px-2 text-14-regular ${
                   multiBorderEnabled || isMultiBorderPanelOpen
                     ? "border-primary text-primary"
@@ -157,7 +157,7 @@ const MultiSelectionToolbar = ({
               {isMultiBorderPanelOpen && (
                 <div
                   className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-black-25 bg-white-100 p-3 shadow-lg"
-                  onPointerDown={(event) => event.stopPropagation()}
+                  onPointerDown={(event) => { event.stopPropagation(); }}
                 >
                   <div className="flex items-center gap-2">
                     {borderStyleOptions.map((styleOption) => {
@@ -173,7 +173,7 @@ const MultiSelectionToolbar = ({
                             key={styleOption}
                             type="button"
                             onClick={() =>
-                              applyMultiBorderPatch({ enabled: false })
+                              { applyMultiBorderPatch({ enabled: false }); }
                             }
                             className={buttonClass}
                             aria-label="No border"
@@ -187,10 +187,10 @@ const MultiSelectionToolbar = ({
                           key={styleOption}
                           type="button"
                           onClick={() =>
-                            applyMultiBorderPatch({
+                            { applyMultiBorderPatch({
                               enabled: true,
                               style: styleOption,
-                            })
+                            }); }
                           }
                           className={buttonClass}
                           aria-label={`${styleOption} border`}
@@ -218,11 +218,11 @@ const MultiSelectionToolbar = ({
                       value={multiBorderWidth}
                       disabled={!multiBorderEnabled}
                       onChange={(event) =>
-                        applyMultiBorderPatch({
+                        { applyMultiBorderPatch({
                           width: clampBorderWidth(
                             Number(event.target.value)
                           ),
-                        })
+                        }); }
                       }
                       className="flex-1"
                     />
@@ -249,9 +249,9 @@ const MultiSelectionToolbar = ({
                       type="color"
                       value={multiBorderColor}
                       onChange={(event) =>
-                        applyMultiBorderPatch({
+                        { applyMultiBorderPatch({
                           color: event.target.value,
-                        })
+                        }); }
                       }
                       disabled={!multiBorderEnabled}
                       className="color-input h-7 w-7 cursor-pointer rounded border border-black-30 bg-white-100 p-0 disabled:cursor-not-allowed disabled:opacity-40"

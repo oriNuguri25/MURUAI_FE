@@ -2,7 +2,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type RefObject,
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { supabase } from "@/shared/supabase/supabase";
@@ -202,7 +201,7 @@ export const useUploadContentState = () => {
   };
 
   return {
-    inputRef: inputRef as RefObject<HTMLInputElement | null>,
+    inputRef: inputRef,
     isLoading,
     isFetching,
     files: fileItems,
@@ -210,7 +209,7 @@ export const useUploadContentState = () => {
     onUploadClick: handleUploadClick,
     onFileChange: handleFileChange,
     onOpenContextMenu: handleOpenContextMenu,
-    onCloseContextMenu: () => setContextMenu(null),
+    onCloseContextMenu: () => { setContextMenu(null); },
     onDeleteUpload: handleDeleteFromMenu,
     onSelectImage: requestImageFill,
   };

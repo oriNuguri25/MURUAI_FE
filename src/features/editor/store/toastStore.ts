@@ -8,6 +8,6 @@ interface ToastStore {
 
 export const useToastStore = create<ToastStore>((set) => ({
   message: null,
-  showToast: (message) => set({ message }),
-  clearToast: () => set({ message: null }),
+  showToast: (message) => { set({ message }); },
+  clearToast: () => { set({ message: null }); },
 }));

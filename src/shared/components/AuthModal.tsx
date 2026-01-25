@@ -204,7 +204,7 @@ const AuthModal = () => {
                 placeholder="이름"
                 aria-label="이름"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); }}
                 className="rounded-2xl border border-black-20 px-4 py-3 text-15-regular text-black-100 placeholder:text-black-50 focus:border-primary focus:outline-none"
                 required
               />
@@ -214,7 +214,7 @@ const AuthModal = () => {
               placeholder="이메일"
               aria-label="이메일"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); }}
               className="rounded-2xl border border-black-20 px-4 py-3 text-15-regular text-black-100 placeholder:text-black-50 focus:border-primary focus:outline-none"
               required
             />
@@ -223,7 +223,7 @@ const AuthModal = () => {
               placeholder="비밀번호"
               aria-label="비밀번호"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); }}
               className="rounded-2xl border border-black-20 px-4 py-3 text-15-regular text-black-100 placeholder:text-black-50 focus:border-primary focus:outline-none"
               required
             />
@@ -245,7 +245,7 @@ const AuthModal = () => {
             {isLoginMode ? "계정이 없으신가요? " : "이미 계정이 있으신가요? "}
             <button
               type="button"
-              onClick={() => setIsLoginMode(!isLoginMode)}
+              onClick={() => { setIsLoginMode(!isLoginMode); }}
               className="text-title-14-semibold text-primary hover:underline cursor-pointer"
             >
               {isLoginMode ? "회원가입" : "로그인"}

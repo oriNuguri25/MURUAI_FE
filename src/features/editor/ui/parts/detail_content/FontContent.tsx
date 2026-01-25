@@ -42,7 +42,7 @@ const FontContentView = ({
               <div className="flex items-start gap-2 px-3 py-3 hover:bg-black-20 rounded-lg">
                 <button
                   type="button"
-                  onClick={() => onToggleExpand(font.id)}
+                  onClick={() => { onToggleExpand(font.id); }}
                   className="mt-1 flex h-5 w-5 items-center justify-center text-black-60"
                   aria-label={`${font.label} 굵기 펼치기`}
                 >
@@ -50,7 +50,7 @@ const FontContentView = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onSelectFont(font.family)}
+                  onClick={() => { onSelectFont(font.family); }}
                   className="flex flex-1 flex-col items-start gap-1 text-left"
                 >
                   <span
@@ -78,7 +78,7 @@ const FontContentView = ({
                         <button
                           key={weight.value}
                           type="button"
-                          onClick={() => onSelectWeight(font.family, weight.value)}
+                          onClick={() => { onSelectWeight(font.family, weight.value); }}
                           className={`flex w-full items-center justify-between rounded-md pl-7 pr-3 py-2 text-14-regular transition ${
                             isActive
                               ? "bg-primary/10 text-primary"

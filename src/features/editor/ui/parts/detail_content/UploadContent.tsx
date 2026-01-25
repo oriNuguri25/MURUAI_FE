@@ -95,15 +95,15 @@ const UploadContentView = ({
               <div
                 key={file.id}
                 className="flex w-full items-center justify-center rounded-lg border border-black-25 p-3"
-                onContextMenu={(event) => onOpenContextMenu(event, file.id)}
+                onContextMenu={(event) => { onOpenContextMenu(event, file.id); }}
               >
                 <img
                   src={file.url}
                   alt="Uploaded"
                   className="w-full h-auto object-contain"
                   draggable
-                  onDragStart={(event) => setDragImageData(event, file.url)}
-                  onClick={() => onSelectImage(file.url)}
+                  onDragStart={(event) => { setDragImageData(event, file.url); }}
+                  onClick={() => { onSelectImage(file.url); }}
                 />
               </div>
             ))}
@@ -121,12 +121,12 @@ const UploadContentView = ({
         <div
           className="fixed z-50 w-36 rounded-lg border border-black-25 bg-white-100 shadow-lg"
           style={{ left: contextMenu.x, top: contextMenu.y }}
-          onContextMenu={(event) => event.preventDefault()}
+          onContextMenu={(event) => { event.preventDefault(); }}
         >
           <button
             type="button"
             className="flex w-full items-center justify-start px-3 py-2 text-14-regular text-black-90 hover:bg-black-10"
-            onClick={() => onDeleteUpload(contextMenu.id)}
+            onClick={() => { onDeleteUpload(contextMenu.id); }}
           >
             삭제하기
           </button>

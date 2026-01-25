@@ -57,7 +57,7 @@ const AACContent = () => {
     onSelectCategory,
     onSearchChange,
     onSelectImage,
-  } = useAacContentState({
+  } = useAacContentState<Category>({
     initialCategory: "food",
     categoryValueMap: CATEGORY_VALUE_MAP,
     cardSize: AAC_CARD_SIZE,
@@ -91,7 +91,7 @@ const AACContent = () => {
         {CATEGORIES.map((category) => (
           <button
             key={category.id}
-            onClick={() => onSelectCategory(category.id)}
+            onClick={() => { onSelectCategory(category.id); }}
             className={`flex w-full items-center justify-center px-3 py-2.5 border rounded-lg transition-all ${
               selectedCategory === category.id
                 ? CATEGORY_STYLES[category.id].selected
@@ -110,7 +110,7 @@ const AACContent = () => {
           type="text"
           placeholder="검색..."
         value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={(e) => { onSearchChange(e.target.value); }}
           className="w-full pl-10 pr-4 py-3 border border-black-25 rounded-lg text-14-regular placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
         />
       </div>
@@ -127,8 +127,8 @@ const AACContent = () => {
               <button
                 key={image.id}
                 draggable
-                onDragStart={(event) => setDragImageData(event, image.url)}
-                onClick={() => onSelectImage(image.url, image.alt)}
+                onDragStart={(event) => { setDragImageData(event, image.url); }}
+                onClick={() => { onSelectImage(image.url, image.alt); }}
                 className="flex flex-col items-center p-3 rounded-xl border-2 border-black-25 hover:border-primary hover:shadow-md transition-all cursor-pointer group"
               >
                 <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-xl bg-white overflow-hidden">
@@ -136,7 +136,7 @@ const AACContent = () => {
                     src={image.url}
                     alt={image.alt}
                     className="h-full w-full object-contain"
-                    onError={(event) => handleImageError(event, image.emoji)}
+                    onError={(event) => { handleImageError(event, image.emoji); }}
                   />
                 </div>
                 <span className="text-12-medium text-black-70">{image.alt}</span>

@@ -72,7 +72,7 @@ const TextContentView = ({ presets, onSelectPreset }: TextContentViewProps) => {
             <button
               key={preset.id}
               className="flex w-full rounded-xl border border-black-30 items-center justify-start px-3 py-4 cursor-pointer"
-              onClick={() => onSelectPreset(preset.preset)}
+              onClick={() => { onSelectPreset(preset.preset); }}
             >
               <span className={`flex ${preset.className}`}>
                 {preset.label}

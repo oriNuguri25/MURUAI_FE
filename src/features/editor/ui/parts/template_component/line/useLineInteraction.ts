@@ -8,7 +8,7 @@ type LineRef = {
 };
 
 type UseLineInteractionParams = {
-  wrapperRef: RefObject<HTMLDivElement>;
+  wrapperRef: RefObject<HTMLDivElement | null>;
   lineRef: RefObject<LineRef>;
   locked: boolean;
   isSelected: boolean;

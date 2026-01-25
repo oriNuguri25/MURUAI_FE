@@ -262,7 +262,7 @@ const TimeTable = ({ weekOffset }: TimeTableProps) => {
                             key={schedule.id}
                             className="absolute rounded-lg bg-blue-500 p-2 text-white-100 shadow-md cursor-pointer transition hover:bg-blue-600 overflow-hidden"
                             style={style}
-                            onClick={() => handleScheduleClick(schedule)}
+                            onClick={() => { handleScheduleClick(schedule); }}
                           >
                             <div className="flex flex-col gap-0.5">
                               <span className="text-title-12-semibold truncate">

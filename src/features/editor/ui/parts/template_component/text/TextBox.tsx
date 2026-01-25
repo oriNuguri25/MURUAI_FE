@@ -200,7 +200,7 @@ const TextBox = ({
     return (
       <div
         key={handle}
-        onPointerDown={(event) => startAction(event, "resize", handle)}
+        onPointerDown={(event) => { startAction(event, "resize", handle); }}
         data-capture-handle="true"
         className="absolute rounded-sm border border-primary bg-white-100"
         style={{
@@ -314,9 +314,9 @@ const TextBox = ({
           onCompositionEnd={handleCompositionEnd}
           onBlur={handleEditingBlur}
           // [이벤트 격리] Canvas 선택 해제 방지
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => event.stopPropagation()}
-          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => { event.stopPropagation(); }}
+          onClick={(event) => { event.stopPropagation(); }}
+          onMouseDown={(event) => { event.stopPropagation(); }}
           // 편집 모드에서 텍스트 선택을 보장한다.
           className={`w-full select-text outline-none no-text-underline ${textClassName}`}
           style={{
@@ -389,7 +389,7 @@ const TextBox = ({
                 alignY={toolbar.alignY}
                 onFontSizeChange={handleFontSizeChange}
                 onFontSizeStep={(delta) =>
-                  handleFontSizeChange(toolbar.fontSize + delta)
+                  { handleFontSizeChange(toolbar.fontSize + delta); }
                 }
                 onLineHeightChange={toolbar.onLineHeightChange}
                 onLetterSpacingChange={toolbar.onLetterSpacingChange}
@@ -401,7 +401,7 @@ const TextBox = ({
                 onToggleStrikethrough={handleToggleStrikethrough}
                 onAlignChange={toolbar.onAlignChange}
                 onAlignYChange={toolbar.onAlignYChange}
-                onPointerDown={(event) => event.stopPropagation()}
+                onPointerDown={(event) => { event.stopPropagation(); }}
               />
             </div>,
             toolbarPortal
@@ -426,7 +426,7 @@ const TextBox = ({
               alignY={toolbar.alignY}
               onFontSizeChange={handleFontSizeChange}
               onFontSizeStep={(delta) =>
-                handleFontSizeChange(toolbar.fontSize + delta)
+                { handleFontSizeChange(toolbar.fontSize + delta); }
               }
               onLineHeightChange={toolbar.onLineHeightChange}
               onLetterSpacingChange={toolbar.onLetterSpacingChange}
@@ -438,7 +438,7 @@ const TextBox = ({
               onToggleStrikethrough={handleToggleStrikethrough}
               onAlignChange={toolbar.onAlignChange}
               onAlignYChange={toolbar.onAlignYChange}
-              onPointerDown={(event) => event.stopPropagation()}
+              onPointerDown={(event) => { event.stopPropagation(); }}
             />
           </div>
         ))}

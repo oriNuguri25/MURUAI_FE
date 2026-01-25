@@ -50,11 +50,11 @@ const PropertiesContent = ({
     const element = selectedElements[0];
 
     if (element.type === "rect" || element.type === "ellipse") {
-      return <ShapeProperties element={element as ShapeElement} onUpdateElement={onUpdateElement} />;
+      return <ShapeProperties element={element} onUpdateElement={onUpdateElement} />;
     }
 
     if (element.type === "text") {
-      return <TextProperties element={element as TextElement} onUpdateElement={onUpdateElement} />;
+      return <TextProperties element={element} onUpdateElement={onUpdateElement} />;
     }
   }
 
@@ -196,7 +196,7 @@ const ShapeProperties = ({
         enabled: true,
         color: borderColor,
         width: borderWidth,
-        style: style as BorderStyle,
+        style: style,
       },
     });
   };
@@ -281,7 +281,7 @@ const ShapeProperties = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => handleRadiusStep(-1)}
+              onClick={() => { handleRadiusStep(-1); }}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
             >
               -
@@ -317,7 +317,7 @@ const ShapeProperties = ({
             />
             <button
               type="button"
-              onClick={() => handleRadiusStep(1)}
+              onClick={() => { handleRadiusStep(1); }}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
             >
               +
@@ -333,7 +333,7 @@ const ShapeProperties = ({
           <input
             type="color"
             value={colorValue}
-            onChange={(event) => onUpdateElement(element.id, { fill: event.target.value })}
+            onChange={(event) => { onUpdateElement(element.id, { fill: event.target.value }); }}
             className="color-input h-10 w-10 cursor-pointer rounded-lg border border-black-30 bg-white-100 p-0 overflow-hidden"
             style={{ WebkitAppearance: "none", appearance: "none" }}
           />
@@ -378,7 +378,7 @@ const ShapeProperties = ({
                   <button
                     key={styleOption}
                     type="button"
-                    onClick={() => handleBorderStyleSelect(styleOption)}
+                    onClick={() => { handleBorderStyleSelect(styleOption); }}
                     className={buttonClass}
                   >
                     <Ban className="h-4 w-4" />
@@ -389,7 +389,7 @@ const ShapeProperties = ({
                 <button
                   key={styleOption}
                   type="button"
-                  onClick={() => handleBorderStyleSelect(styleOption as BorderStyle)}
+                  onClick={() => { handleBorderStyleSelect(styleOption); }}
                   className={buttonClass}
                 >
                   <span
@@ -416,9 +416,9 @@ const ShapeProperties = ({
                     max={20}
                     value={borderWidth}
                     onChange={(event) =>
-                      onUpdateElement(element.id, {
+                      { onUpdateElement(element.id, {
                         border: { ...element.border, width: clampBorderWidth(Number(event.target.value)), enabled: true } as ShapeElement["border"],
-                      })
+                      }); }
                     }
                     className="flex-1"
                   />
@@ -445,9 +445,9 @@ const ShapeProperties = ({
                   type="color"
                   value={borderColor}
                   onChange={(event) =>
-                    onUpdateElement(element.id, {
+                    { onUpdateElement(element.id, {
                       border: { ...element.border, color: event.target.value, enabled: true } as ShapeElement["border"],
-                    })
+                    }); }
                   }
                   className="color-input h-8 w-8 cursor-pointer rounded border border-black-30 bg-white-100 p-0"
                   style={{ WebkitAppearance: "none", appearance: "none" }}
@@ -493,9 +493,9 @@ const TextProperties = ({
           <button
             type="button"
             onClick={() =>
-              onUpdateElement(element.id, {
+              { onUpdateElement(element.id, {
                 style: { ...element.style, fontSize: clampFontSize(fontSize - 1) },
-              })
+              }); }
             }
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
           >
@@ -518,9 +518,9 @@ const TextProperties = ({
           <button
             type="button"
             onClick={() =>
-              onUpdateElement(element.id, {
+              { onUpdateElement(element.id, {
                 style: { ...element.style, fontSize: clampFontSize(fontSize + 1) },
-              })
+              }); }
             }
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
           >
@@ -537,9 +537,9 @@ const TextProperties = ({
             type="color"
             value={color}
             onChange={(event) =>
-              onUpdateElement(element.id, {
+              { onUpdateElement(element.id, {
                 style: { ...element.style, color: event.target.value },
-              })
+              }); }
             }
             className="color-input h-10 w-10 cursor-pointer rounded-lg border border-black-30 bg-white-100 p-0 overflow-hidden"
             style={{ WebkitAppearance: "none", appearance: "none" }}
@@ -555,9 +555,9 @@ const TextProperties = ({
           <button
             type="button"
             onClick={() =>
-              onUpdateElement(element.id, {
+              { onUpdateElement(element.id, {
                 style: { ...element.style, fontWeight: isBold ? "normal" : "bold" },
-              })
+              }); }
             }
             className={`flex h-10 w-10 items-center justify-center rounded-lg border text-16-semibold transition-colors ${
               isBold
@@ -570,9 +570,9 @@ const TextProperties = ({
           <button
             type="button"
             onClick={() =>
-              onUpdateElement(element.id, {
+              { onUpdateElement(element.id, {
                 style: { ...element.style, underline: !isUnderline },
-              })
+              }); }
             }
             className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
               isUnderline
@@ -600,9 +600,9 @@ const TextProperties = ({
               key={key}
               type="button"
               onClick={() =>
-                onUpdateElement(element.id, {
+                { onUpdateElement(element.id, {
                   style: { ...element.style, alignX: key },
-                })
+                }); }
               }
               className={`flex-1 flex h-10 items-center justify-center rounded-lg border transition-colors ${
                 align === key
@@ -631,9 +631,9 @@ const TextProperties = ({
               key={key}
               type="button"
               onClick={() =>
-                onUpdateElement(element.id, {
+                { onUpdateElement(element.id, {
                   style: { ...element.style, alignY: key },
-                })
+                }); }
               }
               className={`flex-1 flex h-10 items-center justify-center rounded-lg border transition-colors ${
                 alignY === key

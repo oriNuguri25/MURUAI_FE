@@ -23,12 +23,12 @@ export const useImageFillStore = create<ImageFillStore>((set) => ({
   height: undefined,
   forceInsert: false,
   requestImageFill: (imageUrl, label, size, options) =>
-    set((state) => ({
+    { set((state) => ({
       requestId: state.requestId + 1,
       imageUrl,
       label,
       width: size?.width,
       height: size?.height,
       forceInsert: options?.forceInsert ?? false,
-    })),
+    })); },
 }));

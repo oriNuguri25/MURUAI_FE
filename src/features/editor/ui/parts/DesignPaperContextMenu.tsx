@@ -103,12 +103,12 @@ export const DesignPaperContextMenu = ({
     <div
       className="absolute z-50"
       style={{ left: contextMenu.x, top: contextMenu.y }}
-      onPointerDown={(event) => event.stopPropagation()}
-      onContextMenu={(event) => event.preventDefault()}
+      onPointerDown={(event) => { event.stopPropagation(); }}
+      onContextMenu={(event) => { event.preventDefault(); }}
       onMouseLeave={() =>
-        setContextMenu((prev) =>
+        { setContextMenu((prev) =>
           prev ? { ...prev, activeSubmenu: undefined } : prev
-        )
+        ); }
       }
     >
       <div className="w-56 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
@@ -127,7 +127,7 @@ export const DesignPaperContextMenu = ({
         <button
           type="button"
           onClick={() =>
-            onPaste(target.type === "canvas" ? target.pastePosition : undefined)
+            { onPaste(target.type === "canvas" ? target.pastePosition : undefined); }
           }
           disabled={!canPaste}
           className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
@@ -184,9 +184,9 @@ export const DesignPaperContextMenu = ({
           <button
             type="button"
             onMouseEnter={() =>
-              setContextMenu((prev) =>
+              { setContextMenu((prev) =>
                 prev ? { ...prev, activeSubmenu: "layer" } : prev
-              )
+              ); }
             }
             className="flex w-full items-center justify-between px-3 py-2 text-14-regular text-black-90 hover:bg-black-5"
           >

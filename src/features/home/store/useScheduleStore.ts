@@ -8,5 +8,5 @@ interface ScheduleStore {
 
 export const useScheduleStore = create<ScheduleStore>((set) => ({
   editingSchedule: null,
-  setEditingSchedule: (schedule) => set({ editingSchedule: schedule }),
+  setEditingSchedule: (schedule) => { set({ editingSchedule: schedule }); },
 }));

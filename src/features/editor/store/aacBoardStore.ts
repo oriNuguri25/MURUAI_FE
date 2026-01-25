@@ -11,8 +11,8 @@ export const useAacBoardStore = create<AacBoardStore>((set) => ({
   requestId: 0,
   config: null,
   requestBoard: (config) =>
-    set((state) => ({
+    { set((state) => ({
       requestId: state.requestId + 1,
       config,
-    })),
+    })); },
 }));

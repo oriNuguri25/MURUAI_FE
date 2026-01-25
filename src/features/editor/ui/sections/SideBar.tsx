@@ -70,7 +70,7 @@ const SideBar = () => {
           return (
             <button
               key={item.id}
-              onClick={() => toggleMenu(item.id)}
+              onClick={() => { toggleMenu(item.id); }}
               className={`flex flex-col rounded-xl items-center justify-center gap-1 w-full h-16 cursor-pointer transition ${
                 selectedMenu === item.id
                   ? "bg-[#5500ff]/20"

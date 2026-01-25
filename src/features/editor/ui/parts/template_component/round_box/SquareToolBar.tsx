@@ -157,7 +157,7 @@ const SquareToolBar = ({
             inputMode="numeric"
             pattern="[0-9]*"
             value={widthInputHook.displayValue}
-            onChange={(event) => widthInputHook.handleChange(event.target.value)}
+            onChange={(event) => { widthInputHook.handleChange(event.target.value); }}
             onBlur={widthInputHook.handleBlur}
             onFocus={widthInputHook.handleFocus}
             onKeyDown={(event) => {
@@ -183,7 +183,7 @@ const SquareToolBar = ({
             inputMode="numeric"
             pattern="[0-9]*"
             value={heightInputHook.displayValue}
-            onChange={(event) => heightInputHook.handleChange(event.target.value)}
+            onChange={(event) => { heightInputHook.handleChange(event.target.value); }}
             onBlur={heightInputHook.handleBlur}
             onFocus={heightInputHook.handleFocus}
             onKeyDown={(event) => {
@@ -211,7 +211,7 @@ const SquareToolBar = ({
           <div className="flex items-center gap-1 rounded border border-black-30 px-1">
             <button
               type="button"
-              onClick={() => handleBorderRadiusStep(-1)}
+              onClick={() => { handleBorderRadiusStep(-1); }}
               className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
               aria-label="Decrease border radius"
             >
@@ -222,7 +222,7 @@ const SquareToolBar = ({
               inputMode="numeric"
               pattern="[0-9]*"
               value={radiusInputHook.displayValue}
-              onChange={(event) => radiusInputHook.handleChange(event.target.value)}
+              onChange={(event) => { radiusInputHook.handleChange(event.target.value); }}
               onBlur={radiusInputHook.handleBlur}
               onFocus={radiusInputHook.handleFocus}
               onKeyDown={(event) => {
@@ -242,7 +242,7 @@ const SquareToolBar = ({
             />
             <button
               type="button"
-              onClick={() => handleBorderRadiusStep(1)}
+              onClick={() => { handleBorderRadiusStep(1); }}
               className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
               aria-label="Increase border radius"
             >
@@ -258,7 +258,7 @@ const SquareToolBar = ({
       <div className="relative">
         <button
           type="button"
-          onClick={() => setIsBorderPanelOpen((prev) => !prev)}
+          onClick={() => { setIsBorderPanelOpen((prev) => !prev); }}
           className={`flex h-7 items-center justify-center rounded border px-2 text-14-regular ${
             borderEnabled || isBorderPanelOpen
               ? "border-primary text-primary"
@@ -271,7 +271,7 @@ const SquareToolBar = ({
         {isBorderPanelOpen && (
           <div
             className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-black-25 bg-white-100 p-3 shadow-lg"
-            onPointerDown={(event) => event.stopPropagation()}
+            onPointerDown={(event) => { event.stopPropagation(); }}
           >
             <div className="flex items-center gap-2">
               {borderStyleOptions.map((styleOption) => {
@@ -286,7 +286,7 @@ const SquareToolBar = ({
                     <button
                       key={styleOption}
                       type="button"
-                      onClick={() => handleBorderStyleSelect(styleOption)}
+                      onClick={() => { handleBorderStyleSelect(styleOption); }}
                       className={buttonClass}
                       aria-label="No border"
                     >
@@ -299,7 +299,7 @@ const SquareToolBar = ({
                     key={styleOption}
                     type="button"
                     onClick={() =>
-                      handleBorderStyleSelect(styleOption as BorderStyle)
+                      { handleBorderStyleSelect(styleOption); }
                     }
                     className={buttonClass}
                     aria-label={`${styleOption} border`}

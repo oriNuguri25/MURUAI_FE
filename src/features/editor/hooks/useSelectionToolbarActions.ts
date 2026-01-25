@@ -1,5 +1,4 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { TextElement } from "../model/canvasTypes";
 import type { Page } from "../model/pageTypes";
 import type { SideBarMenu } from "../store/sideBarStore";
 
@@ -36,7 +35,7 @@ export const useSelectionToolbarActions = ({
                   return el;
                 }
                 if (el.type === "text") {
-                  const textElement = el as TextElement;
+                  const textElement = el;
                   return {
                     ...textElement,
                     style: {

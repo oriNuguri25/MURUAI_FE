@@ -52,7 +52,7 @@ const ElementContentView = ({
             return (
               <button
                 key={shape.id}
-                onClick={() => onSelectShape(shape.type)}
+                onClick={() => { onSelectShape(shape.type); }}
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <Icon className="icon-m text-black-70 group-hover:text-primary transition-colors" />

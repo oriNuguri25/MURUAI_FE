@@ -27,15 +27,15 @@ export const useModalStore = create<ModalStore>((set) => ({
   selectedUserId: null,
   selectedGroupId: null,
   openAddUserModal: () =>
-    set({ openModal: "addUser", selectedUserId: null, selectedGroupId: null }),
+    { set({ openModal: "addUser", selectedUserId: null, selectedGroupId: null }); },
   openAddGroupModal: () =>
-    set({ openModal: "addGroup", selectedUserId: null, selectedGroupId: null }),
+    { set({ openModal: "addGroup", selectedUserId: null, selectedGroupId: null }); },
   openEditUserModal: (userId) =>
-    set({ openModal: "editUser", selectedUserId: userId }),
+    { set({ openModal: "editUser", selectedUserId: userId }); },
   openEditGroupModal: (groupId) =>
-    set({ openModal: "editGroup", selectedGroupId: groupId }),
-  openAddScheduleModal: () => set({ openModal: "addSchedule" }),
-  openAuthModal: () => set({ openModal: "auth" }),
+    { set({ openModal: "editGroup", selectedGroupId: groupId }); },
+  openAddScheduleModal: () => { set({ openModal: "addSchedule" }); },
+  openAuthModal: () => { set({ openModal: "auth" }); },
   closeModal: () =>
-    set({ openModal: null, selectedUserId: null, selectedGroupId: null }),
+    { set({ openModal: null, selectedUserId: null, selectedGroupId: null }); },
 }));

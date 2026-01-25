@@ -45,7 +45,7 @@ const LineToolBar = ({
           max={maxWidth}
           value={width}
           onChange={(event) =>
-            onWidthChange(clamp(Number(event.target.value), minWidth, maxWidth))
+            { onWidthChange(clamp(Number(event.target.value), minWidth, maxWidth)); }
           }
           className="w-28"
         />
@@ -54,7 +54,7 @@ const LineToolBar = ({
           inputMode="numeric"
           pattern="[0-9]*"
           value={widthInput.displayValue}
-          onChange={(event) => widthInput.handleChange(event.target.value)}
+          onChange={(event) => { widthInput.handleChange(event.target.value); }}
           onBlur={widthInput.handleBlur}
           onFocus={widthInput.handleFocus}
           onKeyDown={(event) => {

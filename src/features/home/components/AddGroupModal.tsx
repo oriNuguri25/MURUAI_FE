@@ -92,7 +92,7 @@ const AddGroupModalContent = ({ onClose }: { onClose: () => void }) => {
             type="text"
             id="groupName"
             value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
+            onChange={(e) => { setGroupName(e.target.value); }}
             className="rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none"
             placeholder="그룹 이름을 입력하세요"
             required
@@ -110,7 +110,7 @@ const AddGroupModalContent = ({ onClose }: { onClose: () => void }) => {
           <textarea
             id="description"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => { setDescription(e.target.value); }}
             className="min-h-24 rounded-lg border border-black-30 px-4 py-3 text-15-regular text-black-100 transition focus:border-primary focus:outline-none resize-none"
             placeholder="그룹 설명을 입력하세요"
           />
@@ -141,7 +141,7 @@ const AddGroupModalContent = ({ onClose }: { onClose: () => void }) => {
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => handleMemberToggle(memberId)}
+                        onChange={() => { handleMemberToggle(memberId); }}
                         className="h-5 w-5 rounded border-black-30 text-primary focus:ring-0 focus:ring-offset-0"
                       />
                       <div className="flex-1 text-15-medium text-black-100">

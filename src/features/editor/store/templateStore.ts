@@ -12,9 +12,9 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
   selectedTemplate: null,
   templateRequestId: 0,
   requestTemplate: (templateId) =>
-    set((state) => ({
+    { set((state) => ({
       selectedTemplate: templateId,
       templateRequestId: state.templateRequestId + 1,
-    })),
-  setSelectedTemplate: (templateId) => set({ selectedTemplate: templateId }),
+    })); },
+  setSelectedTemplate: (templateId) => { set({ selectedTemplate: templateId }); },
 }));

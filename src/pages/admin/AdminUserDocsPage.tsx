@@ -237,7 +237,7 @@ const AdminUserDocsPage = () => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black-40" />
             <input
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => { setSearchTerm(event.target.value); }}
               placeholder="유저 ID 또는 자료명 검색"
               className="h-11 w-full rounded-xl border border-black-20 bg-black-5 pl-10 pr-4 text-14-regular text-black-90 placeholder:text-black-50 focus:border-primary focus:outline-none"
             />
@@ -274,7 +274,7 @@ const AdminUserDocsPage = () => {
                   <button
                     key={entry.userId}
                     type="button"
-                    onClick={() => setSelectedUserId(entry.userId)}
+                    onClick={() => { setSelectedUserId(entry.userId); }}
                     className={`flex flex-col gap-2 rounded-xl border px-3 py-3 text-left transition ${
                       activeUserId === entry.userId
                         ? "border-primary bg-primary/5"

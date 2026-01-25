@@ -3,7 +3,7 @@ import type {
   LineElement,
   ShapeElement,
   TextElement,
-} from "../../model/canvasTypes";
+} from "../model/canvasTypes";
 
 export type Rect = { x: number; y: number; width: number; height: number };
 export type SelectionRect = Rect;

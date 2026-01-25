@@ -81,8 +81,8 @@ const BottomBar = ({
       ref={containerRef}
       tabIndex={0}
       className="relative flex shrink-0 w-full h-36 bg-white border-t border-black-25 items-center pt-3 px-4 outline-none"
-      onPointerDown={() => setContextMenu(null)}
-      onContextMenu={(event) => event.preventDefault()}
+      onPointerDown={() => { setContextMenu(null); }}
+      onContextMenu={(event) => { event.preventDefault(); }}
     >
       {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
       <div className="flex flex-1 h-full items-start pt-1 pb-3 gap-2 overflow-x-auto overflow-y-hidden">
@@ -105,11 +105,11 @@ const BottomBar = ({
             <Fragment key={page.id}>
               <div
                 draggable
-                onDragStart={(e) => handleDragStart(e, page.id)}
+                onDragStart={(e) => { handleDragStart(e, page.id); }}
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, page.id)}
-                onMouseEnter={() => setHoveredPageId(page.id)}
-                onMouseLeave={() => setHoveredPageId(null)}
+                onDrop={(e) => { handleDrop(e, page.id); }}
+                onMouseEnter={() => { setHoveredPageId(page.id); }}
+                onMouseLeave={() => { setHoveredPageId(null); }}
                 onContextMenu={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
@@ -135,7 +135,7 @@ const BottomBar = ({
               >
                 <div className="relative">
                   <button
-                    onClick={() => onSelectPage(page.id)}
+                    onClick={() => { onSelectPage(page.id); }}
                     className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
                       isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
                     } ${
@@ -244,8 +244,8 @@ const BottomBar = ({
               {pages.length >= 2 && index < pages.length - 1 && (
                 <div
                   className="relative flex items-center shrink-0 h-full"
-                  onMouseEnter={() => setHoveredDividerIndex(index)}
-                  onMouseLeave={() => setHoveredDividerIndex(null)}
+                  onMouseEnter={() => { setHoveredDividerIndex(index); }}
+                  onMouseLeave={() => { setHoveredDividerIndex(null); }}
                 >
                   <div
                     className={`flex items-center justify-center h-full pb-5 transition-all ${
@@ -254,7 +254,7 @@ const BottomBar = ({
                   >
                     {hoveredDividerIndex === index && (
                       <button
-                        onClick={() => handleAddPageBetween(index + 1)}
+                        onClick={() => { handleAddPageBetween(index + 1); }}
                         className="flex items-center justify-center w-6 h-6 rounded-full bg-primary hover:bg-primary/90 transition cursor-pointer"
                       >
                         <Plus className="w-4 h-4 text-white" />
@@ -281,7 +281,7 @@ const BottomBar = ({
         <div
           className="absolute z-50"
           style={{ left: contextMenu.x, top: contextMenu.y }}
-          onPointerDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => { event.stopPropagation(); }}
         >
           <div className="w-40 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
             <button

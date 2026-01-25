@@ -40,7 +40,7 @@ const CalendarSection = () => {
           <div className="flex items-center shadow-sm rounded-xl overflow-hidden">
             <button
               type="button"
-              onClick={() => setWeekOffset((prev) => prev - 1)}
+              onClick={() => { setWeekOffset((prev) => prev - 1); }}
               className="flex items-center justify-center px-3 py-2 border border-black-30 text-black-70 bg-white-100 transition hover:bg-black-10 hover:text-black-100"
               aria-label="이전 주"
             >
@@ -48,14 +48,14 @@ const CalendarSection = () => {
             </button>
             <button
               type="button"
-              onClick={() => setWeekOffset(0)}
+              onClick={() => { setWeekOffset(0); }}
               className="px-4 py-2 border-t border-b border-black-30 text-title-14-semibold text-black-70 bg-white-100 transition hover:bg-black-10 hover:text-black-100"
             >
               오늘
             </button>
             <button
               type="button"
-              onClick={() => setWeekOffset((prev) => prev + 1)}
+              onClick={() => { setWeekOffset((prev) => prev + 1); }}
               className="flex items-center justify-center px-3 py-2 border border-black-30 text-black-70 bg-white-100 transition hover:bg-black-10 hover:text-black-100"
               aria-label="다음 주"
             >

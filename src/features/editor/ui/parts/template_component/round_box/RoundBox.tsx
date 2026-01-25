@@ -182,7 +182,7 @@ const RoundBox = ({
   const startAction = (
     event: ReactPointerEvent<HTMLDivElement>,
     type: "drag" | "resize" | "imageScale" | "imageMove" | "imageBoxResize" | "imageBoxMove",
-    handle?: ResizeHandle | ImageHandle
+    handle?: ResizeHandle  
   ) => {
     if (locked) return;
     if (event.button !== 0) return;
@@ -472,7 +472,7 @@ const RoundBox = ({
     return (
       <div
         key={handle}
-        onPointerDown={(event) => startAction(event, "resize", handle)}
+        onPointerDown={(event) => { startAction(event, "resize", handle); }}
         data-capture-handle="true"
         className="absolute rounded-sm border bg-white-100"
         style={{
@@ -621,8 +621,8 @@ const RoundBox = ({
         if (!imageUrl) return;
         onImageDrop(imageUrl);
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => { setIsHovered(true); }}
+      onMouseLeave={() => { setIsHovered(false); }}
       className={`absolute select-none outline-2 ${className}`}
       style={{
         left: rect.x,
@@ -765,7 +765,7 @@ const RoundBox = ({
             ref={textInputRef}
             type="text"
             value={editingText}
-            onChange={(e) => setEditingText(e.target.value)}
+            onChange={(e) => { setEditingText(e.target.value); }}
             onBlur={() => {
               setIsTextEditing(false);
               onTextChange?.(editingText);
@@ -787,8 +787,8 @@ const RoundBox = ({
               color: textStyle?.color ?? "#000000",
               caretColor: textStyle?.color ?? "#000000",
             }}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); }}
+            onPointerDown={(e) => { e.stopPropagation(); }}
           />
         )}
         {children}

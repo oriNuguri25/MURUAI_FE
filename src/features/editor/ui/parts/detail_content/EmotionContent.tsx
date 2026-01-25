@@ -96,7 +96,7 @@ const SearchInput = ({
       type="text"
       placeholder="감정 검색..."
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => { onChange(e.target.value); }}
       className="w-full pl-9 pr-4 py-2.5 border border-black-25 rounded-lg text-14-regular text-black-90 placeholder:text-black-50 focus:outline-none focus:border-primary transition-colors"
     />
   </div>
@@ -117,8 +117,8 @@ const EmotionList = ({
             <button
               key={emotion.id}
               draggable
-              onDragStart={(event) => setDragImageData(event, emotion.url)}
-              onClick={() => onSelectEmotion(emotion.url, emotion.label)}
+              onDragStart={(event) => { setDragImageData(event, emotion.url); }}
+              onClick={() => { onSelectEmotion(emotion.url, emotion.label); }}
               className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
             >
               <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">
@@ -153,7 +153,7 @@ const GenderToggle = ({
 }) => (
   <div className="flex gap-2 p-1 bg-black-10 rounded-lg w-full">
     <button
-      onClick={() => onGenderChange("boy")}
+      onClick={() => { onGenderChange("boy"); }}
       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-14-semibold transition-all ${
         gender === "boy"
           ? "bg-white-100 text-primary shadow-sm bg-[#5500ff]/15"
@@ -164,7 +164,7 @@ const GenderToggle = ({
       남자아이
     </button>
     <button
-      onClick={() => onGenderChange("girl")}
+      onClick={() => { onGenderChange("girl"); }}
       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-14-semibold transition-all ${
         gender === "girl"
           ? "bg-white-100 text-primary shadow-sm bg-[#5500ff]/15"
@@ -194,13 +194,13 @@ const EmotionContent = () => {
         <div className="flex gap-2 p-1 bg-black-10 rounded-lg w-full">
           <ToggleButton
             isActive={selectedMode === "basic"}
-            onClick={() => setSelectedMode("basic")}
+            onClick={() => { setSelectedMode("basic"); }}
           >
             기본 감정
           </ToggleButton>
           <ToggleButton
             isActive={selectedMode === "ai"}
-            onClick={() => setSelectedMode("ai")}
+            onClick={() => { setSelectedMode("ai"); }}
           >
             내 캐릭터 (AI)
           </ToggleButton>
@@ -232,19 +232,19 @@ const EmotionContentArea = ({
       <div className="flex gap-1.5 w-full">
         <TypeButton
           isActive={selectedType === "photo"}
-          onClick={() => setSelectedType("photo")}
+          onClick={() => { setSelectedType("photo"); }}
           icon={Camera}
           label="실제 사진"
         />
         <TypeButton
           isActive={selectedType === "drawing"}
-          onClick={() => setSelectedType("drawing")}
+          onClick={() => { setSelectedType("drawing"); }}
           icon={Image}
           label="그림"
         />
         <TypeButton
           isActive={selectedType === "line"}
-          onClick={() => setSelectedType("line")}
+          onClick={() => { setSelectedType("line"); }}
           icon={PenLine}
           label="선그림"
         />
@@ -295,8 +295,8 @@ const PhotoEmotionContent = ({
               <button
                 key={emotion.id}
                 draggable
-                onDragStart={(event) => setDragImageData(event, emotion.url)}
-                onClick={() => onSelectEmotion(emotion.url, emotion.label)}
+                onDragStart={(event) => { setDragImageData(event, emotion.url); }}
+                onClick={() => { onSelectEmotion(emotion.url, emotion.label); }}
                 className="flex flex-col items-center justify-center gap-2 p-4 border border-black-25 rounded-lg hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
               >
                 <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden bg-white">

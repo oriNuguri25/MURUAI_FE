@@ -117,7 +117,7 @@ const ChoiceUserSection = () => {
                   ? "bg-white-100 text-black-100 shadow-sm"
                   : "text-black-70 hover:bg-black-15"
               }`}
-              onClick={() => setLessonType("individual")}
+              onClick={() => { setLessonType("individual"); }}
             >
               <User className="h-4 w-4" aria-hidden="true" />
               개별 아동
@@ -130,7 +130,7 @@ const ChoiceUserSection = () => {
                   ? "bg-white-100 text-black-100 shadow-sm"
                   : "text-black-70 hover:bg-black-15"
               }`}
-              onClick={() => setLessonType("group")}
+              onClick={() => { setLessonType("group"); }}
             >
               <Users className="h-4 w-4" aria-hidden="true" />
               그룹 수업
@@ -200,7 +200,7 @@ const ChoiceUserSection = () => {
               {Array.from({ length: totalStudentPages }).map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => handleStudentPageChange(index)}
+                  onClick={() => { handleStudentPageChange(index); }}
                   className={`w-2 h-2 rounded-full transition-all ${
                     index === currentStudentPage
                       ? "bg-primary w-6"
@@ -234,7 +234,7 @@ const ChoiceUserSection = () => {
                 <div key={group.id} className="relative">
                   <GroupCard
                     group={group}
-                    onClick={() => openEditGroupModal(group.id)}
+                    onClick={() => { openEditGroupModal(group.id); }}
                   />
 
                   {/* 첫 번째 그룹 카드에 좌측 화살표 */}
@@ -268,7 +268,7 @@ const ChoiceUserSection = () => {
               {Array.from({ length: totalGroupPages }).map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => handleGroupPageChange(index)}
+                  onClick={() => { handleGroupPageChange(index); }}
                   className={`w-2 h-2 rounded-full transition-all ${
                     index === currentGroupPage
                       ? "bg-primary w-6"
@@ -319,7 +319,7 @@ const ChoiceUserSection = () => {
                     <GroupCard
                       key={group.id}
                       group={group}
-                      onClick={() => openEditGroupModal(group.id)}
+                      onClick={() => { openEditGroupModal(group.id); }}
                     />
                   ))}
                 </>

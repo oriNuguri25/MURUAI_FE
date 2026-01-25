@@ -138,7 +138,7 @@ const Line = ({
               top: startRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => startResize(event, "start")}
+            onPointerDown={(event) => { startResize(event, "start"); }}
           />
           <div
             className="absolute rounded-full border border-primary bg-white-100"
@@ -149,7 +149,7 @@ const Line = ({
               top: endRel.y - halfHandle,
               cursor: "grab",
             }}
-            onPointerDown={(event) => startResize(event, "end")}
+            onPointerDown={(event) => { startResize(event, "end"); }}
           />
         </>
       )}
