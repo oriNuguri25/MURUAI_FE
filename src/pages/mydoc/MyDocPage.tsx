@@ -13,8 +13,8 @@ import {
 import { supabase } from "@/shared/supabase/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import BaseModal from "@/shared/ui/BaseModal";
-import DesignPaper from "@/features/design/components/DesignPaper";
-import type { CanvasDocument } from "@/features/design/model/pageTypes";
+import DesignPaper from "@/features/editor/ui/parts/DesignPaper";
+import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 
 type UserMadeRow = {
   id: string;

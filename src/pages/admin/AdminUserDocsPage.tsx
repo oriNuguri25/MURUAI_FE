@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, Shield } from "lucide-react";
 import { supabase } from "@/shared/supabase/supabase";
-import DesignPaper from "@/features/design/components/DesignPaper";
-import type { CanvasDocument } from "@/features/design/model/pageTypes";
+import DesignPaper from "@/features/editor/ui/parts/DesignPaper";
+import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 
 type UserMadeRow = {
   id: string;

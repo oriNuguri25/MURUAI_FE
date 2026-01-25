@@ -14,17 +14,17 @@ import {
 import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/shared/supabase/supabase";
-import { useTemplateStore } from "@/features/design/store/templateStore";
-import { TEMPLATE_REGISTRY } from "@/features/design/templates/templateRegistry";
-import { useOrientationStore } from "@/features/design/store/orientationStore";
-import { useUnifiedHistoryStore } from "@/features/design/store/unifiedHistoryStore";
-import { useToastStore } from "@/features/design/store/toastStore";
-import ExportModal from "@/features/design/components/ExportModal";
-import type { CanvasDocument } from "@/features/design/model/pageTypes";
+import { useTemplateStore } from "@/features/editor/store/templateStore";
+import { TEMPLATE_REGISTRY } from "@/features/editor/templates/templateRegistry";
+import { useOrientationStore } from "@/features/editor/store/orientationStore";
+import { useUnifiedHistoryStore } from "@/features/editor/store/unifiedHistoryStore";
+import { useToastStore } from "@/features/editor/store/toastStore";
+import ExportModal from "@/features/editor/ui/parts/ExportModal";
+import type { CanvasDocument } from "@/features/editor/model/pageTypes";
 import {
   saveUserMadeVersion,
   updateUserMadeVersion,
-} from "@/features/design/utils/userMadeExport";
+} from "@/features/editor/utils/userMadeExport";
 
 type TargetOption = {
   id: string;
