@@ -370,7 +370,10 @@ const TextBox = ({
         showToolbar &&
         (toolbarPortal ? (
           createPortal(
-            <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
+            <div
+              className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
+              onMouseDown={(event) => { event.preventDefault(); }}
+            >
               <TextToolBar
                 isVisible
                 minFontSize={toolbar.minFontSize}
@@ -407,7 +410,10 @@ const TextBox = ({
             toolbarPortal
           )
         ) : (
-          <div className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto">
+          <div
+            className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
+            onMouseDown={(event) => { event.preventDefault(); }}
+          >
             <TextToolBar
               isVisible
               minFontSize={toolbar.minFontSize}

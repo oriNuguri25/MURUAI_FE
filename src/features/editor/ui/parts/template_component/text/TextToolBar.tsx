@@ -146,6 +146,7 @@ const TextToolBar = ({
     <div
       className="flex flex-nowrap items-center gap-2 whitespace-nowrap"
       onPointerDown={onPointerDown}
+      onMouseDown={(event) => { event.preventDefault(); }}
     >
       <button
         type="button"
