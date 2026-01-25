@@ -7,6 +7,7 @@ import {
   generatePdfFromDomPages,
   saveUserMadeVersion,
 } from "../../utils/userMadeExport";
+import { trackDownloadEvent } from "@/shared/lib/trackEvents";
 
 type TargetType = "child" | "group";
 
@@ -22,6 +23,8 @@ type ExportModalProps = {
   getCanvasData: () => unknown;
   getName: () => string;
   lastSavedUserMadeId?: string | null;
+  documentId?: string | null;
+  autoSaveOnDownload?: boolean;
   onSavedUserMadeId: (id: string) => void;
   students: TargetOption[];
   groups: TargetOption[];
@@ -69,6 +72,8 @@ const ExportModal = ({
   getCanvasData,
   getName,
   lastSavedUserMadeId = null,
+  documentId = null,
+  autoSaveOnDownload = false,
   onSavedUserMadeId,
   students,
   groups,
@@ -161,8 +166,23 @@ const ExportModal = ({
     }
     setIsDownloading(true);
     try {
+      let userMadeId = lastSavedUserMadeId ?? documentId ?? null;
+      if (autoSaveOnDownload && !userMadeId) {
+        if (!userId) {
+          showToast("로그인이 필요해요.");
+          return;
+        }
+        const { id } = await saveUserMadeVersion({
+          userId,
+          name,
+          canvasData: getCanvasData(),
+        });
+        userMadeId = id;
+        onSavedUserMadeId(id);
+      }
       const pageIds = pdfPageMode === "selected" ? parsedPageIds : undefined;
       const blob = await generatePdfFromDomPages({ quality: 6, pageIds });
+      void trackDownloadEvent(userId, userMadeId);
       downloadBlob(blob, `${name}.pdf`);
     } catch {
       showToast("PDF를 만들지 못했어요.");

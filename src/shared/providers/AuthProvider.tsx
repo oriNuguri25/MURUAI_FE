@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import * as Sentry from "@sentry/react";
 import { supabase } from "@/shared/supabase/supabase";
 import { useAuthStore } from "@/shared/store/useAuthStore";
+import { trackActivityEvent } from "@/shared/lib/trackEvents";
 
 const setSentryUser = (user: { id: string; email?: string } | null) => {
   if (user) {
@@ -23,6 +24,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       setSentryUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user?.id) {
+        void trackActivityEvent("session_start", session.user.id);
+      }
     });
 
     // 인증 상태 변경 리스너
@@ -31,6 +35,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setSentryUser(session?.user ?? null);
+      if (_event === "SIGNED_IN") {
+        void trackActivityEvent("login", session?.user?.id);
+      }
     });
 
     return () => { subscription.unsubscribe(); };

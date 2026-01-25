@@ -518,6 +518,8 @@ const DesignLayout = () => {
         open={isExportModalOpen}
         onClose={() => { setIsExportModalOpen(false); }}
         userId={exportUserId}
+        documentId={docId}
+        autoSaveOnDownload
         getCanvasData={getCanvasData}
         getName={getName}
         lastSavedUserMadeId={lastSavedUserMadeId}

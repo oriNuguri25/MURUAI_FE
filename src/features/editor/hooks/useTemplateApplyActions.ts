@@ -7,6 +7,7 @@ import {
 import type { Page } from "../model/pageTypes";
 import type { TemplateId } from "../templates/templateRegistry";
 import type { ReadonlyRef } from "../types/refTypes";
+import { trackTemplateUsageEvent } from "@/shared/lib/trackEvents";
 
 type ApplyTemplateToCurrentPage = (args: {
   templateId: TemplateId;
@@ -71,6 +72,7 @@ export const useTemplateApplyActions = ({
     if (templateId === "emotionInference") {
       showEmotionInferenceToast();
     }
+    void trackTemplateUsageEvent(templateId);
 
     setTimeout(() => {
       recordHistory("Apply template to current page");
@@ -105,6 +107,7 @@ export const useTemplateApplyActions = ({
     if (templateId === "emotionInference") {
       showEmotionInferenceToast();
     }
+    void trackTemplateUsageEvent(templateId);
 
     setTimeout(() => {
       recordHistory("Apply template to new page");
