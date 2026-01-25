@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import * as Sentry from "@sentry/react";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useModalStore } from "@/shared/store/useModalStore";
 
@@ -9,9 +8,6 @@ const FirstCommentSection = () => {
   const { openAuthModal } = useModalStore();
 
   const handleMyMaterialsClick = () => {
-    const error = new Error("Sentry test error: 내 학습자료 클릭");
-    Sentry.captureException(error);
-    throw error;
     if (!isAuthenticated) {
       openAuthModal();
       return;
