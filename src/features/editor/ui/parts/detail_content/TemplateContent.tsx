@@ -31,6 +31,7 @@ import {
   type StoryDirection,
   type StoryCardRatio,
 } from "../../../utils/storySequenceUtils";
+import MultiPageTemplateDialog from "../MultiPageTemplateDialog";
 
 const PAGE_WIDTH_PX = 210 * 3.7795;
 const PAGE_HEIGHT_PX = 297 * 3.7795;
@@ -237,7 +238,7 @@ const TemplateCarousel = ({
   iconColor?: string;
   templates: { id: string; title: string }[];
 }) => {
-  const { requestTemplate } = useTemplateContentState();
+  const { handleTemplateClick: onTemplateClick } = useTemplateContentState();
   const [pageIndex, setPageIndex] = useState(0);
   const itemsPerPage = 4;
   const totalPages = Math.max(1, Math.ceil(templates.length / itemsPerPage));
@@ -255,7 +256,7 @@ const TemplateCarousel = ({
 
   const handleTemplateClick = (templateId: string | number) => {
     if (typeof templateId === "string" && templateId in TEMPLATE_REGISTRY) {
-      requestTemplate(templateId as TemplateId);
+      onTemplateClick(templateId as TemplateId);
     }
   };
 
@@ -732,7 +733,13 @@ const TemplateContent = () => {
     "vertical" | "horizontal"
   >("vertical");
   const [storyRatio, setStoryRatio] = useState<StoryCardRatio>("4:3");
-  const { requestAacBoard, requestStoryBoard } = useTemplateContentState();
+  const {
+    requestAacBoard,
+    requestStoryBoard,
+    previewTemplate,
+    closePreview,
+    requestTemplate,
+  } = useTemplateContentState();
   const previewElements = withLogoTemplateElements(
     buildAacBoardElements({
       rows: aacRows,
@@ -786,45 +793,87 @@ const TemplateContent = () => {
     setIsStoryModalOpen(false);
   };
 
+  const previewTemplateData = previewTemplate
+    ? TEMPLATE_REGISTRY[previewTemplate]
+    : null;
+  const previewPages: Template[] =
+    previewTemplateData &&
+    "pages" in previewTemplateData &&
+    Array.isArray(previewTemplateData.pages)
+      ? previewTemplateData.pages
+      : previewTemplateData
+      ? [previewTemplateData.template]
+      : [];
+
+  const handleApplyAllPages = () => {
+    if (previewTemplate) {
+      requestTemplate(previewTemplate);
+      closePreview();
+    }
+  };
+
+  const handleApplySelectedPages = (selectedIndices: number[]) => {
+    if (previewTemplate && selectedIndices.length > 0) {
+      if (selectedIndices.length === previewPages.length) {
+        requestTemplate(previewTemplate);
+      } else {
+        requestTemplate(previewTemplate, selectedIndices);
+      }
+      closePreview();
+    }
+  };
+
   return (
-    <TemplateContentView
-      aac={{
-        isOpen: isAacModalOpen,
-        rows: aacRows,
-        columns: aacColumns,
-        orientation: aacOrientation,
-        labelPosition: aacLabelPosition,
-        preview: {
-          elements: previewElements,
-          metrics: aacPreviewMetrics,
-        },
-        onOpen: () => { setIsAacModalOpen(true); },
-        onClose: () => { setIsAacModalOpen(false); },
-        onChangeRows: (value) => { handleCountChange(value, setAacRows); },
-        onChangeColumns: (value) => { handleCountChange(value, setAacColumns); },
-        onSelectOrientation: setAacOrientation,
-        onSelectLabelPosition: setAacLabelPosition,
-        onApply: handleApplyAacBoard,
-      }}
-      story={{
-        isOpen: isStoryModalOpen,
-        count: storyCount,
-        direction: storyDirection,
-        orientation: storyOrientation,
-        ratio: storyRatio,
-        preview: {
-          elements: storyPreviewElements,
-          metrics: storyPreviewMetrics,
-        },
-        onOpen: () => { setIsStoryModalOpen(true); },
-        onClose: () => { setIsStoryModalOpen(false); },
-        onChangeCount: handleStoryCountChange,
-        onSelectDirection: setStoryDirection,
-        onSelectRatio: setStoryRatio,
-        onSelectOrientation: setStoryOrientation,
-        onApply: handleApplyStoryBoard,
-      }}
-    />
+    <>
+      <TemplateContentView
+        aac={{
+          isOpen: isAacModalOpen,
+          rows: aacRows,
+          columns: aacColumns,
+          orientation: aacOrientation,
+          labelPosition: aacLabelPosition,
+          preview: {
+            elements: previewElements,
+            metrics: aacPreviewMetrics,
+          },
+          onOpen: () => { setIsAacModalOpen(true); },
+          onClose: () => { setIsAacModalOpen(false); },
+          onChangeRows: (value) => { handleCountChange(value, setAacRows); },
+          onChangeColumns: (value) => { handleCountChange(value, setAacColumns); },
+          onSelectOrientation: setAacOrientation,
+          onSelectLabelPosition: setAacLabelPosition,
+          onApply: handleApplyAacBoard,
+        }}
+        story={{
+          isOpen: isStoryModalOpen,
+          count: storyCount,
+          direction: storyDirection,
+          orientation: storyOrientation,
+          ratio: storyRatio,
+          preview: {
+            elements: storyPreviewElements,
+            metrics: storyPreviewMetrics,
+          },
+          onOpen: () => { setIsStoryModalOpen(true); },
+          onClose: () => { setIsStoryModalOpen(false); },
+          onChangeCount: handleStoryCountChange,
+          onSelectDirection: setStoryDirection,
+          onSelectRatio: setStoryRatio,
+          onSelectOrientation: setStoryOrientation,
+          onApply: handleApplyStoryBoard,
+        }}
+      />
+      {previewTemplate && previewTemplateData && (
+        <MultiPageTemplateDialog
+          open={!!previewTemplate}
+          templateLabel={previewTemplateData.label}
+          pages={previewPages}
+          onClose={closePreview}
+          onApplyAll={handleApplyAllPages}
+          onApplySelected={handleApplySelectedPages}
+        />
+      )}
+    </>
   );
 };
 
