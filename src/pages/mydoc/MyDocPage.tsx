@@ -90,7 +90,8 @@ const MyDocPage = () => {
   const [selectedTarget, setSelectedTarget] = useState<DocTarget | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [pendingDuplicateDoc, setPendingDuplicateDoc] = useState<DocItem | null>(null);
+  const [pendingDuplicateDoc, setPendingDuplicateDoc] =
+    useState<DocItem | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
 
   useEffect(() => {
@@ -135,7 +136,7 @@ const MyDocPage = () => {
           supabase
             .from("user_made_targets_n")
             .select(
-              "user_made_id,child_id,group_id,students_n(id,name),groups_n(id,name)"
+              "user_made_id,child_id,group_id,students_n(id,name),groups_n(id,name)",
             ),
           supabase.from("students_n").select("id,name").eq("user_id", user.id),
           supabase.from("groups_n").select("id,name").eq("owner_id", user.id),
@@ -177,7 +178,7 @@ const MyDocPage = () => {
         const list = targetsByDoc.get(docId) ?? [];
         if (
           !list.some(
-            (item) => item.type === target.type && item.id === target.id
+            (item) => item.type === target.type && item.id === target.id,
           )
         ) {
           list.push(target);
@@ -190,7 +191,7 @@ const MyDocPage = () => {
         if (row.child_id) {
           const childName =
             row.students_n && !Array.isArray(row.students_n)
-              ? row.students_n.name ?? "아동"
+              ? (row.students_n.name ?? "아동")
               : "아동";
           addTarget(row.user_made_id, {
             type: "child",
@@ -201,7 +202,7 @@ const MyDocPage = () => {
         if (row.group_id) {
           const groupName =
             row.groups_n && !Array.isArray(row.groups_n)
-              ? row.groups_n.name ?? "그룹"
+              ? (row.groups_n.name ?? "그룹")
               : "그룹";
           addTarget(row.user_made_id, {
             type: "group",
@@ -216,7 +217,7 @@ const MyDocPage = () => {
           ...doc,
           targets: targetsByDoc.get(doc.id) ?? [],
           canvasData: parseCanvasData(doc.canvas_data),
-        }))
+        })),
       );
       setIsLoading(false);
     };
@@ -235,11 +236,11 @@ const MyDocPage = () => {
     totalGroupPages === 0 ? 0 : Math.min(currentGroupPage, totalGroupPages - 1);
   const currentChildren = registeredChildren.slice(
     safeChildPage * itemsPerPage,
-    (safeChildPage + 1) * itemsPerPage
+    (safeChildPage + 1) * itemsPerPage,
   );
   const currentGroups = registeredGroups.slice(
     safeGroupPage * itemsPerPage,
-    (safeGroupPage + 1) * itemsPerPage
+    (safeGroupPage + 1) * itemsPerPage,
   );
 
   const filteredDocs = (() => {
@@ -248,7 +249,7 @@ const MyDocPage = () => {
     return docs.filter((doc) => {
       const nameMatch = (doc.name || "").toLowerCase().includes(keyword);
       const targetMatch = doc.targets.some((target) =>
-        target.name.toLowerCase().includes(keyword)
+        target.name.toLowerCase().includes(keyword),
       );
       return nameMatch || targetMatch;
     });
@@ -259,8 +260,8 @@ const MyDocPage = () => {
         doc.targets.some(
           (target) =>
             target.type === selectedTarget.type &&
-            target.id === selectedTarget.id
-        )
+            target.id === selectedTarget.id,
+        ),
       )
     : filteredDocs;
 
@@ -283,7 +284,10 @@ const MyDocPage = () => {
       setErrorMessage("학습자료를 삭제하지 못했어요.");
       return;
     }
-    const { error } = await supabase.from("user_made_n").delete().eq("id", docId);
+    const { error } = await supabase
+      .from("user_made_n")
+      .delete()
+      .eq("id", docId);
     if (error) {
       setErrorMessage("학습자료를 삭제하지 못했어요.");
       return;
@@ -320,7 +324,7 @@ const MyDocPage = () => {
       const targetPayload = doc.targets.map((target) =>
         target.type === "child"
           ? { user_made_id: data.id, child_id: target.id }
-          : { user_made_id: data.id, group_id: target.id }
+          : { user_made_id: data.id, group_id: target.id },
       );
       const { error: targetError } = await supabase
         .from("user_made_targets_n")
@@ -357,7 +361,7 @@ const MyDocPage = () => {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/")}
             className="flex h-9 w-9 items-center justify-center rounded-full text-black-60 transition hover:bg-black-10"
             aria-label="뒤로가기"
           >
@@ -382,7 +386,9 @@ const MyDocPage = () => {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black-40" />
             <input
               value={searchTerm}
-              onChange={(event) => { setSearchTerm(event.target.value); }}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+              }}
               placeholder="내 보관함 검색"
               className="h-11 w-full rounded-xl border border-black-20 bg-black-5 pl-10 pr-4 text-14-regular text-black-90 placeholder:text-black-50 focus:border-primary focus:outline-none"
             />
@@ -423,20 +429,20 @@ const MyDocPage = () => {
                   key={`child-${target.id}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() =>
-                    { setSelectedTarget((prev) =>
+                  onClick={() => {
+                    setSelectedTarget((prev) =>
                       prev?.type === "child" && prev.id === target.id
                         ? null
-                        : { type: "child", id: target.id, name: target.name }
-                    ); }
-                  }
+                        : { type: "child", id: target.id, name: target.name },
+                    );
+                  }}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
                       setSelectedTarget((prev) =>
                         prev?.type === "child" && prev.id === target.id
                           ? null
-                          : { type: "child", id: target.id, name: target.name }
+                          : { type: "child", id: target.id, name: target.name },
                       );
                     }
                   }}
@@ -467,7 +473,9 @@ const MyDocPage = () => {
               Array.from({ length: totalChildPages }).map((_, index) => (
                 <button
                   key={`child-page-${index}`}
-                  onClick={() => { setCurrentChildPage(index); }}
+                  onClick={() => {
+                    setCurrentChildPage(index);
+                  }}
                   className={`h-2 w-2 rounded-full transition-all ${
                     index === safeChildPage
                       ? "w-6 bg-primary"
@@ -502,20 +510,20 @@ const MyDocPage = () => {
                   key={`group-${target.id}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() =>
-                    { setSelectedTarget((prev) =>
+                  onClick={() => {
+                    setSelectedTarget((prev) =>
                       prev?.type === "group" && prev.id === target.id
                         ? null
-                        : { type: "group", id: target.id, name: target.name }
-                    ); }
-                  }
+                        : { type: "group", id: target.id, name: target.name },
+                    );
+                  }}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
                       setSelectedTarget((prev) =>
                         prev?.type === "group" && prev.id === target.id
                           ? null
-                          : { type: "group", id: target.id, name: target.name }
+                          : { type: "group", id: target.id, name: target.name },
                       );
                     }
                   }}
@@ -546,7 +554,9 @@ const MyDocPage = () => {
               Array.from({ length: totalGroupPages }).map((_, index) => (
                 <button
                   key={`group-page-${index}`}
-                  onClick={() => { setCurrentGroupPage(index); }}
+                  onClick={() => {
+                    setCurrentGroupPage(index);
+                  }}
                   className={`h-2 w-2 rounded-full transition-all ${
                     index === safeGroupPage
                       ? "w-6 bg-primary"
@@ -632,7 +642,8 @@ const MyDocPage = () => {
                 // orientation 값 검증
                 const rawOrientation = previewPage?.orientation;
                 const previewOrientation =
-                  rawOrientation === "horizontal" || rawOrientation === "vertical"
+                  rawOrientation === "horizontal" ||
+                  rawOrientation === "vertical"
                     ? rawOrientation
                     : "vertical";
 
@@ -761,9 +772,7 @@ const MyDocPage = () => {
         title="학습자료 복제"
       >
         <div className="flex flex-col gap-6">
-          <p className="text-14-regular text-black-70">
-            복제하시겠습니까?
-          </p>
+          <p className="text-14-regular text-black-70">복제하시겠습니까?</p>
           <div className="flex gap-3">
             <button
               type="button"

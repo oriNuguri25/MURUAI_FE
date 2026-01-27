@@ -371,8 +371,9 @@ const TextBox = ({
         (toolbarPortal ? (
           createPortal(
             <div
+              data-textbox-toolbar="true"
               className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-              onMouseDown={(event) => { event.preventDefault(); }}
+              onMouseDownCapture={(event) => { event.preventDefault(); }}
             >
               <TextToolBar
                 isVisible
@@ -411,8 +412,9 @@ const TextBox = ({
           )
         ) : (
           <div
+            data-textbox-toolbar="true"
             className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-            onMouseDown={(event) => { event.preventDefault(); }}
+            onMouseDownCapture={(event) => { event.preventDefault(); }}
           >
             <TextToolBar
               isVisible

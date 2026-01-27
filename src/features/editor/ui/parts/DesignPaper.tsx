@@ -28,6 +28,7 @@ import CircleBox from "./template_component/circle/CircleBox";
 import Line from "./template_component/line/Line";
 import RoundBox from "./template_component/round_box/RoundBox";
 import TextBox from "./template_component/text/TextBox";
+import { stripStyleTags } from "./template_component/text/textContentUtils";
 import { useSideBarStore } from "../../store/sideBarStore";
 import { useFontStore } from "../../store/fontStore";
 import { getFontLabel, normalizeFontWeight } from "../../utils/fontOptions";
@@ -1195,7 +1196,10 @@ const DesignPaper = ({
               style: { letterSpacing: value },
             }); },
           onColorChange: (color) =>
-            { updateElement(element.id, { style: { color } }); },
+            { updateElement(element.id, {
+              style: { color },
+              richText: element.richText ? stripStyleTags(element.richText, "color") : undefined,
+            }); },
           onToggleBold: () =>
             { updateElement(element.id, {
               style: {
@@ -1204,18 +1208,22 @@ const DesignPaper = ({
                     ? "normal"
                     : "bold",
               },
+              richText: element.richText ? stripStyleTags(element.richText, "bold") : undefined,
             }); },
           onToggleUnderline: () =>
             { updateElement(element.id, {
               style: { underline: !element.style.underline },
+              richText: element.richText ? stripStyleTags(element.richText, "underline") : undefined,
             }); },
           onToggleItalic: () =>
             { updateElement(element.id, {
               style: { italic: !element.style.italic },
+              richText: element.richText ? stripStyleTags(element.richText, "italic") : undefined,
             }); },
           onToggleStrikethrough: () =>
             { updateElement(element.id, {
               style: { strikethrough: !element.style.strikethrough },
+              richText: element.richText ? stripStyleTags(element.richText, "strikethrough") : undefined,
             }); },
           onAlignChange: (align) =>
             { updateElement(element.id, { style: { alignX: align } }); },

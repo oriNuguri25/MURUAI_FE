@@ -90,6 +90,7 @@ const ColorPickerPopover = ({
       <button
         type="button"
         aria-label={ariaLabel}
+        onMouseDown={(event) => { event.preventDefault(); }}
         onClick={() => { setIsOpen((prev) => !prev); }}
         className={`${buttonClassName} flex items-center justify-center rounded-full border border-black-30 bg-white-100 p-0`}
         style={{ backgroundColor: value }}
@@ -98,6 +99,7 @@ const ColorPickerPopover = ({
         <div
           className="absolute left-0 top-full mt-2 w-56 rounded-lg border border-black-25 bg-white-100 p-3 shadow-lg z-50"
           onPointerDown={(event) => { event.stopPropagation(); }}
+          onMouseDown={(event) => { event.preventDefault(); }}
         >
           <div className="grid grid-cols-5 gap-2">
             {swatches.map((color) => (

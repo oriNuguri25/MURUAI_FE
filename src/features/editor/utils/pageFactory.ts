@@ -383,3 +383,55 @@ export const addLineElement = ({
   );
   return nextElement.id;
 };
+
+export const addSelectedTemplatePages = ({
+  templateId,
+  selectedIndices,
+  fallbackOrientation,
+  setPages,
+}: {
+  templateId: TemplateId;
+  selectedIndices: number[];
+  fallbackOrientation: "horizontal" | "vertical";
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => {
+  const templateDefinition = TEMPLATE_REGISTRY[templateId];
+  const allTemplates =
+    "pages" in templateDefinition && templateDefinition.pages?.length
+      ? templateDefinition.pages
+      : [templateDefinition.template];
+
+  const selectedTemplates = selectedIndices
+    .filter((index) => index >= 0 && index < allTemplates.length)
+    .map((index) => allTemplates[index]);
+
+  if (selectedTemplates.length === 0) {
+    return null;
+  }
+
+  const nextOrientation =
+    templateDefinition.orientation === "vertical-only"
+      ? "vertical"
+      : templateDefinition.orientation === "horizontal-only"
+      ? "horizontal"
+      : fallbackOrientation;
+
+  const firstPageId = crypto.randomUUID();
+
+  setPages((prevPages) => {
+    const nextPages = [...prevPages];
+    selectedTemplates.forEach((template, index) => {
+      const pageId = index === 0 ? firstPageId : crypto.randomUUID();
+      nextPages.push({
+        id: pageId,
+        pageNumber: nextPages.length + 1,
+        templateId,
+        orientation: nextOrientation,
+        elements: withLogoCanvasElements(instantiateTemplate(template)),
+      });
+    });
+    return nextPages;
+  });
+
+  return { id: firstPageId, orientation: nextOrientation };
+};

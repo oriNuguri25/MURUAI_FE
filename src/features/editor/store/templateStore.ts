@@ -3,18 +3,27 @@ import type { TemplateId } from "../templates/templateRegistry";
 
 interface TemplateStore {
   selectedTemplate: TemplateId | null;
+  selectedPageIndices: number[] | null;
   templateRequestId: number;
-  requestTemplate: (templateId: TemplateId) => void;
+  previewTemplate: TemplateId | null;
+  requestTemplate: (templateId: TemplateId, pageIndices?: number[]) => void;
   setSelectedTemplate: (templateId: TemplateId | null) => void;
+  openPreview: (templateId: TemplateId) => void;
+  closePreview: () => void;
 }
 
 export const useTemplateStore = create<TemplateStore>((set) => ({
   selectedTemplate: null,
+  selectedPageIndices: null,
   templateRequestId: 0,
-  requestTemplate: (templateId) =>
+  previewTemplate: null,
+  requestTemplate: (templateId, pageIndices) =>
     { set((state) => ({
       selectedTemplate: templateId,
+      selectedPageIndices: pageIndices ?? null,
       templateRequestId: state.templateRequestId + 1,
     })); },
   setSelectedTemplate: (templateId) => { set({ selectedTemplate: templateId }); },
+  openPreview: (templateId) => { set({ previewTemplate: templateId }); },
+  closePreview: () => { set({ previewTemplate: null }); },
 }));

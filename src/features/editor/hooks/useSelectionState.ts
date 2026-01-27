@@ -308,9 +308,17 @@ export const useSelectionState = ({
 
     const element = selectedElement;
     const stroke = element.stroke ?? { color: "#000000", width: 2 };
+    const dx = element.end.x - element.start.x;
+    const dy = element.end.y - element.start.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angleRad = Math.atan2(dy, dx);
+    const rawAngle = ((angleRad * 180) / Math.PI + 360) % 360;
+    const angle = Math.round(rawAngle) % 360;
     return {
       element,
       stroke,
+      length,
+      angle,
     };
   })();
 

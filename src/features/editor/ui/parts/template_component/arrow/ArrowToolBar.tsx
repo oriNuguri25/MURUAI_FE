@@ -10,8 +10,12 @@ interface ArrowToolBarProps {
   width: number;
   minWidth?: number;
   maxWidth?: number;
+  length?: number;
+  angle?: number;
   onColorChange: (value: string) => void;
   onWidthChange: (value: number) => void;
+  onLengthChange?: (value: number) => void;
+  onAngleChange?: (value: number) => void;
   onRotatePointerDown?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
 }
@@ -22,8 +26,12 @@ const ArrowToolBar = ({
   width,
   minWidth = 1,
   maxWidth = 20,
+  length,
+  angle,
   onColorChange,
   onWidthChange,
+  onLengthChange,
+  onAngleChange,
   onRotatePointerDown,
   onPointerDown,
 }: ArrowToolBarProps) => {
@@ -32,6 +40,20 @@ const ArrowToolBar = ({
     min: minWidth,
     max: maxWidth,
     onChange: onWidthChange,
+  });
+
+  const lengthInput = useNumberInput({
+    value: length ?? 0,
+    min: 1,
+    max: 9999,
+    onChange: onLengthChange ?? (() => {}),
+  });
+
+  const angleInput = useNumberInput({
+    value: angle ?? 0,
+    min: 0,
+    max: 359,
+    onChange: onAngleChange ?? (() => {}),
   });
 
   if (!isVisible) return null;
@@ -80,6 +102,54 @@ const ArrowToolBar = ({
         <span className="text-14-regular text-black-60">색상</span>
         <ColorPickerPopover value={color} onChange={onColorChange} />
       </div>
+
+      {length !== undefined && onLengthChange && (
+        <div className="flex items-center gap-2">
+          <span className="text-14-regular text-black-60">길이</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={lengthInput.displayValue}
+            onChange={(event) => { lengthInput.handleChange(event.target.value); }}
+            onBlur={lengthInput.handleBlur}
+            onFocus={lengthInput.handleFocus}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                lengthInput.commit();
+                event.currentTarget.blur();
+              }
+            }}
+            className="no-spinner w-14 rounded-lg border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
+          />
+        </div>
+      )}
+
+      {angle !== undefined && onAngleChange && (
+        <div className="flex items-center gap-2">
+          <span className="text-14-regular text-black-60">각도</span>
+          <input
+            type="number"
+            min={0}
+            max={359}
+            step={1}
+            value={angleInput.displayValue}
+            onChange={(event) => { angleInput.handleChange(event.target.value); }}
+            onBlur={angleInput.handleBlur}
+            onFocus={angleInput.handleFocus}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                angleInput.commit();
+                event.currentTarget.blur();
+              }
+            }}
+            className="no-spinner w-14 rounded-lg border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
+          />
+          <span className="text-14-regular text-black-60">°</span>
+        </div>
+      )}
     </div>
   );
 };

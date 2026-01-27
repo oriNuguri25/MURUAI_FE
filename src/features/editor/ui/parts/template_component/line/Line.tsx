@@ -66,6 +66,8 @@ const Line = ({
   });
   const startRel = { x: safeStart.x - boxX, y: safeStart.y - boxY };
   const endRel = { x: safeEnd.x - boxX, y: safeEnd.y - boxY };
+  const angleRad = Math.atan2(safeEnd.y - safeStart.y, safeEnd.x - safeStart.x);
+  const angleDeg = Math.round(((angleRad * 180) / Math.PI + 360) % 360) % 360;
 
   const getPointerPosition = (event: PointerEvent, scale: number) => {
     const rect = wrapperRef.current?.getBoundingClientRect();
@@ -152,6 +154,14 @@ const Line = ({
             onPointerDown={(event) => { startResize(event, "end"); }}
           />
         </>
+      )}
+      {!locked && isSelected && (
+        <div
+          className="absolute left-1/2 top-full mt-1 -translate-x-1/2 w-24 rounded bg-white-100 px-2 py-0.5 text-center text-12-medium text-black-70 shadow-sm whitespace-nowrap"
+          style={{ pointerEvents: "none" }}
+        >
+          각도: {Math.round(angleDeg)}°
+        </div>
       )}
     </div>
   );

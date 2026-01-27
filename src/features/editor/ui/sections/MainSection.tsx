@@ -37,6 +37,7 @@ import { useCanvasWheelZoom } from "../../hooks/useCanvasWheelZoom";
 import {
   applyTemplateToCurrentPage,
   addTemplatePage,
+  addSelectedTemplatePages,
   addAacBoardPage,
   addStoryBoardPage,
   addShapeElement,
@@ -186,6 +187,7 @@ const MainSection = () => {
     isApplyingTemplateRef,
     recordHistory,
     addTemplatePage,
+    addSelectedTemplatePages,
   });
   useFontSubscription({
     selectedPageIdRef,

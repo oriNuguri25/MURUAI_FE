@@ -15,6 +15,13 @@ type AddTemplatePage = (args: {
   setPages: Dispatch<SetStateAction<Page[]>>;
 }) => { id: string; orientation: "horizontal" | "vertical" };
 
+type AddSelectedTemplatePages = (args: {
+  templateId: TemplateId;
+  selectedIndices: number[];
+  fallbackOrientation: "horizontal" | "vertical";
+  setPages: Dispatch<SetStateAction<Page[]>>;
+}) => { id: string; orientation: "horizontal" | "vertical" } | null;
+
 type TemplateSubscriptionParams = {
   pages: Page[];
   selectedPageId: string;
@@ -35,6 +42,7 @@ type TemplateSubscriptionParams = {
   isApplyingTemplateRef: MutableRefObject<boolean>;
   recordHistory: (label?: string) => void;
   addTemplatePage: AddTemplatePage;
+  addSelectedTemplatePages: AddSelectedTemplatePages;
 };
 
 export const useTemplateSubscription = ({
@@ -52,6 +60,7 @@ export const useTemplateSubscription = ({
   isApplyingTemplateRef,
   recordHistory,
   addTemplatePage,
+  addSelectedTemplatePages,
 }: TemplateSubscriptionParams) => {
   useEffect(() => {
     const unsubscribe = useTemplateStore.subscribe((state, prevState) => {
@@ -65,7 +74,7 @@ export const useTemplateSubscription = ({
 
       if (!currentPage) return;
 
-      if (pagesRef.current.length === 1) {
+      if (pagesRef.current.length === 1 && !state.selectedPageIndices) {
         setTemplateChoiceDialog({ templateId: state.selectedTemplate });
         return;
       }
@@ -73,14 +82,29 @@ export const useTemplateSubscription = ({
       setTemplateChoiceDialog(null);
 
       isApplyingTemplateRef.current = true;
-      const result = addTemplatePage({
-        templateId: state.selectedTemplate,
-        fallbackOrientation: orientationRef.current,
-        setPages,
-      });
-      setActivePage(result.id, result.orientation);
-      if (state.selectedTemplate === "emotionInference") {
-        showEmotionInferenceToast();
+
+      let result: { id: string; orientation: "horizontal" | "vertical" } | null;
+
+      if (state.selectedPageIndices && state.selectedPageIndices.length > 0) {
+        result = addSelectedTemplatePages({
+          templateId: state.selectedTemplate,
+          selectedIndices: state.selectedPageIndices,
+          fallbackOrientation: orientationRef.current,
+          setPages,
+        });
+      } else {
+        result = addTemplatePage({
+          templateId: state.selectedTemplate,
+          fallbackOrientation: orientationRef.current,
+          setPages,
+        });
+      }
+
+      if (result) {
+        setActivePage(result.id, result.orientation);
+        if (state.selectedTemplate === "emotionInference") {
+          showEmotionInferenceToast();
+        }
       }
 
       setTimeout(() => {
@@ -91,6 +115,7 @@ export const useTemplateSubscription = ({
     return unsubscribe;
   }, [
     addTemplatePage,
+    addSelectedTemplatePages,
     orientationRef,
     pagesRef,
     recordHistory,

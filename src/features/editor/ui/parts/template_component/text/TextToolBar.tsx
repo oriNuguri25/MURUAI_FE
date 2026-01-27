@@ -150,6 +150,7 @@ const TextToolBar = ({
     >
       <button
         type="button"
+        onMouseDown={(event) => { event.preventDefault(); }}
         onClick={onFontFamilyClick}
         className="flex items-center gap-2 rounded border border-black-30 px-2 py-1 text-14-regular text-black-70 hover:border-primary hover:text-primary"
       >
