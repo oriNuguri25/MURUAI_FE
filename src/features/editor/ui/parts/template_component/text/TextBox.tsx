@@ -184,23 +184,41 @@ const TextBox = ({
       handle === "nw"
         ? { left: -halfHandle, top: -halfHandle }
         : handle === "ne"
-        ? { right: -halfHandle, top: -halfHandle }
-        : handle === "sw"
-        ? { left: -halfHandle, bottom: -halfHandle }
-        : handle === "se"
-        ? { right: -halfHandle, bottom: -halfHandle }
-        : handle === "n"
-        ? { left: "50%", top: -halfHandle, transform: "translateX(-50%)" }
-        : handle === "s"
-        ? { left: "50%", bottom: -halfHandle, transform: "translateX(-50%)" }
-        : handle === "e"
-        ? { right: -halfHandle, top: "50%", transform: "translateY(-50%)" }
-        : { left: -halfHandle, top: "50%", transform: "translateY(-50%)" };
+          ? { right: -halfHandle, top: -halfHandle }
+          : handle === "sw"
+            ? { left: -halfHandle, bottom: -halfHandle }
+            : handle === "se"
+              ? { right: -halfHandle, bottom: -halfHandle }
+              : handle === "n"
+                ? {
+                    left: "50%",
+                    top: -halfHandle,
+                    transform: "translateX(-50%)",
+                  }
+                : handle === "s"
+                  ? {
+                      left: "50%",
+                      bottom: -halfHandle,
+                      transform: "translateX(-50%)",
+                    }
+                  : handle === "e"
+                    ? {
+                        right: -halfHandle,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                      }
+                    : {
+                        left: -halfHandle,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                      };
 
     return (
       <div
         key={handle}
-        onPointerDown={(event) => { startAction(event, "resize", handle); }}
+        onPointerDown={(event) => {
+          startAction(event, "resize", handle);
+        }}
         data-capture-handle="true"
         className="absolute rounded-sm border border-primary bg-white-100"
         style={{
@@ -217,14 +235,14 @@ const TextBox = ({
     textAlign === "left"
       ? "justify-start"
       : textAlign === "right"
-      ? "justify-end"
-      : "justify-center";
+        ? "justify-end"
+        : "justify-center";
   const alignYClass =
     textAlignY === "top"
       ? "items-start"
       : textAlignY === "bottom"
-      ? "items-end"
-      : "items-center";
+        ? "items-end"
+        : "items-center";
   const showOutline = showChrome && !locked && isSelected;
   const showHandles = showChrome && !locked && isSelected;
   // 텍스트가 박스 폭을 초과하면 줄바꿈
@@ -294,7 +312,8 @@ const TextBox = ({
         overflow: clipOverflow ? "hidden" : "visible",
         touchAction: "none",
         pointerEvents: locked ? "none" : "auto",
-        cursor: isSelected && !isEditing ? "move" : editable ? "text" : "default",
+        cursor:
+          isSelected && !isEditing ? "move" : editable ? "text" : "default",
       }}
     >
       {showOutline && (
@@ -314,9 +333,15 @@ const TextBox = ({
           onCompositionEnd={handleCompositionEnd}
           onBlur={handleEditingBlur}
           // [이벤트 격리] Canvas 선택 해제 방지
-          onPointerDown={(event) => { event.stopPropagation(); }}
-          onClick={(event) => { event.stopPropagation(); }}
-          onMouseDown={(event) => { event.stopPropagation(); }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.stopPropagation();
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation();
+          }}
           // 편집 모드에서 텍스트 선택을 보장한다.
           className={`w-full select-text outline-none no-text-underline ${textClassName}`}
           style={{
@@ -373,7 +398,13 @@ const TextBox = ({
             <div
               data-textbox-toolbar="true"
               className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-              onMouseDownCapture={(event) => { event.preventDefault(); }}
+              onMouseDown={(event) => {
+                // INPUT 요소가 아닌 경우에만 preventDefault
+                const target = event.target as HTMLElement;
+                if (target.tagName !== "INPUT") {
+                  event.preventDefault();
+                }
+              }}
             >
               <TextToolBar
                 isVisible
@@ -392,9 +423,9 @@ const TextBox = ({
                 align={toolbar.align}
                 alignY={toolbar.alignY}
                 onFontSizeChange={handleFontSizeChange}
-                onFontSizeStep={(delta) =>
-                  { handleFontSizeChange(toolbar.fontSize + delta); }
-                }
+                onFontSizeStep={(delta) => {
+                  handleFontSizeChange(toolbar.fontSize + delta);
+                }}
                 onLineHeightChange={toolbar.onLineHeightChange}
                 onLetterSpacingChange={toolbar.onLetterSpacingChange}
                 onColorChange={handleColorChange}
@@ -405,16 +436,24 @@ const TextBox = ({
                 onToggleStrikethrough={handleToggleStrikethrough}
                 onAlignChange={toolbar.onAlignChange}
                 onAlignYChange={toolbar.onAlignYChange}
-                onPointerDown={(event) => { event.stopPropagation(); }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                }}
               />
             </div>,
-            toolbarPortal
+            toolbarPortal,
           )
         ) : (
           <div
             data-textbox-toolbar="true"
             className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-            onMouseDownCapture={(event) => { event.preventDefault(); }}
+            onMouseDown={(event) => {
+              // INPUT 요소가 아닌 경우에만 preventDefault
+              const target = event.target as HTMLElement;
+              if (target.tagName !== "INPUT") {
+                event.preventDefault();
+              }
+            }}
           >
             <TextToolBar
               isVisible
@@ -433,9 +472,9 @@ const TextBox = ({
               align={toolbar.align}
               alignY={toolbar.alignY}
               onFontSizeChange={handleFontSizeChange}
-              onFontSizeStep={(delta) =>
-                { handleFontSizeChange(toolbar.fontSize + delta); }
-              }
+              onFontSizeStep={(delta) => {
+                handleFontSizeChange(toolbar.fontSize + delta);
+              }}
               onLineHeightChange={toolbar.onLineHeightChange}
               onLetterSpacingChange={toolbar.onLetterSpacingChange}
               onColorChange={handleColorChange}
@@ -446,7 +485,9 @@ const TextBox = ({
               onToggleStrikethrough={handleToggleStrikethrough}
               onAlignChange={toolbar.onAlignChange}
               onAlignYChange={toolbar.onAlignYChange}
-              onPointerDown={(event) => { event.stopPropagation(); }}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
             />
           </div>
         ))}
