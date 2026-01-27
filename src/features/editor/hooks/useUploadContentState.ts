@@ -133,6 +133,32 @@ export const useUploadContentState = () => {
     setContextMenu(null);
   };
 
+  const handleSelectImage = (url: string) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxSize = 300;
+      const { naturalWidth, naturalHeight } = img;
+      let width = naturalWidth;
+      let height = naturalHeight;
+
+      if (naturalWidth > maxSize || naturalHeight > maxSize) {
+        if (naturalWidth >= naturalHeight) {
+          width = maxSize;
+          height = Math.round((naturalHeight / naturalWidth) * maxSize);
+        } else {
+          height = maxSize;
+          width = Math.round((naturalWidth / naturalHeight) * maxSize);
+        }
+      }
+
+      requestImageFill(url, undefined, { width, height });
+    };
+    img.onerror = () => {
+      requestImageFill(url);
+    };
+    img.src = url;
+  };
+
   return {
     inputRef: inputRef,
     isLoading,
@@ -144,6 +170,6 @@ export const useUploadContentState = () => {
     onOpenContextMenu: handleOpenContextMenu,
     onCloseContextMenu: () => { setContextMenu(null); },
     onDeleteUpload: handleDeleteFromMenu,
-    onSelectImage: requestImageFill,
+    onSelectImage: handleSelectImage,
   };
 };

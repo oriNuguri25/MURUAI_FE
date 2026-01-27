@@ -1,11 +1,13 @@
-import type {
-  ClipboardEventHandler,
-  FormEventHandler,
-  KeyboardEventHandler,
-  MouseEvent as ReactMouseEvent,
-  PointerEvent as ReactPointerEvent,
-  MutableRefObject,
-  RefObject,
+import {
+  useEffect,
+  useRef,
+  type ClipboardEventHandler,
+  type FormEventHandler,
+  type KeyboardEventHandler,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type MutableRefObject,
+  type RefObject,
 } from "react";
 import { isTextEmpty } from "../textContentUtils";
 import type { TextBoxProps } from "../textBoxTypes";
@@ -33,6 +35,37 @@ type BeginEditingEvent =
   | ReactPointerEvent<HTMLDivElement>
   | ReactMouseEvent<HTMLDivElement>;
 
+// Check if a point is within the toolbar area
+const isPointInToolbar = (x: number, y: number): boolean => {
+  const toolbarRoot = document.getElementById("text-toolbar-root");
+  const toolbarElements = document.querySelectorAll("[data-textbox-toolbar]");
+
+  // Check toolbar root
+  if (toolbarRoot) {
+    const rect = toolbarRoot.getBoundingClientRect();
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+      // Also check if there's actual content (not just the container)
+      const children = toolbarRoot.querySelectorAll(".pointer-events-auto");
+      for (const child of children) {
+        const childRect = child.getBoundingClientRect();
+        if (x >= childRect.left && x <= childRect.right && y >= childRect.top && y <= childRect.bottom) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // Check direct toolbar elements
+  for (const el of toolbarElements) {
+    const rect = el.getBoundingClientRect();
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 export const useTextBoxEditingHandlers = ({
   editable,
   locked,
@@ -49,6 +82,49 @@ export const useTextBoxEditingHandlers = ({
   isComposingRef,
   editableRef,
 }: UseTextBoxEditingHandlersProps) => {
+  // Selection snapshot for restoring after toolbar actions
+  const savedRangeRef = useRef<Range | null>(null);
+  // Track mouse position for blur detection
+  const mousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const restoreSelection = () => {
+    const selection = window.getSelection();
+    if (selection && savedRangeRef.current) {
+      selection.removeAllRanges();
+      selection.addRange(savedRangeRef.current);
+    }
+  };
+
+  // Track mouse position and auto-save selection when it changes
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      mousePositionRef.current = { x: event.clientX, y: event.clientY };
+    };
+
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      const range = selection.getRangeAt(0);
+      const editableNode = editableRef.current;
+      if (!editableNode) return;
+
+      // Only save if selection is within the editable element
+      if (editableNode.contains(range.commonAncestorContainer)) {
+        savedRangeRef.current = range.cloneRange();
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [isEditing, editableRef]);
+
   const beginEditing = (
     event: BeginEditingEvent,
     options?: BeginEditingOptions
@@ -69,10 +145,22 @@ export const useTextBoxEditingHandlers = ({
   const applyStyleToSelection = (command: string, value?: string) => {
     if (!isEditing) return;
 
+    // Restore selection if it was lost (e.g., due to toolbar click)
+    restoreSelection();
+
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
+    // Check if there's an actual selection (not just cursor)
+    const hasSelection = !selection.isCollapsed;
+
     document.execCommand(command, false, value);
+
+    // After execCommand, save the new selection state
+    // (DOM may have changed, so we need to capture the new range)
+    if (hasSelection && selection.rangeCount > 0) {
+      savedRangeRef.current = selection.getRangeAt(0).cloneRange();
+    }
 
     const editableNode = editableRef.current;
     if (!editableNode) return;
@@ -124,6 +212,9 @@ export const useTextBoxEditingHandlers = ({
 
   const handleFontSizeChange = (size: number) => {
     if (isEditing) {
+      // Restore selection if it was lost (e.g., due to toolbar click)
+      restoreSelection();
+
       const selection = window.getSelection();
       if (!selection || selection.rangeCount === 0) {
         toolbar?.onFontSizeChange(size);
@@ -139,6 +230,15 @@ export const useTextBoxEditingHandlers = ({
       const span = document.createElement("span");
       span.style.fontSize = `${size}px`;
       range.surroundContents(span);
+
+      // Select the contents of the new span to maintain selection
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+
+      // Save the new selection state
+      savedRangeRef.current = newRange.cloneRange();
 
       const editableNode = editableRef.current;
       if (!editableNode) return;
@@ -184,8 +284,50 @@ export const useTextBoxEditingHandlers = ({
     }
   };
 
-  const handleEditingBlur = () => {
+  const handleEditingBlur = (event: React.FocusEvent<HTMLDivElement>) => {
     if (isComposingRef.current) return;
+
+    // Check if mouse is over toolbar area using tracked position
+    const { x, y } = mousePositionRef.current;
+    if (isPointInToolbar(x, y)) {
+      // Mouse is over toolbar, refocus and maintain editing mode
+      requestAnimationFrame(() => {
+        editableRef.current?.focus();
+        restoreSelection();
+      });
+      return;
+    }
+
+    // Check if focus is moving to toolbar area - if so, don't finish editing
+    const relatedTarget = event.relatedTarget as HTMLElement | null;
+    if (relatedTarget) {
+      const isToolbarClick =
+        relatedTarget.closest("#text-toolbar-root") ||
+        relatedTarget.closest("[data-textbox-toolbar]");
+      if (isToolbarClick) {
+        requestAnimationFrame(() => {
+          editableRef.current?.focus();
+          restoreSelection();
+        });
+        return;
+      }
+    }
+
+    // If relatedTarget is null, check if activeElement is within toolbar
+    const activeElement = document.activeElement as HTMLElement | null;
+    if (activeElement) {
+      const isToolbarActive =
+        activeElement.closest("#text-toolbar-root") ||
+        activeElement.closest("[data-textbox-toolbar]");
+      if (isToolbarActive) {
+        requestAnimationFrame(() => {
+          editableRef.current?.focus();
+          restoreSelection();
+        });
+        return;
+      }
+    }
+
     const editableNode = editableRef.current;
     const nextText = editableNode?.innerText ?? text;
     const nextRichText = editableNode?.innerHTML ?? richText;

@@ -23,10 +23,7 @@ type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 
 interface PropertiesContentProps {
   selectedElements: CanvasElement[];
-  onUpdateElement: (
-    elementId: string,
-    updates: Partial<CanvasElement>
-  ) => void;
+  onUpdateElement: (elementId: string, updates: Partial<CanvasElement>) => void;
 }
 
 const PropertiesContent = ({
@@ -53,11 +50,15 @@ const PropertiesContent = ({
     const element = selectedElements[0];
 
     if (element.type === "rect" || element.type === "ellipse") {
-      return <ShapeProperties element={element} onUpdateElement={onUpdateElement} />;
+      return (
+        <ShapeProperties element={element} onUpdateElement={onUpdateElement} />
+      );
     }
 
     if (element.type === "text") {
-      return <TextProperties element={element} onUpdateElement={onUpdateElement} />;
+      return (
+        <TextProperties element={element} onUpdateElement={onUpdateElement} />
+      );
     }
   }
 
@@ -85,13 +86,13 @@ const ShapeProperties = ({
   const { uploadImage, isUploading } = useImageUploadToCloudinary();
   const triggerRefetch = useUploadListStore((s) => s.triggerRefetch);
   const [widthInput, setWidthInput] = useState(() =>
-    String(Math.round(element.w))
+    String(Math.round(element.w)),
   );
   const [heightInput, setHeightInput] = useState(() =>
-    String(Math.round(element.h))
+    String(Math.round(element.h)),
   );
   const [radiusInput, setRadiusInput] = useState(() =>
-    String(Math.round(element.radius ?? 0))
+    String(Math.round(element.radius ?? 0)),
   );
   const [isWidthEditing, setIsWidthEditing] = useState(false);
   const [isHeightEditing, setIsHeightEditing] = useState(false);
@@ -101,20 +102,29 @@ const ShapeProperties = ({
   const radius = element.radius ?? 0;
   const minRadius = element.type === "ellipse" ? 50 : 0;
   const maxRadius = element.type === "ellipse" ? 50 : 100;
-  const colorValue = element.fill?.startsWith("url(") ? "#ffffff" : element.fill ?? "#ffffff";
+  const colorValue = element.fill?.startsWith("url(")
+    ? "#ffffff"
+    : (element.fill ?? "#ffffff");
   const borderEnabled = element.border?.enabled ?? false;
   const borderColor = element.border?.color ?? "#000000";
   const borderWidth = element.border?.width ?? 2;
   const borderStyle = element.border?.style ?? "solid";
 
-  const clampRadius = (value: number) => Math.min(maxRadius, Math.max(minRadius, value));
+  const clampRadius = (value: number) =>
+    Math.min(maxRadius, Math.max(minRadius, value));
   const clampBorderWidth = (value: number) => Math.min(20, Math.max(1, value));
   const clampWidth = (value: number) => Math.max(1, value);
   const clampHeight = (value: number) => Math.max(1, value);
 
-  const displayWidth = isWidthEditing ? widthInput : String(Math.round(element.w));
-  const displayHeight = isHeightEditing ? heightInput : String(Math.round(element.h));
-  const displayRadius = isRadiusEditing ? radiusInput : String(Math.round(radius));
+  const displayWidth = isWidthEditing
+    ? widthInput
+    : String(Math.round(element.w));
+  const displayHeight = isHeightEditing
+    ? heightInput
+    : String(Math.round(element.h));
+  const displayRadius = isRadiusEditing
+    ? radiusInput
+    : String(Math.round(radius));
 
   const commitWidthInput = (value: string) => {
     const digits = value.replace(/[^0-9]/g, "");
@@ -158,7 +168,7 @@ const ShapeProperties = ({
   };
 
   const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -284,7 +294,9 @@ const ShapeProperties = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => { handleRadiusStep(-1); }}
+              onClick={() => {
+                handleRadiusStep(-1);
+              }}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
             >
               -
@@ -320,7 +332,9 @@ const ShapeProperties = ({
             />
             <button
               type="button"
-              onClick={() => { handleRadiusStep(1); }}
+              onClick={() => {
+                handleRadiusStep(1);
+              }}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
             >
               +
@@ -336,11 +350,15 @@ const ShapeProperties = ({
           <input
             type="color"
             value={colorValue}
-            onChange={(event) => { onUpdateElement(element.id, { fill: event.target.value }); }}
+            onChange={(event) => {
+              onUpdateElement(element.id, { fill: event.target.value });
+            }}
             className="color-input h-10 w-10 cursor-pointer rounded-lg border border-black-30 bg-white-100 p-0 overflow-hidden"
             style={{ WebkitAppearance: "none", appearance: "none" }}
           />
-          <span className="text-14-regular text-black-70 uppercase">{colorValue}</span>
+          <span className="text-14-regular text-black-70 uppercase">
+            {colorValue}
+          </span>
         </div>
       </div>
 
@@ -384,7 +402,9 @@ const ShapeProperties = ({
                   <button
                     key={styleOption}
                     type="button"
-                    onClick={() => { handleBorderStyleSelect(styleOption); }}
+                    onClick={() => {
+                      handleBorderStyleSelect(styleOption);
+                    }}
                     className={buttonClass}
                   >
                     <Ban className="h-4 w-4" />
@@ -395,7 +415,9 @@ const ShapeProperties = ({
                 <button
                   key={styleOption}
                   type="button"
-                  onClick={() => { handleBorderStyleSelect(styleOption); }}
+                  onClick={() => {
+                    handleBorderStyleSelect(styleOption);
+                  }}
                   className={buttonClass}
                 >
                   <span
@@ -421,11 +443,15 @@ const ShapeProperties = ({
                     min={1}
                     max={20}
                     value={borderWidth}
-                    onChange={(event) =>
-                      { onUpdateElement(element.id, {
-                        border: { ...element.border, width: clampBorderWidth(Number(event.target.value)), enabled: true } as ShapeElement["border"],
-                      }); }
-                    }
+                    onChange={(event) => {
+                      onUpdateElement(element.id, {
+                        border: {
+                          ...element.border,
+                          width: clampBorderWidth(Number(event.target.value)),
+                          enabled: true,
+                        } as ShapeElement["border"],
+                      });
+                    }}
                     className="flex-1"
                   />
                   <input
@@ -437,7 +463,11 @@ const ShapeProperties = ({
                       const digits = event.target.value.replace(/[^0-9]/g, "");
                       if (!digits) return;
                       onUpdateElement(element.id, {
-                        border: { ...element.border, width: clampBorderWidth(Number(digits)), enabled: true } as ShapeElement["border"],
+                        border: {
+                          ...element.border,
+                          width: clampBorderWidth(Number(digits)),
+                          enabled: true,
+                        } as ShapeElement["border"],
                       });
                     }}
                     className="no-spinner w-12 rounded-lg border border-black-30 px-2 py-1 text-center text-14-regular text-black-90"
@@ -450,15 +480,21 @@ const ShapeProperties = ({
                 <input
                   type="color"
                   value={borderColor}
-                  onChange={(event) =>
-                    { onUpdateElement(element.id, {
-                      border: { ...element.border, color: event.target.value, enabled: true } as ShapeElement["border"],
-                    }); }
-                  }
+                  onChange={(event) => {
+                    onUpdateElement(element.id, {
+                      border: {
+                        ...element.border,
+                        color: event.target.value,
+                        enabled: true,
+                      } as ShapeElement["border"],
+                    });
+                  }}
                   className="color-input h-8 w-8 cursor-pointer rounded border border-black-30 bg-white-100 p-0"
                   style={{ WebkitAppearance: "none", appearance: "none" }}
                 />
-                <span className="text-14-regular text-black-70 uppercase">{borderColor}</span>
+                <span className="text-14-regular text-black-70 uppercase">
+                  {borderColor}
+                </span>
               </div>
             </>
           )}
@@ -488,7 +524,8 @@ const TextProperties = ({
   const align = element.style?.alignX ?? "left";
   const alignY = element.style?.alignY ?? "top";
 
-  const clampFontSize = (value: number) => Math.min(maxFontSize, Math.max(minFontSize, value));
+  const clampFontSize = (value: number) =>
+    Math.min(maxFontSize, Math.max(minFontSize, value));
 
   return (
     <div className="flex flex-col w-full h-full gap-4 overflow-y-auto">
@@ -498,11 +535,14 @@ const TextProperties = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() =>
-              { onUpdateElement(element.id, {
-                style: { ...element.style, fontSize: clampFontSize(fontSize - 1) },
-              }); }
-            }
+            onClick={() => {
+              onUpdateElement(element.id, {
+                style: {
+                  ...element.style,
+                  fontSize: clampFontSize(fontSize - 1),
+                },
+              });
+            }}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
           >
             -
@@ -516,18 +556,24 @@ const TextProperties = ({
               const digits = event.target.value.replace(/[^0-9]/g, "");
               if (!digits) return;
               onUpdateElement(element.id, {
-                style: { ...element.style, fontSize: clampFontSize(Number(digits)) },
+                style: {
+                  ...element.style,
+                  fontSize: clampFontSize(Number(digits)),
+                },
               });
             }}
             className="no-spinner flex-1 rounded-lg border border-black-30 px-3 py-2 text-center text-14-regular text-black-90"
           />
           <button
             type="button"
-            onClick={() =>
-              { onUpdateElement(element.id, {
-                style: { ...element.style, fontSize: clampFontSize(fontSize + 1) },
-              }); }
-            }
+            onClick={() => {
+              onUpdateElement(element.id, {
+                style: {
+                  ...element.style,
+                  fontSize: clampFontSize(fontSize + 1),
+                },
+              });
+            }}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-black-30 text-16-semibold text-black-70 hover:border-primary hover:text-primary"
           >
             +
@@ -542,15 +588,17 @@ const TextProperties = ({
           <input
             type="color"
             value={color}
-            onChange={(event) =>
-              { onUpdateElement(element.id, {
+            onChange={(event) => {
+              onUpdateElement(element.id, {
                 style: { ...element.style, color: event.target.value },
-              }); }
-            }
+              });
+            }}
             className="color-input h-10 w-10 cursor-pointer rounded-lg border border-black-30 bg-white-100 p-0 overflow-hidden"
             style={{ WebkitAppearance: "none", appearance: "none" }}
           />
-          <span className="text-14-regular text-black-70 uppercase">{color}</span>
+          <span className="text-14-regular text-black-70 uppercase">
+            {color}
+          </span>
         </div>
       </div>
 
@@ -560,11 +608,14 @@ const TextProperties = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() =>
-              { onUpdateElement(element.id, {
-                style: { ...element.style, fontWeight: isBold ? "normal" : "bold" },
-              }); }
-            }
+            onClick={() => {
+              onUpdateElement(element.id, {
+                style: {
+                  ...element.style,
+                  fontWeight: isBold ? "normal" : "bold",
+                },
+              });
+            }}
             className={`flex h-10 w-10 items-center justify-center rounded-lg border text-16-semibold transition-colors ${
               isBold
                 ? "border-primary bg-primary/10 text-primary"
@@ -575,11 +626,11 @@ const TextProperties = ({
           </button>
           <button
             type="button"
-            onClick={() =>
-              { onUpdateElement(element.id, {
+            onClick={() => {
+              onUpdateElement(element.id, {
                 style: { ...element.style, underline: !isUnderline },
-              }); }
-            }
+              });
+            }}
             className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
               isUnderline
                 ? "border-primary bg-primary/10 text-primary"
@@ -605,11 +656,11 @@ const TextProperties = ({
             <button
               key={key}
               type="button"
-              onClick={() =>
-                { onUpdateElement(element.id, {
+              onClick={() => {
+                onUpdateElement(element.id, {
                   style: { ...element.style, alignX: key },
-                }); }
-              }
+                });
+              }}
               className={`flex-1 flex h-10 items-center justify-center rounded-lg border transition-colors ${
                 align === key
                   ? "border-primary bg-primary/10 text-primary"
@@ -636,11 +687,11 @@ const TextProperties = ({
             <button
               key={key}
               type="button"
-              onClick={() =>
-                { onUpdateElement(element.id, {
+              onClick={() => {
+                onUpdateElement(element.id, {
                   style: { ...element.style, alignY: key },
-                }); }
-              }
+                });
+              }}
               className={`flex-1 flex h-10 items-center justify-center rounded-lg border transition-colors ${
                 alignY === key
                   ? "border-primary bg-primary/10 text-primary"

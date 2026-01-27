@@ -17,6 +17,8 @@ type BorderStyle = "solid" | "dashed" | "dotted" | "double";
 type LineToolbarData = {
   element: LineElement;
   stroke: { color: string; width: number };
+  length: number;
+  angle: number;
 };
 
 type ShapeToolbarData = {
@@ -71,6 +73,36 @@ const ElementToolbars = ({
           : page
       )
     );
+  };
+
+  const updateLineByLengthAndAngle = (
+    elementId: string,
+    newLength: number,
+    angleRad: number,
+    start: { x: number; y: number }
+  ) => {
+    const newEnd = {
+      x: start.x + newLength * Math.cos(angleRad),
+      y: start.y + newLength * Math.sin(angleRad),
+    };
+    updateSelectedPageElement(elementId, (el) => ({
+      ...el,
+      end: newEnd,
+    }));
+  };
+
+  const handleLengthChange = (newLength: number) => {
+    if (!lineToolbarData) return;
+    const { element, angle } = lineToolbarData;
+    const angleRad = (angle * Math.PI) / 180;
+    updateLineByLengthAndAngle(element.id, newLength, angleRad, element.start);
+  };
+
+  const handleAngleChange = (newAngle: number) => {
+    if (!lineToolbarData) return;
+    const { element, length } = lineToolbarData;
+    const angleRad = (newAngle * Math.PI) / 180;
+    updateLineByLengthAndAngle(element.id, length, angleRad, element.start);
   };
 
   // AAC 카드도 기본 shapeToolbar를 표시하고, 추가로 aacToolbar도 함께 표시
@@ -218,6 +250,8 @@ const ElementToolbars = ({
               isVisible
               color={lineToolbarData.stroke.color}
               width={lineToolbarData.stroke.width}
+              length={Math.round(lineToolbarData.length)}
+              angle={Math.round(lineToolbarData.angle)}
               onColorChange={(color: string) =>
                 { updateSelectedPageElement(
                   lineToolbarData.element.id,
@@ -242,6 +276,8 @@ const ElementToolbars = ({
                   })
                 ); }
               }
+              onLengthChange={handleLengthChange}
+              onAngleChange={handleAngleChange}
               onPointerDown={(event) => { event.stopPropagation(); }}
             />
           </div>
@@ -255,6 +291,8 @@ const ElementToolbars = ({
               isVisible
               color={lineToolbarData.stroke.color}
               width={lineToolbarData.stroke.width}
+              length={Math.round(lineToolbarData.length)}
+              angle={Math.round(lineToolbarData.angle)}
               onColorChange={(color: string) =>
                 { updateSelectedPageElement(
                   lineToolbarData.element.id,
@@ -279,6 +317,8 @@ const ElementToolbars = ({
                   })
                 ); }
               }
+              onLengthChange={handleLengthChange}
+              onAngleChange={handleAngleChange}
               onPointerDown={(event) => { event.stopPropagation(); }}
             />
           </div>

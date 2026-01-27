@@ -28,7 +28,9 @@ const CONTEXT_MENU_SIZE = { width: 160, height: 3 * 36 + 8 };
 
 const getPreviewMetrics = (orientation: Page["orientation"]) => {
   const isHorizontal = orientation === "horizontal";
-  const previewBox = isHorizontal ? PREVIEW_BOX.horizontal : PREVIEW_BOX.vertical;
+  const previewBox = isHorizontal
+    ? PREVIEW_BOX.horizontal
+    : PREVIEW_BOX.vertical;
   const pageSize = {
     width: isHorizontal ? PAGE_SIZE_PX.height : PAGE_SIZE_PX.width,
     height: isHorizontal ? PAGE_SIZE_PX.width : PAGE_SIZE_PX.height,
@@ -48,7 +50,7 @@ const getPreviewMetrics = (orientation: Page["orientation"]) => {
 
 const getContextMenuPosition = (
   event: ReactMouseEvent,
-  rect?: DOMRect | null
+  rect?: DOMRect | null,
 ) => {
   const rawX = event.clientX - (rect?.left ?? 0);
   const rawY = event.clientY - (rect?.top ?? 0);
@@ -106,7 +108,9 @@ const PageThumbnail = ({
     >
       <div className="relative">
         <button
-          onClick={() => { onSelect(page.id); }}
+          onClick={() => {
+            onSelect(page.id);
+          }}
           className={`relative flex items-center justify-center rounded-lg border-2 transition cursor-pointer overflow-hidden ${
             isHorizontal ? "w-22.5 h-16" : "w-16 h-22.5"
           } ${
@@ -160,7 +164,7 @@ const PageThumbnail = ({
                 event.stopPropagation();
                 onMovePage?.(page.id, "left");
               }}
-              className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
+              className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
             >
               <ChevronLeft className="w-3 h-3 text-white" />
             </button>
@@ -171,7 +175,7 @@ const PageThumbnail = ({
                 event.stopPropagation();
                 onMovePage?.(page.id, "right");
               }}
-              className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
+              className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full bg-black-70 opacity-0 pointer-events-none transition group-hover:opacity-100 group-hover:pointer-events-auto hover:bg-black-90"
             >
               <ChevronRight className="w-3 h-3 text-white" />
             </button>
@@ -211,19 +215,12 @@ type PageInsertDividerProps = {
   onAdd: () => void;
 };
 
-const PageInsertDivider = ({
-  isVisible,
-  onAdd,
-}: PageInsertDividerProps) => {
+const PageInsertDivider = ({ isVisible, onAdd }: PageInsertDividerProps) => {
   if (!isVisible) return null;
   return (
-    <div
-      className="group relative flex items-center shrink-0 h-full"
-    >
+    <div className="group relative flex items-center shrink-0 h-full">
       <div
-        className={`flex items-center justify-center h-full pb-5 transition-all ${
-          "w-1 group-hover:w-8"
-        }`}
+        className={`flex items-center justify-center h-full pb-5 transition-all ${"w-1 group-hover:w-8"}`}
       >
         <button
           onClick={onAdd}
@@ -275,7 +272,9 @@ const PageContextMenu = ({
     <div
       className="absolute z-50"
       style={{ left: contextMenu.x, top: contextMenu.y }}
-      onPointerDown={(event) => { event.stopPropagation(); }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+      }}
     >
       <div className="w-40 rounded-lg border border-black-25 bg-white-100 py-1 shadow-lg">
         <button
@@ -299,9 +298,7 @@ const PageContextMenu = ({
           }}
           disabled={!hasCopiedPage}
           className={`flex w-full items-center justify-between px-3 py-2 text-14-regular ${
-            hasCopiedPage
-              ? "text-black-90 hover:bg-black-5"
-              : "text-black-40"
+            hasCopiedPage ? "text-black-90 hover:bg-black-5" : "text-black-40"
           }`}
         >
           <span className="flex items-center gap-2">
@@ -354,13 +351,8 @@ const BottomBar = ({
   onMovePage,
   onDuplicatePage,
 }: BottomBarProps) => {
-  const {
-    containerRef,
-    listRef,
-    addButtonRef,
-    registerPageRef,
-    handleWheel,
-  } = useBottomBarScroll({ pages, selectedPageId });
+  const { containerRef, listRef, addButtonRef, registerPageRef, handleWheel } =
+    useBottomBarScroll({ pages, selectedPageId });
   const { createDragHandlers } = useBottomBarDrag({
     pages,
     onReorderPages,
@@ -401,8 +393,12 @@ const BottomBar = ({
       ref={containerRef}
       tabIndex={0}
       className="relative flex shrink-0 w-full h-36 bg-white border-t border-black-25 items-center pt-3 px-4 outline-none"
-      onPointerDown={() => { setContextMenu(null); }}
-      onContextMenu={(event) => { event.preventDefault(); }}
+      onPointerDown={() => {
+        setContextMenu(null);
+      }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+      }}
       onWheel={handleWheel}
     >
       {/* 페이지 리스트 + 추가 버튼 - 가로 스크롤 */}
@@ -428,7 +424,9 @@ const BottomBar = ({
               />
               <PageInsertDivider
                 isVisible={pages.length >= 2 && index < pages.length - 1}
-                onAdd={() => { handleAddPageBetween(index + 1); }}
+                onAdd={() => {
+                  handleAddPageBetween(index + 1);
+                }}
               />
             </Fragment>
           );
@@ -441,7 +439,9 @@ const BottomBar = ({
         onCopyPage={onCopyPage}
         onPastePage={onPastePage}
         onDeletePage={onDeletePage}
-        onClose={() => { setContextMenu(null); }}
+        onClose={() => {
+          setContextMenu(null);
+        }}
         hasCopiedPage={Boolean(getCopiedPageId())}
       />
     </div>

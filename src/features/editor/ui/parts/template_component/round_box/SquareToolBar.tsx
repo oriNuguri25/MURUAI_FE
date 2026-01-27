@@ -1,7 +1,4 @@
-import {
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Ban, Loader2, Upload } from "lucide-react";
 import { useNumberInput } from "../../../../model/useNumberInput";
 import ColorPickerPopover from "../../ColorPickerPopover";
@@ -105,7 +102,7 @@ const SquareToolBar = ({
   };
 
   const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -155,7 +152,9 @@ const SquareToolBar = ({
             inputMode="numeric"
             pattern="[0-9]*"
             value={widthInputHook.displayValue}
-            onChange={(event) => { widthInputHook.handleChange(event.target.value); }}
+            onChange={(event) => {
+              widthInputHook.handleChange(event.target.value);
+            }}
             onBlur={widthInputHook.handleBlur}
             onFocus={widthInputHook.handleFocus}
             onKeyDown={(event) => {
@@ -181,7 +180,9 @@ const SquareToolBar = ({
             inputMode="numeric"
             pattern="[0-9]*"
             value={heightInputHook.displayValue}
-            onChange={(event) => { heightInputHook.handleChange(event.target.value); }}
+            onChange={(event) => {
+              heightInputHook.handleChange(event.target.value);
+            }}
             onBlur={heightInputHook.handleBlur}
             onFocus={heightInputHook.handleFocus}
             onKeyDown={(event) => {
@@ -209,7 +210,9 @@ const SquareToolBar = ({
           <div className="flex items-center gap-1 rounded border border-black-30 px-1">
             <button
               type="button"
-              onClick={() => { handleBorderRadiusStep(-1); }}
+              onClick={() => {
+                handleBorderRadiusStep(-1);
+              }}
               className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
               aria-label="Decrease border radius"
             >
@@ -220,7 +223,9 @@ const SquareToolBar = ({
               inputMode="numeric"
               pattern="[0-9]*"
               value={radiusInputHook.displayValue}
-              onChange={(event) => { radiusInputHook.handleChange(event.target.value); }}
+              onChange={(event) => {
+                radiusInputHook.handleChange(event.target.value);
+              }}
               onBlur={radiusInputHook.handleBlur}
               onFocus={radiusInputHook.handleFocus}
               onKeyDown={(event) => {
@@ -240,7 +245,9 @@ const SquareToolBar = ({
             />
             <button
               type="button"
-              onClick={() => { handleBorderRadiusStep(1); }}
+              onClick={() => {
+                handleBorderRadiusStep(1);
+              }}
               className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
               aria-label="Increase border radius"
             >
@@ -256,7 +263,9 @@ const SquareToolBar = ({
       <div className="relative">
         <button
           type="button"
-          onClick={() => { setIsBorderPanelOpen((prev) => !prev); }}
+          onClick={() => {
+            setIsBorderPanelOpen((prev) => !prev);
+          }}
           className={`flex h-7 items-center justify-center rounded border px-2 text-14-regular ${
             borderEnabled || isBorderPanelOpen
               ? "border-primary text-primary"
@@ -269,7 +278,9 @@ const SquareToolBar = ({
         {isBorderPanelOpen && (
           <div
             className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-black-25 bg-white-100 p-3 shadow-lg"
-            onPointerDown={(event) => { event.stopPropagation(); }}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
           >
             <div className="flex items-center gap-2">
               {borderStyleOptions.map((styleOption) => {
@@ -284,7 +295,9 @@ const SquareToolBar = ({
                     <button
                       key={styleOption}
                       type="button"
-                      onClick={() => { handleBorderStyleSelect(styleOption); }}
+                      onClick={() => {
+                        handleBorderStyleSelect(styleOption);
+                      }}
                       className={buttonClass}
                       aria-label="No border"
                     >
@@ -296,9 +309,9 @@ const SquareToolBar = ({
                   <button
                     key={styleOption}
                     type="button"
-                    onClick={() =>
-                      { handleBorderStyleSelect(styleOption); }
-                    }
+                    onClick={() => {
+                      handleBorderStyleSelect(styleOption);
+                    }}
                     className={buttonClass}
                     aria-label={`${styleOption} border`}
                   >
@@ -326,7 +339,7 @@ const SquareToolBar = ({
                 disabled={!borderEnabled}
                 onChange={(event) =>
                   onBorderWidthChange?.(
-                    clampBorderWidth(Number(event.target.value))
+                    clampBorderWidth(Number(event.target.value)),
                   )
                 }
                 className="flex-1"
@@ -359,7 +372,8 @@ const SquareToolBar = ({
           </div>
         )}
       </div>
-      <label className="flex h-7 items-center gap-1.5 rounded border border-black-30 px-2 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
+      <label
+        className="flex h-7 items-center gap-1.5 rounded border border-black-30 px-2 text-black-70 hover:border-primary hover:text-primary transition-colors cursor-pointer aria-disabled:opacity-60 aria-disabled:cursor-not-allowed"
         aria-disabled={isUploading}
         aria-label="Upload image"
       >
@@ -368,7 +382,7 @@ const SquareToolBar = ({
         ) : (
           <Upload className="h-4 w-4" />
         )}
-        <span className="text-14-regular">이미지</span>
+        <span className="text-14-regular">사진/이미지</span>
         <input
           type="file"
           accept="image/jpeg,image/png"

@@ -70,7 +70,7 @@ const Arrow = ({
   const handleSize = 10;
   const halfHandle = handleSize / 2;
   const angleRad = Math.atan2(safeEnd.y - safeStart.y, safeEnd.x - safeStart.x);
-  const angleDeg = ((angleRad * 180) / Math.PI + 360) % 360;
+  const angleDeg = Math.round(((angleRad * 180) / Math.PI + 360) % 360) % 360;
 
   const getPointerPosition = (event: PointerEvent, scale: number) => {
     const rect = wrapperRef.current?.getBoundingClientRect();
