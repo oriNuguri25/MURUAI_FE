@@ -3,26 +3,21 @@ import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/supabase/supabase";
 import { useToastStore } from "../store/toastStore";
 import { useImageFillStore } from "../store/imageFillStore";
+import {
+  type ImageStyle,
+  type StyleOption,
+  STYLE_OPTIONS,
+  buildPromptWithStyle,
+} from "../constants/aiImageStylePrompts";
 
-export type ImageStyle = "photo" | "illustration" | "lineart";
-
-export type StyleOption = {
-  id: ImageStyle;
-  label: string;
-  stylePrompt: string | null;
-};
+export type { ImageStyle, StyleOption };
+export { STYLE_OPTIONS };
 
 export type GeneratedImage = {
   id: string;
   url: string;
   createdAt: string;
 };
-
-export const STYLE_OPTIONS: StyleOption[] = [
-  { id: "photo", label: "실사 이미지", stylePrompt: null },
-  { id: "illustration", label: "그림, 일러스트", stylePrompt: null },
-  { id: "lineart", label: "흑백 선화", stylePrompt: null },
-];
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as string | undefined;
@@ -122,19 +117,7 @@ export const useAiImageGeneration = () => {
   const showToast = useToastStore((s) => s.showToast);
   const requestImageFill = useImageFillStore((s) => s.requestImageFill);
 
-  const getSelectedStyleOption = () =>
-    STYLE_OPTIONS.find((option) => option.id === selectedStyle);
-
-  const buildFinalPrompt = () => {
-    const styleOption = getSelectedStyleOption();
-    const stylePrompt = styleOption?.stylePrompt;
-    const userPrompt = prompt.trim();
-
-    if (stylePrompt && userPrompt) {
-      return `${stylePrompt}, ${userPrompt}`;
-    }
-    return userPrompt;
-  };
+  const buildFinalPrompt = () => buildPromptWithStyle(selectedStyle, prompt);
 
   const canGenerate = prompt.trim().length > 0 && !isGenerating;
 
