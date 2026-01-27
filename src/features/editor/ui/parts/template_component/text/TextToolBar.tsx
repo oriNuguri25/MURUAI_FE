@@ -75,20 +75,18 @@ const TextToolBar = ({
 }: TextToolBarProps) => {
   const clampFontSize = (value: number) =>
     Math.min(maxFontSize, Math.max(minFontSize, value));
-  const clampLineHeight = (value: number) =>
-    Math.min(5, Math.max(0.5, value));
+  const clampLineHeight = (value: number) => Math.min(5, Math.max(0.5, value));
   const clampLetterSpacing = (value: number) =>
     Math.min(20, Math.max(-10, value));
-  const formatNumber = (value: number) =>
-    String(Math.round(value * 100) / 100);
+  const formatNumber = (value: number) => String(Math.round(value * 100) / 100);
   const [fontSizeInput, setFontSizeInput] = useState(() => String(fontSize));
   const [isFontSizeEditing, setIsFontSizeEditing] = useState(false);
   const [lineHeightInput, setLineHeightInput] = useState(() =>
-    formatNumber(lineHeight)
+    formatNumber(lineHeight),
   );
   const [isLineHeightEditing, setIsLineHeightEditing] = useState(false);
   const [letterSpacingInput, setLetterSpacingInput] = useState(() =>
-    formatNumber(letterSpacing)
+    formatNumber(letterSpacing),
   );
   const [isLetterSpacingEditing, setIsLetterSpacingEditing] = useState(false);
 
@@ -146,11 +144,20 @@ const TextToolBar = ({
     <div
       className="flex flex-nowrap items-center gap-2 whitespace-nowrap"
       onPointerDown={onPointerDown}
-      onMouseDown={(event) => { event.preventDefault(); }}
+      onMouseDown={(event) => {
+        // input 요소는 preventDefault 하지 않음
+        const target = event.target as HTMLElement;
+        if (target.tagName === "INPUT") {
+          return;
+        }
+        event.preventDefault();
+      }}
     >
       <button
         type="button"
-        onMouseDown={(event) => { event.preventDefault(); }}
+        onMouseDown={(event) => {
+          event.preventDefault();
+        }}
         onClick={onFontFamilyClick}
         className="flex items-center gap-2 rounded border border-black-30 px-2 py-1 text-14-regular text-black-70 hover:border-primary hover:text-primary"
       >
@@ -165,7 +172,9 @@ const TextToolBar = ({
       <div className="flex items-center gap-1 rounded border border-black-30 px-1">
         <button
           type="button"
-          onClick={() => { onFontSizeStep(-1); }}
+          onClick={() => {
+            onFontSizeStep(-1);
+          }}
           className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
           aria-label="Decrease font size"
         >
@@ -179,6 +188,12 @@ const TextToolBar = ({
           onChange={(event) => {
             const digits = event.target.value.replace(/[^0-9]/g, "");
             setFontSizeInput(digits);
+          }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation();
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
@@ -206,7 +221,9 @@ const TextToolBar = ({
         />
         <button
           type="button"
-          onClick={() => { onFontSizeStep(1); }}
+          onClick={() => {
+            onFontSizeStep(1);
+          }}
           className="flex h-7 w-7 items-center justify-center text-14-semibold text-black-70"
           aria-label="Increase font size"
         >
@@ -226,6 +243,12 @@ const TextToolBar = ({
           onChange={(event) => {
             const nextValue = event.target.value.replace(/[^0-9.-]/g, "");
             setLetterSpacingInput(nextValue);
+          }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation();
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
@@ -264,6 +287,12 @@ const TextToolBar = ({
           onChange={(event) => {
             const nextValue = event.target.value.replace(/[^0-9.-]/g, "");
             setLineHeightInput(nextValue);
+          }}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation();
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter") return;
@@ -313,10 +342,10 @@ const TextToolBar = ({
       <button
         type="button"
         onClick={onToggleUnderline}
-        className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
+        className={`group relative flex h-7 w-7 items-center justify-center rounded ${
           isUnderline
-            ? "border-primary text-primary"
-            : "border-black-30 text-black-70"
+            ? "border border-primary text-primary"
+            : "border border-black-30 text-black-70"
         }`}
         aria-label="밑줄"
       >
@@ -328,10 +357,10 @@ const TextToolBar = ({
       <button
         type="button"
         onClick={onToggleItalic}
-        className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
+        className={`group relative flex h-7 w-7 items-center justify-center rounded ${
           isItalic
-            ? "border-primary text-primary"
-            : "border-black-30 text-black-70"
+            ? "border border-primary text-primary"
+            : "border border-black-30 text-black-70"
         }`}
         aria-label="기울임꼴"
       >
@@ -343,10 +372,10 @@ const TextToolBar = ({
       <button
         type="button"
         onClick={onToggleStrikethrough}
-        className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
+        className={`group relative flex h-7 w-7 items-center justify-center rounded ${
           isStrikethrough
-            ? "border-primary text-primary"
-            : "border-black-30 text-black-70"
+            ? "border border-primary text-primary"
+            : "border border-black-30 text-black-70"
         }`}
         aria-label="취소선"
       >
@@ -366,7 +395,9 @@ const TextToolBar = ({
           <button
             key={key}
             type="button"
-            onClick={() => { onAlignChange(key); }}
+            onClick={() => {
+              onAlignChange(key);
+            }}
             className={`group relative flex h-7 w-7 items-center justify-center rounded border ${
               align === key
                 ? "border-primary text-primary"
@@ -396,7 +427,9 @@ const TextToolBar = ({
           <button
             key={key}
             type="button"
-            onClick={() => { onAlignYChange(key); }}
+            onClick={() => {
+              onAlignYChange(key);
+            }}
             className={`group relative flex h-7 w-7 items-center justify-center rounded border text-12-medium ${
               alignY === key
                 ? "border-primary text-primary"

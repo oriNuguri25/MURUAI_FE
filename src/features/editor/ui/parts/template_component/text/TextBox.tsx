@@ -373,7 +373,13 @@ const TextBox = ({
             <div
               data-textbox-toolbar="true"
               className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-              onMouseDownCapture={(event) => { event.preventDefault(); }}
+              onMouseDown={(event) => {
+                // INPUT 요소가 아닌 경우에만 preventDefault
+                const target = event.target as HTMLElement;
+                if (target.tagName !== 'INPUT') {
+                  event.preventDefault();
+                }
+              }}
             >
               <TextToolBar
                 isVisible
@@ -414,7 +420,13 @@ const TextBox = ({
           <div
             data-textbox-toolbar="true"
             className="w-fit px-3 py-2 bg-white-100 border border-black-25 rounded-lg shadow-lg pointer-events-auto"
-            onMouseDownCapture={(event) => { event.preventDefault(); }}
+            onMouseDown={(event) => {
+              // INPUT 요소가 아닌 경우에만 preventDefault
+              const target = event.target as HTMLElement;
+              if (target.tagName !== 'INPUT') {
+                event.preventDefault();
+              }
+            }}
           >
             <TextToolBar
               isVisible
