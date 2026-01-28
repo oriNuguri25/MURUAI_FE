@@ -341,11 +341,9 @@ export const useSelectionState = ({
       height: element.h,
     };
     const radius =
-      element.type === "roundRect"
-        ? element.radius ?? 0
-        : element.type === "ellipse"
+      element.type === "ellipse"
         ? Math.min(rect.width, rect.height) / 2
-        : 0;
+        : element.radius ?? 0;
     const maxRadius = Math.min(rect.width, rect.height) / 2;
     const minRadius = 0;
     const clampRadius = (value: number) =>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { GoogleGenAI } from "@google/genai";
 import { supabase } from "@/shared/supabase/supabase";
 import { useToastStore } from "../store/toastStore";
@@ -16,12 +16,28 @@ export { STYLE_OPTIONS };
 export type GeneratedImage = {
   id: string;
   url: string;
+  prompt?: string;
+  style?: string;
   createdAt: string;
 };
 
-const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as string | undefined;
-const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
+export type UsageStatus = {
+  used: number;
+  limit: number;
+  remaining: number;
+  canGenerate: boolean;
+};
+
+const DAILY_LIMIT = 20;
+
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as
+  | string
+  | undefined;
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLAUDINARY_CLOUD_NAME as
+  | string
+  | undefined;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env
+  .VITE_CLAUDINARY_UPLOAD_PRESET as string | undefined;
 
 const getCloudinaryUrl = (path: string): string => {
   if (path.startsWith("http://") || path.startsWith("https://")) {
@@ -65,7 +81,7 @@ const generateImageWithGemini = async (prompt: string): Promise<string> => {
 
 const uploadToCloudinary = async (
   base64Data: string,
-  userId: string
+  userId: string,
 ): Promise<string> => {
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
     throw new Error("Cloudinary is not configured");
@@ -85,7 +101,7 @@ const uploadToCloudinary = async (
     {
       method: "POST",
       body: formData,
-    }
+    },
   );
 
   if (!response.ok) {
@@ -105,60 +121,201 @@ const uploadToCloudinary = async (
 /**
  * AI 이미지 생성 훅
  * - Gemini API 호출 + Cloudinary 업로드 로직 담당
+ * - DB에 이미지 저장 및 이력 관리
+ * - 일일 생성 횟수 제한 (20회/일) - 실제 생성 결과물 기준
  * - store 구독은 selector 기반
  */
 export const useAiImageGeneration = () => {
   const [selectedStyle, setSelectedStyle] = useState<ImageStyle>("photo");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [usageStatus, setUsageStatus] = useState<UsageStatus>({
+    used: 0,
+    limit: DAILY_LIMIT,
+    remaining: DAILY_LIMIT,
+    canGenerate: true,
+  });
 
   // selector 기반 구독
   const showToast = useToastStore((s) => s.showToast);
   const requestImageFill = useImageFillStore((s) => s.requestImageFill);
 
+  // 사용량 상태 조회 (ai_generated_images 테이블 기반)
+  const fetchUsageStatus = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc("get_ai_image_usage_status", {
+        daily_limit: DAILY_LIMIT,
+      });
+      if (error) throw error;
+      if (data) {
+        setUsageStatus({
+          used: data.used,
+          limit: data.limit,
+          remaining: data.remaining,
+          canGenerate: data.can_generate,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch usage status:", error);
+    }
+  }, []);
+
+  // 생성 이력 조회
+  const fetchGeneratedImages = useCallback(async () => {
+    setIsLoadingHistory(true);
+    try {
+      const { data, error } = await supabase.rpc("get_ai_generated_images", {
+        p_limit: 50,
+        p_offset: 0,
+      });
+      if (error) throw error;
+      if (data) {
+        const images: GeneratedImage[] = data.map(
+          (item: {
+            id: string;
+            image_url: string;
+            prompt: string;
+            style: string;
+            created_at: string;
+          }) => ({
+            id: item.id,
+            url: item.image_url,
+            prompt: item.prompt,
+            style: item.style,
+            createdAt: item.created_at,
+          }),
+        );
+        setGeneratedImages(images);
+      }
+    } catch (error) {
+      console.error("Failed to fetch generated images:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
+  // 컴포넌트 마운트 시 사용량 및 이력 조회
+  useEffect(() => {
+    fetchUsageStatus();
+    fetchGeneratedImages();
+  }, [fetchUsageStatus, fetchGeneratedImages]);
+
   const buildFinalPrompt = () => buildPromptWithStyle(selectedStyle, prompt);
 
-  const canGenerate = prompt.trim().length > 0 && !isGenerating;
+  const canGenerate =
+    prompt.trim().length > 0 && !isGenerating && usageStatus.canGenerate;
 
   const generate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
-    const { data } = await supabase.auth.getUser();
-    const user = data.user;
-    if (!user) {
-      showToast("로그인이 필요해요.");
-      return;
-    }
-
-    if (!GOOGLE_API_KEY) {
-      showToast("API 설정이 필요해요.");
-      return;
-    }
-
+    // 중복 클릭 방지를 위해 즉시 비활성화
     setIsGenerating(true);
-    const finalPrompt = buildFinalPrompt();
 
     try {
+      const { data } = await supabase.auth.getUser();
+      const user = data.user;
+      if (!user) {
+        showToast("로그인이 필요해요.");
+        setIsGenerating(false);
+        return;
+      }
+
+      if (!GOOGLE_API_KEY) {
+        showToast("API 설정이 필요해요.");
+        setIsGenerating(false);
+        return;
+      }
+
+      // 생성 가능 여부 체크 (DB 기준)
+      try {
+        const { data: canGen, error: checkError } = await supabase.rpc(
+          "can_generate_ai_image",
+          { daily_limit: DAILY_LIMIT },
+        );
+        if (checkError) throw checkError;
+
+        if (!canGen) {
+          showToast(
+            `오늘의 이미지 생성 횟수(${DAILY_LIMIT}회)를 모두 사용했어요.`,
+          );
+          await fetchUsageStatus();
+          setIsGenerating(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to check usage:", error);
+        showToast("사용량 확인에 실패했어요. 다시 시도해주세요.");
+        setIsGenerating(false);
+        return;
+      }
+      const finalPrompt = buildFinalPrompt();
+      const userPrompt = prompt.trim();
+
       const base64Image = await generateImageWithGemini(finalPrompt);
       const imagePath = await uploadToCloudinary(base64Image, user.id);
       const imageUrl = getCloudinaryUrl(imagePath);
 
+      // DB에 이미지 저장 (사용량 카운트도 이 테이블 기준)
+      const { data: savedId, error: saveError } = await supabase.rpc(
+        "save_ai_generated_image",
+        {
+          p_image_url: imageUrl,
+          p_prompt: userPrompt,
+          p_style: selectedStyle,
+          daily_limit: DAILY_LIMIT,
+        },
+      );
+
+      if (saveError) {
+        console.error("Failed to save image to DB:", saveError);
+      }
+
+      // 제한 초과로 저장 실패한 경우
+      if (savedId === null) {
+        showToast(
+          `오늘의 이미지 생성 횟수(${DAILY_LIMIT}회)를 모두 사용했어요.`,
+        );
+        await fetchUsageStatus();
+        return;
+      }
+
       const newImage: GeneratedImage = {
-        id: crypto.randomUUID(),
+        id: savedId || crypto.randomUUID(),
         url: imageUrl,
+        prompt: userPrompt,
+        style: selectedStyle,
         createdAt: new Date().toISOString(),
       };
       setGeneratedImages((prev) => [newImage, ...prev]);
 
-      // 캔버스에 이미지 요소로 바로 추가
-      requestImageFill(imageUrl, "AI 생성 이미지", { width: 300, height: 300 });
+      // 사용량 상태 업데이트
+      setUsageStatus((prev) => {
+        const newUsed = prev.used + 1;
+        return {
+          ...prev,
+          used: newUsed,
+          remaining: Math.max(0, DAILY_LIMIT - newUsed),
+          canGenerate: newUsed < DAILY_LIMIT,
+        };
+      });
 
-      showToast("이미지가 생성되었어요!");
+      // 캔버스에 이미지 요소로 바로 추가 (선택된 요소와 무관하게 새 요소로 삽입)
+      requestImageFill(
+        imageUrl,
+        undefined,
+        { width: 300, height: 300 },
+        { forceInsert: true },
+      );
+
+      showToast(
+        `이미지가 생성되었어요! (${usageStatus.used + 1}/${DAILY_LIMIT})`,
+      );
     } catch (error) {
       console.error("Image generation failed:", error);
       showToast(
-        error instanceof Error ? error.message : "이미지 생성에 실패했어요."
+        error instanceof Error ? error.message : "이미지 생성에 실패했어요.",
       );
     } finally {
       setIsGenerating(false);
@@ -166,7 +323,12 @@ export const useAiImageGeneration = () => {
   };
 
   const addImageToCanvas = (imageUrl: string) => {
-    requestImageFill(imageUrl);
+    requestImageFill(
+      imageUrl,
+      undefined,
+      { width: 300, height: 300 },
+      { forceInsert: true },
+    );
   };
 
   return {
@@ -174,12 +336,15 @@ export const useAiImageGeneration = () => {
     selectedStyle,
     prompt,
     isGenerating,
+    isLoadingHistory,
     generatedImages,
     canGenerate,
+    usageStatus,
     // actions
     setSelectedStyle,
     setPrompt,
     generate,
     addImageToCanvas,
+    refreshHistory: fetchGeneratedImages,
   };
 };

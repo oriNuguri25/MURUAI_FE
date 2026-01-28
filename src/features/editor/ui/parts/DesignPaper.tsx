@@ -1265,11 +1265,9 @@ const DesignPaper = ({
     if (!rect) return null;
     const isSelected = selectedIds.includes(element.id);
     const radius =
-      element.type === "roundRect"
-        ? element.radius ?? 0
-        : element.type === "ellipse"
+      element.type === "ellipse"
         ? Math.min(rect.width, rect.height) / 2
-        : 0;
+        : element.radius ?? 0;
     const isImageFill =
       element.fill.startsWith("url(") ||
       element.fill.startsWith("data:");
