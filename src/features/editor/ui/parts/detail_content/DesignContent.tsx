@@ -4,6 +4,7 @@ import {
   STYLE_OPTIONS,
   type ImageStyle,
   type GeneratedImage,
+  type UsageStatus,
 } from "../../../hooks/useAiImageGeneration";
 
 /**
@@ -89,6 +90,7 @@ type DesignContentViewProps = {
   isGenerating: boolean;
   generatedImages: GeneratedImage[];
   canGenerate: boolean;
+  usageStatus: UsageStatus;
   onSelectStyle: (style: ImageStyle) => void;
   onPromptChange: (value: string) => void;
   onGenerate: () => void;
@@ -105,15 +107,19 @@ const DesignContentView = ({
   isGenerating,
   generatedImages,
   canGenerate,
+  usageStatus,
   onSelectStyle,
   onPromptChange,
   onGenerate,
   onImageClick,
 }: DesignContentViewProps) => (
   <div className="flex flex-col w-full h-full gap-6">
-    <div className="flex items-center text-start">
+    <div className="flex items-center justify-between text-start">
       <span className="text-14-regular text-black-70">
         AI로 원하는 이미지를 생성해보세요.
+      </span>
+      <span className={`text-12-medium ${usageStatus.remaining <= 5 ? "text-red-500" : "text-black-50"}`}>
+        {usageStatus.used}/{usageStatus.limit}회
       </span>
     </div>
 
@@ -188,6 +194,7 @@ const DesignContent = () => {
     isGenerating,
     generatedImages,
     canGenerate,
+    usageStatus,
     setSelectedStyle,
     setPrompt,
     generate,
@@ -201,6 +208,7 @@ const DesignContent = () => {
       isGenerating={isGenerating}
       generatedImages={generatedImages}
       canGenerate={canGenerate}
+      usageStatus={usageStatus}
       onSelectStyle={setSelectedStyle}
       onPromptChange={setPrompt}
       onGenerate={generate}

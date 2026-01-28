@@ -269,7 +269,7 @@ export const addShapeElement = ({
     w: size,
     h: size,
     fill: "#b7c3ff",
-    ...(elementType === "roundRect" ? { radius: mmToPx(8) } : {}),
+    radius: elementType === "roundRect" ? mmToPx(8) : 0,
     border: {
       enabled: false,
       color: "#000000",
